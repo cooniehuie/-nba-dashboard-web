@@ -1665,12 +1665,11 @@ if section=="Overview":
         if st.button("View daily Bankroll Builder results",key="open_bankroll_performance"):
             st.info("Choose Bankroll Builder Performance in the sidebar to view daily results and date filters.")
         st.title("Daily NBA Projections")
-        st.caption("Model projections · Favorites · Safer lines · Recent player performance")
-        a,b,c,d=st.columns(4)
+        st.caption("Model projections · Safer lines · Recent player performance")
+        a,b,c=st.columns(3)
         a.metric("Games",len(sheets[schedule]) if schedule else len(games))
         b.metric("Player props",len(sheets[allprops]) if allprops else "—")
-        c.metric("Model's Favorite Props",len(sheets[favorites]) if favorites else "—")
-        d.metric("Bankroll Builder plays",len(sheets[bankroll]) if bankroll else "—")
+        c.metric("Bankroll Builder plays",len(sheets[bankroll]) if bankroll else "—")
         st.subheader("Today's games")
         if schedule:show_table(schedule,False)
         else:st.info("No game schedule sheet found.")
@@ -1688,8 +1687,6 @@ if section=="Overview":
                 else:st.info("No props with three available recent games and a 3/3 historical match.")
         st.subheader("Bankroll Builder")
         if bankroll:show_table(bankroll,False)
-        st.subheader("Model's Favorite Props")
-        if favorites:show_table(favorites,False)
 
     # Mobile-only homepage: performance stays visible; other sections start collapsed.
     with st.container(key="mobile_overview"):
@@ -1699,13 +1696,11 @@ if section=="Overview":
                      on_click=lambda:st.session_state.update({"site_nav":"Bankroll Builder Performance"})):
             pass
         with st.expander("🏀 Daily NBA Projections",expanded=False):
-            st.caption("Model projections · Favorites · Safer lines")
+            st.caption("Model projections · Safer lines")
             a,b=st.columns(2)
             a.metric("Games",len(sheets[schedule]) if schedule else len(games))
             b.metric("Player props",len(sheets[allprops]) if allprops else "—")
-            c,d=st.columns(2)
-            c.metric("Model's Favorite Props",len(sheets[favorites]) if favorites else "—")
-            d.metric("Bankroll Builder plays",len(sheets[bankroll]) if bankroll else "—")
+            st.metric("Bankroll Builder plays",len(sheets[bankroll]) if bankroll else "—")
         with st.expander("🏀 Today's Games",expanded=False):
             if schedule:show_table(schedule,False,key_suffix="_mobile_home")
             else:st.info("No game schedule sheet found.")
@@ -1726,9 +1721,6 @@ if section=="Overview":
         with st.expander("💰 Bankroll Builder",expanded=False):
             if bankroll:show_table(bankroll,False,key_suffix="_mobile_home")
             else:st.info("No Bankroll Builder sheet found.")
-        with st.expander("⭐ Model's Favorite Props",expanded=False):
-            if favorites:show_table(favorites,False,key_suffix="_mobile_home")
-            else:st.info("No Favorites sheet found.")
 elif section=="Bankroll Builder Performance":
     show_bankroll_performance()
 elif section=="🔴 Bankroll Builder Live Tracking":
