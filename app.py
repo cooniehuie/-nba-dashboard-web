@@ -13,15 +13,31 @@ st.markdown("""<style>
 .block-container{padding-top:1.6rem;max-width:1600px}
 [data-testid="stAppViewContainer"]{background:linear-gradient(160deg,#0f172a08,transparent 32%)}
 [data-testid="stSidebar"]{background:#111827;color:#f9fafb}
-[data-testid="stSidebar"] *{color:inherit}
+/* Explicit text colors without overriding button/input text */
+[data-testid="stSidebar"] h1,[data-testid="stSidebar"] h2,
+[data-testid="stSidebar"] h3,[data-testid="stSidebar"] p,
+[data-testid="stSidebar"] label,[data-testid="stSidebar"] [data-testid="stCaptionContainer"]{color:#f1f5f9}
+[data-testid="stSidebar"] button{background:#f8fafc!important;color:#111827!important;border:1px solid #cbd5e1!important}
+[data-testid="stSidebar"] button *{color:#111827!important}
+[data-testid="stSidebar"] button:hover{background:#e2e8f0!important;color:#0f172a!important}
+[data-testid="stSidebar"] [data-testid="stFileUploader"]{background:#f8fafc;border-radius:12px;padding:10px}
+[data-testid="stSidebar"] [data-testid="stFileUploader"] *{color:#111827!important}
+[data-testid="stSidebar"] [data-testid="stAlert"]{background:#e0f2fe!important;border-radius:10px}
+[data-testid="stSidebar"] [data-testid="stAlert"] *{color:#0f172a!important}
+[data-testid="stSidebar"] [data-testid="stRadio"] label{color:#f1f5f9!important}
+[data-testid="stSidebar"] [data-testid="stRadio"] label *{color:#f1f5f9!important}
 [data-testid="stDataFrame"]{border-radius:12px;overflow:hidden}
 h1,h2,h3{letter-spacing:-.025em}
 [data-testid="stMetric"]{border:1px solid #37415130;border-radius:14px;padding:12px 16px;background:#8080800b}
 [data-testid="stSidebar"]{border-right:1px solid #80808030}
 </style>""",unsafe_allow_html=True)
-password=st.secrets.get("DASHBOARD_PASSWORD","")
-if not password:
-    st.error("Dashboard password is not configured. Add DASHBOARD_PASSWORD to the app's Streamlit Secrets.")
+viewer_password=st.secrets.get("DASHBOARD_PASSWORD","")
+admin_password=st.secrets.get("ADMIN_PASSWORD","")
+if not viewer_password:
+    st.error("DASHBOARD_PASSWORD is missing from Streamlit Secrets.")
+    st.stop()
+if admin_password and hmac.compare_digest(admin_password,viewer_password):
+    st.error("ADMIN_PASSWORD must be different from DASHBOARD_PASSWORD.")
     st.stop()
 if not st.session_state.get("authorized",False):
     st.title("🏀 NBA Model Center")
@@ -29,12 +45,18 @@ if not st.session_state.get("authorized",False):
     with st.form("login"):
         supplied=st.text_input("Password",type="password")
         if st.form_submit_button("Sign in",type="primary"):
-            if hmac.compare_digest(supplied,password):
+            if admin_password and hmac.compare_digest(supplied,admin_password):
                 st.session_state.authorized=True
+                st.session_state.role="admin"
                 st.rerun()
-            else: st.error("Incorrect password.")
+            elif hmac.compare_digest(supplied,viewer_password):
+                st.session_state.authorized=True
+                st.session_state.role="viewer"
+                st.rerun()
+            else:st.error("Incorrect password.")
     st.stop()
-
+role=st.session_state.get("role","viewer")
+is_admin=(role=="admin" and bool(admin_password))
 @st.cache_data(show_spinner=False)
 def load_workbook(contents):
     from io import BytesIO
@@ -157,32 +179,37 @@ def saved_workbook():
 with st.sidebar:
     st.title("🏀 NBA Model Center")
     st.caption("Your private model dashboard")
+    st.caption("🔐 Administrator" if is_admin else "👁 Viewer access")
     if st.button("Sign out"):
         st.session_state.authorized=False
+        st.session_state.pop("role",None)
         st.rerun()
     token,storage_repo=storage_settings()
     storage_ready=bool(token and storage_repo)
-    if storage_ready:
-        st.success("Private workbook storage configured")
-    else:
-        st.info("Private storage setup needed. Uploads remain session-only until configured.")
-    uploaded=st.file_uploader("Upload daily NBA workbook",type=["xlsx"],help="Upload a new workbook and save it to private storage.")
-    if uploaded is not None and storage_ready:
-        if st.button("💾 Save workbook permanently",type="primary",use_container_width=True):
-            try:
-                data=uploaded.getvalue()
-                load_workbook(data)
-                github_file("latest.xlsx",data)
-                stamp=datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
-                github_file("history/"+stamp+".xlsx",data)
-                saved_workbook.clear()
-                st.success("Saved! This workbook will load automatically on future visits.")
-            except Exception as exc:st.error(f"Could not save workbook: {exc}")
-    if storage_ready:
-        if st.button("↻ Reload saved workbook",use_container_width=True):
+    uploaded=None
+    if is_admin:
+        if storage_ready:st.success("Private workbook storage configured")
+        else:st.info("Private storage setup needed.")
+        uploaded=st.file_uploader("Upload daily NBA workbook",type=["xlsx"],help="Upload and save a workbook to private storage.")
+        if uploaded is not None and storage_ready:
+            if st.button("💾 Save workbook permanently",type="primary",use_container_width=True):
+                try:
+                    data=uploaded.getvalue()
+                    load_workbook(data)
+                    github_file("latest.xlsx",data)
+                    stamp=datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+                    github_file("history/"+stamp+".xlsx",data)
+                    saved_workbook.clear()
+                    st.success("Saved! This workbook will load automatically on future visits.")
+                except Exception as exc:st.error(f"Could not save workbook: {exc}")
+        if storage_ready and st.button("↻ Reload saved workbook",use_container_width=True):
             saved_workbook.clear()
             st.rerun()
-    st.caption("Saved workbooks stay in your separate private GitHub repository.")
+        st.caption("Uploads are saved to your separate private GitHub repository.")
+    else:
+        st.caption("Read-only access. Only the administrator can upload or replace projections.")
+        if not admin_password:
+            st.warning("Admin access is not enabled yet. Add ADMIN_PASSWORD in Streamlit Secrets.")
     st.divider()
     section=st.radio("Navigate",["Overview","Bankroll Builder","Favorite Props","All Player Props","Three-Point Projections","Individual Games"],label_visibility="visible")
 
