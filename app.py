@@ -411,7 +411,10 @@ def grade_bankroll_sheet(frame,game_date):
         actual=candidate["stats"].get(market) if candidate else None
         result="Pending"
         if game and game["state"]=="post":
-            if actual is None:
+            if candidate and candidate.get("dnp"):
+                result="DNP"
+                actual=None
+            elif actual is None:
                 # Missing boxscore stats may indicate DNP, injury, or a feed error.
                 # Only explicit inactive/didNotPlay evidence should be excluded.
                 result="Unverified"
@@ -442,14 +445,17 @@ def historical_safe_line_grades(date_key):
         player=match_espn_player(p,players)
         actual=player["stats"].get(m) if player else None
         game=player["game"] if player else None
-        if actual is None:
+        if player and player.get("dnp") and game and game["state"]=="post":
+            result="DNP"
+            actual=None
+        elif actual is None:
             result="Unverified"
         elif game["state"]=="post":
             result="Hit" if actual>=line else "Loss"
         else:
             result="Pending"
         rows.append({"Player":p,"Market":m,"Safer line":f"{line}+ {m.lower()}",
-                     "Actual":actual if actual is not None else "Unavailable",
+                     "Actual":actual if actual is not None else ("DNP" if result=="DNP" else "Unavailable"),
                      "Result":result,
                      "Game status":game["detail"] if game else "Unmatched"})
     return rows
@@ -682,10 +688,11 @@ def show_bankroll_performance():
         verified_count=int(detail["Result"].isin(["Hit","Loss"]).sum())
         hit_count=int((detail["Result"]=="Hit").sum())
         loss_count=int((detail["Result"]=="Loss").sum())
-        st.caption(f"Box-score graded: {verified_count}/{len(detail)} picks · {hit_count} hits · {loss_count} misses. Unavailable player stats remain unverified.")
+        dnp_count=int((detail["Result"]=="DNP").sum())
+        st.caption(f"Box-score graded: {verified_count}/{len(detail)} picks · {hit_count} hits · {loss_count} misses · {dnp_count} DNPs. Unavailable player stats remain unverified unless ESPN explicitly marks the player as DNP.")
         tab_all,tab_hits,tab_losses,tab_unknown=st.tabs([
             f"All ({len(detail)})",f"✅ Hits ({hit_count})",f"❌ Misses ({loss_count})",
-            f"Unverified ({len(detail)-verified_count})"])
+            f"DNP / Unverified ({len(detail)-verified_count})"])
         subsets=(detail,detail[detail["Result"]=="Hit"],detail[detail["Result"]=="Loss"],
                  detail[~detail["Result"].isin(["Hit","Loss"])])
         for idx,(tab,subset) in enumerate(zip((tab_all,tab_hits,tab_losses,tab_unknown),subsets)):
@@ -1265,7 +1272,7 @@ def espn_nba_boxscores(date_string):
                     labels=[str(x).upper() for x in group.get("labels",[])]
                     keys=[str(x).lower() for x in group.get("keys",[])]
                     for athlete in group.get("athletes",[]):
-                        if athlete.get("didNotPlay") or athlete.get("inactive"):continue
+                        is_dnp=bool(athlete.get("didNotPlay") or athlete.get("inactive"))
                         stats=athlete.get("stats",[])
                         def stat(names):
                             for key in names:
@@ -1285,7 +1292,7 @@ def espn_nba_boxscores(date_string):
                         athlete_info=athlete.get("athlete",{})
                         players.append({"name":athlete_info.get("displayName",athlete_info.get("fullName","")),
                                         "team":team.get("team",{}).get("abbreviation",""),
-                                        "game":game, "stats":values})
+                                        "game":game, "stats":values, "dnp":is_dnp})
         except Exception:
             game["boxscore_error"]=True
     return games,players
