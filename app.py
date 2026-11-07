@@ -677,6 +677,7 @@ def espn_nba_boxscores(date_string):
         comp=(event.get("competitions") or [{}])[0]
         status=event.get("status",{})
         game={"id":eid,"name":event.get("shortName",event.get("name","Game")),
+              "start_utc":event.get("date",""),
               "state":status.get("type",{}).get("state","unknown"),
               "detail":status.get("type",{}).get("shortDetail",status.get("type",{}).get("detail",""))}
         games.append(game)
@@ -780,7 +781,8 @@ def show_personal_bets():
             if not games:
                 st.info("No NBA games found for this date. Choose another date or retry later.")
             else:
-                st.caption("Games: "+" · ".join(g["name"]+" ("+g["detail"]+")" for g in games))
+                games.sort(key=lambda g:g.get("start_utc","") or "9999")
+                st.caption("Games (earliest first): "+" · ".join(g["name"]+" ("+g["detail"]+")" for g in games))
                 if any(g.get("boxscore_error") for g in games):
                     st.warning("Some box scores were unavailable. Missing stats are shown as unavailable, not zero.")
                 unique_props=sorted({(p,m,int(t)) for _,_,_,legs in all_bets for p,m,t in legs})
@@ -800,7 +802,14 @@ def show_personal_bets():
                         progress="🔴 Below target (final)"
                     else:
                         progress="🟡 In progress" if state=="in" else "⚪ Not started / awaiting stats"
+                    from zoneinfo import ZoneInfo
+                    start_time=game.get("start_utc","") if game else ""
+                    try:
+                        tipoff=datetime.fromisoformat(start_time.replace("Z","+00:00")).astimezone(ZoneInfo("America/Los_Angeles")).strftime("%-I:%M %p PT")
+                    except (ValueError,TypeError):
+                        tipoff="Unknown"
                     rows.append({"Player":p,"Stat":m,"Target":str(t)+"+","Actual":value,
+                                 "Game time":tipoff,"_sort_time":start_time or "9999",
                                  "Needed":max(0,t-value) if value is not None else None,
                                  "Game":game["name"] if game else "Unmatched",
                                  "Clock / Status":game["detail"] if game else "Unavailable",
@@ -814,7 +823,8 @@ def show_personal_bets():
                                    "Unavailable legs":unknown,"Progress":hit/len(legs) if legs else 0})
                 t1,t2=st.tabs(["Player statistics","Combo progress"])
                 with t1:
-                    st.dataframe(pd.DataFrame(rows),hide_index=True,use_container_width=True)
+                    stats_df=pd.DataFrame(rows).sort_values(["_sort_time","Game","Player","Stat","Target"],kind="stable").drop(columns=["_sort_time"])
+                    st.dataframe(stats_df,hide_index=True,use_container_width=True)
                 with t2:
                     st.dataframe(pd.DataFrame(combos),hide_index=True,use_container_width=True,
                                  column_config={"Progress":st.column_config.ProgressColumn("Progress",min_value=0,max_value=1,format="%.0f%%")})
