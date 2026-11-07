@@ -1402,6 +1402,27 @@ threes=find_sheet("three-point","three point","3-point")
 excluded={x for x in [schedule,bankroll,favorites,allprops,threes] if x}
 games=[n for n in names if n not in excluded]
 
+@st.cache_data(ttl=300,show_spinner=False)
+def nba_tipoff_times(date_key):
+    """Game start times from ESPN scoreboard; no player boxscore requests."""
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    url="https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard?dates="+date_key
+    req=urllib.request.Request(url,headers={"User-Agent":"Mozilla/5.0","Accept":"application/json"})
+    with urllib.request.urlopen(req,timeout=12) as response:
+        events=json.load(response).get("events",[])
+    result={}
+    for event in events:
+        competitors=(event.get("competitions") or [{}])[0].get("competitors",[])
+        teams={str(c.get("team",{}).get("abbreviation","")).upper() for c in competitors}
+        if len(teams)!=2:continue
+        try:
+            tip=datetime.fromisoformat(event["date"].replace("Z","+00:00"))
+            local=tip.astimezone(ZoneInfo("America/Los_Angeles")).strftime("%I:%M %p PT").lstrip("0")
+            result[frozenset(teams)]=(tip.timestamp(),local)
+        except (ValueError,TypeError,KeyError):continue
+    return result
+
 def show_table(name, allow_filters=True):
     if not name:
         st.info("This section is not present in the uploaded workbook.")
@@ -1410,6 +1431,27 @@ def show_table(name, allow_filters=True):
     if df.empty:
         st.warning("No rows found in this section.")
         return
+    if name==bankroll:
+        # Group picks by matchup, ordered by actual scheduled tipoff.
+        # Keep the original workbook values unchanged.
+        import re
+        from zoneinfo import ZoneInfo
+        game_col=lookup(df,"Game")
+        if game_col:
+            try:
+                today=datetime.now(ZoneInfo("America/Los_Angeles")).strftime("%Y%m%d")
+                tipoffs=nba_tipoff_times(today)
+            except Exception:
+                tipoffs={}
+            def game_sort(value):
+                teams=re.findall(r"[A-Z]{2,4}",str(value).upper())
+                record=tipoffs.get(frozenset(teams)) if len(teams)==2 else None
+                return record if record else (float("inf"),"Time unavailable")
+            df["_tipoff_sort"]=df[game_col].map(lambda v:game_sort(v)[0])
+            df["_tipoff_label"]=df[game_col].map(lambda v:game_sort(v)[1])
+            df=df.sort_values(["_tipoff_sort",game_col],kind="stable")
+            df.insert(df.columns.get_loc(game_col)+1,"Game time",df["_tipoff_label"])
+            df=df.drop(columns=["_tipoff_sort","_tipoff_label"])
     if allow_filters:
         game_col=lookup(df,"Game")
         if game_col:
