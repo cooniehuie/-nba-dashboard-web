@@ -660,6 +660,73 @@ def show_bulk_bet_import():
                             st.rerun()
                         except Exception as exc:st.error("Unable to save positions: "+str(exc))
 
+
+@st.cache_data(ttl=60,show_spinner=False)
+def espn_nba_boxscores(date_string):
+    import unicodedata
+    def fetch(url):
+        req=urllib.request.Request(url,headers={"User-Agent":"Mozilla/5.0 (compatible; HuieDashboard/1.0)","Accept":"application/json"})
+        with urllib.request.urlopen(req,timeout=12) as response:
+            return json.load(response)
+    scoreboard=fetch("https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard?dates="+date_string)
+    events=scoreboard.get("events",[])
+    players=[]
+    games=[]
+    for event in events:
+        eid=event.get("id")
+        comp=(event.get("competitions") or [{}])[0]
+        status=event.get("status",{})
+        game={"id":eid,"name":event.get("shortName",event.get("name","Game")),
+              "state":status.get("type",{}).get("state","unknown"),
+              "detail":status.get("type",{}).get("shortDetail",status.get("type",{}).get("detail",""))}
+        games.append(game)
+        try:
+            summary=fetch("https://site.api.espn.com/apis/site/v2/sports/basketball/nba/summary?event="+str(eid))
+            for team in summary.get("boxscore",{}).get("players",[]):
+                for group in team.get("statistics",[]):
+                    labels=[str(x).upper() for x in group.get("labels",[])]
+                    keys=[str(x).lower() for x in group.get("keys",[])]
+                    for athlete in group.get("athletes",[]):
+                        if athlete.get("didNotPlay") or athlete.get("inactive"):continue
+                        stats=athlete.get("stats",[])
+                        def stat(names):
+                            for key in names:
+                                if key in keys:return stats[keys.index(key)] if keys.index(key)<len(stats) else None
+                                if key.upper() in labels:return stats[labels.index(key.upper())] if labels.index(key.upper())<len(stats) else None
+                            return None
+                        def number(v):
+                            try:return int(float(str(v).replace(",","")))
+                            except (TypeError,ValueError):return None
+                        threes=stat(["3pt","3pm","3-pt"])
+                        if threes is not None and "-" in str(threes):
+                            threes=str(threes).split("-")[0]
+                        values={"Points":number(stat(["pts","points"])),
+                                "Rebounds":number(stat(["reb","rebs","rebounds"])),
+                                "Assists":number(stat(["ast","assists"])),
+                                "Threes":number(threes)}
+                        athlete_info=athlete.get("athlete",{})
+                        players.append({"name":athlete_info.get("displayName",athlete_info.get("fullName","")),
+                                        "team":team.get("team",{}).get("abbreviation",""),
+                                        "game":game, "stats":values})
+        except Exception:
+            game["boxscore_error"]=True
+    return games,players
+
+def match_espn_player(short_name,players):
+    import unicodedata
+    def norm(value):
+        return "".join(ch for ch in unicodedata.normalize("NFKD",str(value).lower()) if ch.isalnum() or ch.isspace()).strip()
+    parts=norm(short_name).split()
+    if len(parts)<2:return None
+    initial=parts[0][0]
+    surname=" ".join(parts[1:])
+    matches=[]
+    for player in players:
+        full=norm(player["name"]).split()
+        if len(full)>1 and full[0].startswith(initial) and (" ".join(full[1:])==surname or full[-1]==parts[-1]):
+            matches.append(player)
+    return matches[0] if len(matches)==1 else None
+
 def show_personal_bets():
     st.title("💸 My Bets · Robinhood")
     st.caption("Admin-only · November 7, 2026 · NBA predictions")
@@ -700,37 +767,60 @@ def show_personal_bets():
                     st.rerun()
                 except ValueError:st.error("Enter a valid dollar amount.")
                 except Exception as exc:st.error("Could not save: "+str(exc))
-    st.subheader("🏀 Live Prop Tracker — Demo")
-    st.warning("ILLUSTRATIVE DATA ONLY — all player statistics and game states below are simulated. They are not live NBA scores or verified Robinhood outcomes.")
-    demo_mode=st.toggle("Show illustrative tracker",value=True,key="demo_prop_tracker")
-    if demo_mode:
-        from collections import defaultdict
-        unique_props=sorted({(p,m,int(t)) for _,_,_,legs in all_bets for p,m,t in legs})
-        # Fixed, deterministic demo values, deliberately not connected to a live feed.
-        demo_stats={}
-        for p,m,t in unique_props:
-            seed=sum((i+1)*ord(ch) for i,ch in enumerate(p+"|"+m))
-            demo_stats[(p,m)]=max(0,round(t*(0.55+((seed%65)/100))))
-        demo_rows=[]
-        for p,m,t in unique_props:
-            actual=demo_stats[(p,m)]
-            demo_rows.append({"Player":p,"Stat":m,"Target":str(t)+"+","Demo actual":actual,
-                              "Still needed":max(0,t-actual),"Demo leg": "🟢 Reached" if actual>=t else "🟡 In progress",
-                              "Progress":min(1.0,actual/t) if t else 1.0})
-        combo_demo=[]
-        for name,qty,price,legs in all_bets:
-            hit=sum(demo_stats.get((p,m),0)>=int(t) for p,m,t in legs)
-            combo_demo.append({"Combo":name,"Demo legs reached":str(hit)+"/"+str(len(legs)),
-                               "Demo progress":hit/len(legs) if legs else 0,
-                               "Demo state":"🟢 All reached" if hit==len(legs) else "🟡 In progress"})
-        tab_players,tab_combos=st.tabs(["Player prop progress","Combo progress"])
-        with tab_players:
-            st.dataframe(pd.DataFrame(demo_rows),hide_index=True,use_container_width=True,
-                column_config={"Progress":st.column_config.ProgressColumn("Progress",min_value=0,max_value=1,format="%.0f%%")})
-        with tab_combos:
-            st.dataframe(pd.DataFrame(combo_demo),hide_index=True,use_container_width=True,
-                column_config={"Demo progress":st.column_config.ProgressColumn("Demo progress",min_value=0,max_value=1,format="%.0f%%")})
-        st.caption("Demo numbers are fixed placeholders to preview the interface. No auto-refresh or live API is connected. Demo leg status does not affect settlements, bankroll, or realized P/L.")
+    st.subheader("🏀 NBA Player Prop Tracker")
+    st.caption("Free ESPN public box-score feed (unofficial). Updates when you refresh; cached for up to 60 seconds. Statistical progress is not Robinhood settlement.")
+    from datetime import date
+    track_date=st.date_input("Game date",value=date(2026,11,7),key="nba_live_date")
+    if st.button("↻ Refresh NBA stats",key="refresh_nba_stats"):
+        espn_nba_boxscores.clear()
+    try:
+        games,players=espn_nba_boxscores(track_date.strftime("%Y%m%d"))
+        if not games:
+            st.info("No NBA games found for this date. Choose another date or retry later.")
+        else:
+            st.caption("Games: "+" · ".join(g["name"]+" ("+g["detail"]+")" for g in games))
+            if any(g.get("boxscore_error") for g in games):
+                st.warning("Some box scores were unavailable. Missing stats are shown as unavailable, not zero.")
+            unique_props=sorted({(p,m,int(t)) for _,_,_,legs in all_bets for p,m,t in legs})
+            actuals={}
+            rows=[]
+            for p,m,t in unique_props:
+                player=match_espn_player(p,players)
+                value=player["stats"].get(m) if player else None
+                actuals[(p,m,t)]=value
+                game=player["game"] if player else None
+                state=game["state"] if game else "unknown"
+                if value is None:
+                    progress="⚪ Unavailable"
+                elif value>=t:
+                    progress="🟢 Reached"
+                elif state=="post":
+                    progress="🔴 Below target (final)"
+                else:
+                    progress="🟡 In progress" if state=="in" else "⚪ Not started / awaiting stats"
+                rows.append({"Player":p,"Stat":m,"Target":str(t)+"+","Actual":value,
+                             "Needed":max(0,t-value) if value is not None else None,
+                             "Game":game["name"] if game else "Unmatched",
+                             "Clock / Status":game["detail"] if game else "Unavailable",
+                             "Leg progress":progress})
+            combos=[]
+            for name,qty,price,legs in all_bets:
+                values=[actuals.get((p,m,int(t))) for p,m,t in legs]
+                hit=sum(v is not None and v>=int(t) for v,(_,_,t) in zip(values,legs))
+                unknown=sum(v is None for v in values)
+                combos.append({"Combo":name,"Reached":str(hit)+"/"+str(len(legs)),
+                               "Unavailable legs":unknown,"Progress":hit/len(legs) if legs else 0})
+            t1,t2=st.tabs(["Player statistics","Combo progress"])
+            with t1:
+                st.dataframe(pd.DataFrame(rows),hide_index=True,use_container_width=True)
+            with t2:
+                st.dataframe(pd.DataFrame(combos),hide_index=True,use_container_width=True,
+                             column_config={"Progress":st.column_config.ProgressColumn("Progress",min_value=0,max_value=1,format="%.0f%%")})
+            st.caption("An unavailable or unmatched player is never treated as zero or a lost leg. Reached thresholds are provisional until official market settlement.")
+    except Exception as exc:
+        st.warning("NBA live data is temporarily unavailable. Your bets and settlement records are unaffected.")
+        with st.expander("Connection details"):
+            st.code(str(exc))
     st.subheader("Quick bet overview")
     summary=[]
     for name,qty,price,legs in all_bets:
