@@ -662,7 +662,7 @@ def show_bulk_bet_import():
 
 def show_personal_bets():
     st.title("💸 My Bets · Robinhood")
-    st.caption("Admin-only · November 7, 2026 · Denver vs. Indiana")
+    st.caption("Admin-only · November 7, 2026 · NBA predictions")
     st.info("November 7 positions imported from your Robinhood transaction text. Total cost includes actual reported fees for these 16 purchases. No legs have been verified or settled.")
     imported=imported_bet_rows()
     all_bets=[(name,qty,price,legs) for name,qty,price,cost,fees,legs in ROBINHOOD_NOV7_BETS]
@@ -700,16 +700,28 @@ def show_personal_bets():
                     st.rerun()
                 except ValueError:st.error("Enter a valid dollar amount.")
                 except Exception as exc:st.error("Could not save: "+str(exc))
+    st.subheader("Quick bet overview")
+    summary=[]
     for name,qty,price,legs in all_bets:
         matched=next((r for r in ROBINHOOD_NOV7_BETS if r[0]==name and r[1]==qty and r[2]==price),None)
         cost=matched[3] if matched else qty*price/100
-        status=byid.get(name,{}).get("Status","Pending")
-        with st.expander(name+" · "+str(len(legs))+" legs · "+str(qty)+" Yes @ "+str(price)+"¢ · "+status):
-            a,b,c=st.columns(3)
-            a.metric("Total paid incl. fees" if matched else "Estimated cost","$"+format(cost,",.2f"))
-            b.metric("Max gross payout","$"+format(qty,",.2f"))
-            c.metric("Max profit after entry fees" if matched else "Max profit before fees","$"+format(qty-cost,",.2f"))
-            st.dataframe(pd.DataFrame([{"Player":p,"Market":m,"Target":str(t)+"+","Actual":"Not verified","Leg status":"Pending"} for p,m,t in legs]),hide_index=True,use_container_width=True)
+        summary.append({"Combo":name,"Legs":len(legs),"Wager":round(cost,2),"Potential profit":round(qty-cost,2),"Status":byid.get(name,{}).get("Status","Pending")})
+    st.dataframe(pd.DataFrame(summary),hide_index=True,use_container_width=True,column_config={"Wager":st.column_config.NumberColumn("Wager",format="$%.2f"),"Potential profit":st.column_config.NumberColumn("Potential profit",format="$%.2f")})
+    from collections import Counter
+    exposure=Counter((p,m,t) for _,_,_,legs in all_bets for p,m,t in legs)
+    st.subheader("Repeated player props")
+    st.caption("Shows which individual outcomes affect multiple combos. Counts are appearances, not independent bets.")
+    repeated=[{"Player":p,"Prop":str(t)+"+ "+m,"Combos depending on it":n} for (p,m,t),n in exposure.most_common() if n>1]
+    if repeated:st.dataframe(pd.DataFrame(repeated),hide_index=True,use_container_width=True)
+    else:st.caption("No repeated props.")
+    with st.expander("View individual combo legs"):
+        for name,qty,price,legs in all_bets:
+            matched=next((r for r in ROBINHOOD_NOV7_BETS if r[0]==name and r[1]==qty and r[2]==price),None)
+            cost=matched[3] if matched else qty*price/100
+            status=byid.get(name,{}).get("Status","Pending")
+            with st.expander(name+" · "+str(len(legs))+" legs · "+status):
+                st.caption("Wager: $"+format(cost,",.2f")+" · Max payout: $"+format(qty,",.2f")+" · Potential profit: $"+format(qty-cost,",.2f"))
+                st.dataframe(pd.DataFrame([{"Player":p,"Market":m,"Target":str(t)+"+","Actual":"Not verified","Leg status":"Pending"} for p,m,t in legs]),hide_index=True,use_container_width=True)
     st.caption("Overlapping legs are tracked separately within combos but financial totals count each combo once. Settlements are manual and never inferred from incomplete box scores.")
 
 with st.sidebar:
