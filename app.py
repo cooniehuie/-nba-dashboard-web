@@ -106,7 +106,7 @@ h1,h2,h3{letter-spacing:-.025em}
 .mobile-data-more dl{margin:4px 0}
 .mobile-data-more dt{font-size:.71rem;opacity:.7;margin-top:9px}
 .mobile-data-more dd{font-size:.84rem;font-weight:650;margin:1px 0}
-.st-key-mobile_top_header,.st-key-mobile_bottom_nav,[class*="st-key-mobile_data_"]{display:none!important}
+.st-key-mobile_top_header,.st-key-mobile_bottom_nav,.st-key-mobile_overview,[class*="st-key-mobile_data_"]{display:none!important}
 @media(max-width:768px){
  html,body{overflow-x:hidden!important}
  [data-testid="stAppViewContainer"]{overflow-x:hidden!important}
@@ -121,7 +121,15 @@ h1,h2,h3{letter-spacing:-.025em}
  [data-testid="stTabs"] button{font-size:.8rem!important;white-space:nowrap!important}
  [data-testid="stSidebar"]{width:min(88vw,330px)!important}
  .st-key-mobile_top_header,[class*="st-key-mobile_data_"]{display:block!important}
- [class*="st-key-desktop_data_"]{display:none!important}
+ [class*="st-key-desktop_data_"],.st-key-desktop_overview{display:none!important}
+ .st-key-mobile_overview{display:block!important}
+ .st-key-mobile_overview [data-testid="stExpander"]{
+  border:1px solid #94a3b855!important;border-radius:13px!important;margin:0 0 10px!important;
+  background:var(--secondary-background-color,#f8fafc)}
+ .st-key-mobile_overview [data-testid="stExpander"] summary{min-height:53px!important;align-items:center!important}
+ .st-key-mobile_overview [data-testid="stExpander"] summary p{font-size:1.02rem!important;font-weight:750!important;line-height:1.3!important}
+ .st-key-mobile_overview [data-testid="stExpander"] [data-testid="stExpanderDetails"]{padding-top:3px!important}
+
  /* iPhone bottom nav: five equal-size buttons instead of mobile auto-stacked columns. */
  .st-key-mobile_bottom_nav{
   display:block!important;position:fixed!important;z-index:9999!important;
@@ -1422,7 +1430,7 @@ def nba_tipoff_times(date_key):
         except (ValueError,TypeError,KeyError):continue
     return result
 
-def show_table(name, allow_filters=True):
+def show_table(name, allow_filters=True, key_suffix=""):
     if not name:
         st.info("This section is not present in the uploaded workbook.")
         return
@@ -1456,10 +1464,10 @@ def show_table(name, allow_filters=True):
         if game_col:
             available=sorted(df[game_col].dropna().astype(str).unique())
             if 1<len(available)<40:
-                game_choice=st.selectbox("Matchup",["All games"]+available,key="game_"+name)
+                game_choice=st.selectbox("Matchup",["All games"]+available,key="game_"+name+key_suffix)
                 if game_choice!="All games":df=df[df[game_col].astype(str)==game_choice]
         c1,c2,c3=st.columns([2,1,1])
-        search=c1.text_input("Search players or props",key="search_"+name)
+        search=c1.text_input("Search players or props",key="search_"+name+key_suffix)
         if search:
             df=df[df.astype(str).apply(lambda col:col.str.contains(search,case=False,regex=False,na=False)).any(axis=1)]
         market=lookup(df,"Market","Stat")
@@ -1467,16 +1475,16 @@ def show_table(name, allow_filters=True):
         if market:
             opts=sorted(df[market].dropna().astype(str).unique())
             if len(opts)<=80:
-                selected=c2.multiselect("Market",opts,key="market_"+name)
+                selected=c2.multiselect("Market",opts,key="market_"+name+key_suffix)
                 if selected:df=df[df[market].astype(str).isin(selected)]
         if side:
             opts=sorted(df[side].dropna().astype(str).unique())
-            selected=c3.multiselect("Model side",opts,key="side_"+name)
+            selected=c3.multiselect("Model side",opts,key="side_"+name+key_suffix)
             if selected:df=df[df[side].astype(str).isin(selected)]
     if allow_filters and lookup(df,"Model side") and lookup(df,"Model projection"):
         df=historical_summary(df)
         hit1,hit2=st.columns([1,3])
-        only_three=hit1.checkbox("Show 3/3 recent hits",key="perfect_"+name,help="Three available games all on the model side of the projection.")
+        only_three=hit1.checkbox("Show 3/3 recent hits",key="perfect_"+name+key_suffix,help="Three available games all on the model side of the projection.")
         if only_three:df=df[(df["Recent hits"]==3)&(df["Games available"]==3)]
         hit2.caption("Recent hit rate compares actual stats with the model projection; it is not a future win probability.")
     st.caption(f"{len(df):,} rows · {name}")
@@ -1525,45 +1533,86 @@ def show_table(name, allow_filters=True):
     if phone_view:
         mobile_cards(df,preferred=["Safer line","Our play","Model projection","Reference line","Last 3 hit rate"],max_rows=250)
     else:
-        responsive_dataframe(df,"models_"+str(name).replace(" ","_"),
+        responsive_dataframe(df,"models_"+str(name).replace(" ","_")+key_suffix,
                              preferred=["Safer line","Our play","Model projection","Reference line","Last 3 hit rate"],
                              max_rows=12 if not allow_filters else 250,
                              desktop_frame=df.style.apply(paint_row,axis=1),
                              hide_index=True,use_container_width=True,
                              height=min(680,max(230,39*(len(df)+1))),column_config=config)
-    st.download_button("Download filtered CSV",df.to_csv(index=False).encode("utf-8"),file_name="nba_"+name.lower().replace(" ","_")+".csv",mime="text/csv",key="download_"+name)
+    st.download_button("Download filtered CSV",df.to_csv(index=False).encode("utf-8"),file_name="nba_"+name.lower().replace(" ","_")+".csv",mime="text/csv",key="download_"+name+key_suffix)
 
 if section=="Overview":
-    st.subheader("📈 Bankroll Builder Performance")
-    performance_graph(bankroll_history_frame())
-    if st.button("View daily Bankroll Builder results",key="open_bankroll_performance"):
-        st.info("Choose Bankroll Builder Performance in the sidebar to view daily results and date filters.")
-    st.title("Daily NBA Projections")
-    st.caption("Model projections · Favorites · Safer lines · Recent player performance")
-    a,b,c,d=st.columns(4)
-    a.metric("Games",len(sheets[schedule]) if schedule else len(games))
-    b.metric("Player props",len(sheets[allprops]) if allprops else "—")
-    c.metric("Model's Favorite Props",len(sheets[favorites]) if favorites else "—")
-    d.metric("Bankroll Builder plays",len(sheets[bankroll]) if bankroll else "—")
-    st.subheader("Today's games")
-    if schedule:show_table(schedule,False)
-    else:st.info("No game schedule sheet found.")
-    if allprops:
-        candidates=historical_summary(sheets[allprops])
-        if "Recent hits" in candidates:
-            candidates=candidates[(candidates["Recent hits"]==3)&(candidates["Games available"]==3)]
-            st.subheader("🔥 3-for-3 recent performance")
-            st.caption("Historical matches to model projections, not guarantees or betting recommendations.")
-            if len(candidates):
-                wanted=[lookup(candidates,c) for c in ("Player","Game","Market","Model side","Model projection","Last 3 avg")]
-                wanted=[c for c in wanted if c]
-                responsive_dataframe(candidates[wanted].head(12),"overview_three_hits",preferred=["Market","Model side","Model projection","Last 3 avg"],hide_index=True,use_container_width=True)
-                st.caption(f"{len(candidates)} prop rows had 3 of 3 recent games on the model side.")
-            else:st.info("No props with three available recent games and a 3/3 historical match.")
-    st.subheader("Bankroll Builder")
-    if bankroll:show_table(bankroll,False)
-    st.subheader("Model's Favorite Props")
-    if favorites:show_table(favorites,False)
+    # Desktop keeps the original, fully expanded homepage.
+    with st.container(key="desktop_overview"):
+        st.subheader("📈 Bankroll Builder Performance")
+        performance_graph(bankroll_history_frame())
+        if st.button("View daily Bankroll Builder results",key="open_bankroll_performance"):
+            st.info("Choose Bankroll Builder Performance in the sidebar to view daily results and date filters.")
+        st.title("Daily NBA Projections")
+        st.caption("Model projections · Favorites · Safer lines · Recent player performance")
+        a,b,c,d=st.columns(4)
+        a.metric("Games",len(sheets[schedule]) if schedule else len(games))
+        b.metric("Player props",len(sheets[allprops]) if allprops else "—")
+        c.metric("Model's Favorite Props",len(sheets[favorites]) if favorites else "—")
+        d.metric("Bankroll Builder plays",len(sheets[bankroll]) if bankroll else "—")
+        st.subheader("Today's games")
+        if schedule:show_table(schedule,False)
+        else:st.info("No game schedule sheet found.")
+        if allprops:
+            candidates=historical_summary(sheets[allprops])
+            if "Recent hits" in candidates:
+                candidates=candidates[(candidates["Recent hits"]==3)&(candidates["Games available"]==3)]
+                st.subheader("🔥 3-for-3 recent performance")
+                st.caption("Historical matches to model projections, not guarantees or betting recommendations.")
+                if len(candidates):
+                    wanted=[lookup(candidates,c) for c in ("Player","Game","Market","Model side","Model projection","Last 3 avg")]
+                    wanted=[c for c in wanted if c]
+                    responsive_dataframe(candidates[wanted].head(12),"overview_three_hits",preferred=["Market","Model side","Model projection","Last 3 avg"],hide_index=True,use_container_width=True)
+                    st.caption(f"{len(candidates)} prop rows had 3 of 3 recent games on the model side.")
+                else:st.info("No props with three available recent games and a 3/3 historical match.")
+        st.subheader("Bankroll Builder")
+        if bankroll:show_table(bankroll,False)
+        st.subheader("Model's Favorite Props")
+        if favorites:show_table(favorites,False)
+
+    # Mobile-only homepage: each section stays collapsed until tapped.
+    with st.container(key="mobile_overview"):
+        with st.expander("📈 Bankroll Builder Performance",expanded=False):
+            performance_graph(bankroll_history_frame())
+            if st.button("View daily Bankroll Builder results",key="open_bankroll_performance_mobile",
+                         on_click=lambda:st.session_state.update({"site_nav":"Bankroll Builder Performance"})):
+                pass
+        with st.expander("🏀 Daily NBA Projections",expanded=False):
+            st.caption("Model projections · Favorites · Safer lines")
+            a,b=st.columns(2)
+            a.metric("Games",len(sheets[schedule]) if schedule else len(games))
+            b.metric("Player props",len(sheets[allprops]) if allprops else "—")
+            c,d=st.columns(2)
+            c.metric("Model's Favorite Props",len(sheets[favorites]) if favorites else "—")
+            d.metric("Bankroll Builder plays",len(sheets[bankroll]) if bankroll else "—")
+        with st.expander("🏀 Today's Games",expanded=False):
+            if schedule:show_table(schedule,False,key_suffix="_mobile_home")
+            else:st.info("No game schedule sheet found.")
+        if allprops:
+            candidates=historical_summary(sheets[allprops])
+            if "Recent hits" in candidates:
+                candidates=candidates[(candidates["Recent hits"]==3)&(candidates["Games available"]==3)]
+                with st.expander("🔥 3-for-3 Recent Performance",expanded=False):
+                    st.caption("Historical matches to model projections, not guarantees.")
+                    if len(candidates):
+                        wanted=[lookup(candidates,c) for c in ("Player","Game","Market","Model side","Model projection","Last 3 avg")]
+                        wanted=[c for c in wanted if c]
+                        responsive_dataframe(candidates[wanted].head(12),"overview_three_hits_mobile",
+                                             preferred=["Market","Model side","Model projection","Last 3 avg"],
+                                             hide_index=True,use_container_width=True)
+                        st.caption(f"{len(candidates)} props had 3 of 3 recent games on the model side.")
+                    else:st.info("No recent 3-for-3 props.")
+        with st.expander("💰 Bankroll Builder",expanded=False):
+            if bankroll:show_table(bankroll,False,key_suffix="_mobile_home")
+            else:st.info("No Bankroll Builder sheet found.")
+        with st.expander("⭐ Model's Favorite Props",expanded=False):
+            if favorites:show_table(favorites,False,key_suffix="_mobile_home")
+            else:st.info("No Favorites sheet found.")
 elif section=="Bankroll Builder Performance":
     show_bankroll_performance()
 elif section=="🔴 Bankroll Builder Live Tracking":
