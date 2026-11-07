@@ -301,12 +301,25 @@ def show_table(name, allow_filters=True):
             df[c]=df[c].map(lambda v:"N/A" if pd.isna(v) or str(v).strip().lower() in {"none","nan","n/a"} else v)
     for internal in ("Recent hits","Games available"):
         if internal in df.columns:df=df.drop(columns=[internal])
+    # Size each column from its header and visible values, rather than using
+    # Streamlit's broad small/medium/large presets. Preserve horizontal scrolling
+    # only when the complete table genuinely exceeds the available viewport.
     config={}
-    if "Player" in df.columns:config["Player"]=st.column_config.TextColumn("Player",width="medium")
-    if "Game" in df.columns:config["Game"]=st.column_config.TextColumn("Game",width="large")
-    if "Market" in df.columns:config["Market"]=st.column_config.TextColumn("Market",width="medium")
-    for heading in ("Reference line","Model projection","Model side","Last game","2 games ago","3 games ago","Last 3 avg","Last 3 hit rate","Tipoff PST"):
-        if heading in df.columns:config[heading]=st.column_config.TextColumn(heading,width="medium")
+    width_caps={
+        "Player":(135,195),"Market":(90,110),
+        "Reference line":(110,122),"Model projection":(120,136),
+        "Model side":(90,100),"Last game":(85,96),
+        "2 games ago":(96,108),"3 games ago":(96,108),
+        "Last 3 avg":(90,102),"Last 3 average":(108,120),
+        "Last 3 hit rate":(108,120),"Tipoff PST":(96,110),
+        "Game":(160,260),
+    }
+    for heading in df.columns:
+        minimum,maximum=width_caps.get(str(heading),(85,190))
+        sample=df[heading].astype(str).head(150)
+        longest=max([len(str(heading))]+sample.map(len).tolist(),default=len(str(heading)))
+        pixels=max(minimum,min(maximum,int(longest*7.3+24)))
+        config[heading]=st.column_config.TextColumn(str(heading),width=pixels)
 
     st.dataframe(df.style.apply(paint_row,axis=1),hide_index=True,use_container_width=True,height=min(680,max(230,39*(len(df)+1))),column_config=config)
     st.download_button("Download filtered CSV",df.to_csv(index=False).encode("utf-8"),file_name="nba_"+name.lower().replace(" ","_")+".csv",mime="text/csv",key="download_"+name)
