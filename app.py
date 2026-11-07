@@ -166,32 +166,14 @@ h1,h2,h3{letter-spacing:-.025em}
  .bk-stat strong{font-size:21px!important}
 }
 </style>""",unsafe_allow_html=True)
-viewer_password=st.secrets.get("DASHBOARD_PASSWORD","")
+# Public visitors can browse read-only model data. Admin login is optional.
+# ADMIN_PASSWORD is stored only in Streamlit Secrets, never in source code.
 admin_password=st.secrets.get("ADMIN_PASSWORD","")
-if not viewer_password:
-    st.error("DASHBOARD_PASSWORD is missing from Streamlit Secrets.")
+if not admin_password:
+    st.error("Administrator authentication is not configured. Add ADMIN_PASSWORD to Streamlit Secrets before enabling public access.")
     st.stop()
-if admin_password and hmac.compare_digest(admin_password,viewer_password):
-    st.error("ADMIN_PASSWORD must be different from DASHBOARD_PASSWORD.")
-    st.stop()
-if not st.session_state.get("authorized",False):
-    st.title("🏀 Huie's Degen Center")
-    st.caption("Private access · Daily NBA model projections")
-    with st.form("login"):
-        supplied=st.text_input("Password",type="password")
-        if st.form_submit_button("Sign in",type="primary"):
-            if admin_password and hmac.compare_digest(supplied,admin_password):
-                st.session_state.authorized=True
-                st.session_state.role="admin"
-                st.rerun()
-            elif hmac.compare_digest(supplied,viewer_password):
-                st.session_state.authorized=True
-                st.session_state.role="viewer"
-                st.rerun()
-            else:st.error("Incorrect password.")
-    st.stop()
-role=st.session_state.get("role","viewer")
-is_admin=(role=="admin" and bool(admin_password))
+is_admin=bool(st.session_state.get("admin_authenticated",False))
+
 @st.cache_data(show_spinner=False)
 def load_workbook(contents):
     from io import BytesIO
@@ -297,6 +279,8 @@ def github_file(path, data=None):
         except urllib.error.HTTPError as err:
             if err.code==404:return None
             raise RuntimeError(f"Private storage request failed (HTTP {err.code}).") from None
+    if data is not None and not st.session_state.get("admin_authenticated",False):
+        raise PermissionError("Administrator login required to modify private storage.")
     existing=request()
     if data is None:
         if not existing:return None
@@ -1328,12 +1312,35 @@ def show_personal_bets():
 
 with st.sidebar:
     st.title("🏀 Huie's Degen Center")
-    st.caption("Your private model dashboard")
-    st.caption("🔐 Administrator" if is_admin else "👁 Viewer access")
-    if st.button("Sign out"):
-        st.session_state.authorized=False
-        st.session_state.pop("role",None)
-        st.rerun()
+    st.caption("Public NBA projections & live player tracking")
+    if is_admin:
+        st.caption("🔐 Administrator")
+        if st.button("Log out of admin",use_container_width=True):
+            st.session_state.admin_authenticated=False
+            st.session_state.pop("role",None)
+            st.rerun()
+    else:
+        st.caption("🌐 Public · Read-only")
+        with st.expander("🔐 Admin Login"):
+            with st.form("admin_login_form"):
+                entered=st.text_input("Admin password",type="password",autocomplete="current-password")
+                submit=st.form_submit_button("Unlock admin tools",use_container_width=True)
+            if submit:
+                from time import monotonic
+                now=monotonic()
+                attempts=st.session_state.get("admin_login_attempts",[])
+                attempts=[t for t in attempts if now-t<900]
+                if len(attempts)>=5:
+                    st.error("Too many attempts. Try again later.")
+                elif hmac.compare_digest(entered,admin_password):
+                    st.session_state.admin_authenticated=True
+                    st.session_state.role="admin"
+                    st.session_state.admin_login_attempts=[]
+                    st.rerun()
+                else:
+                    attempts.append(now)
+                    st.session_state.admin_login_attempts=attempts
+                    st.error("Incorrect administrator password.")
     token,storage_repo=storage_settings()
     storage_ready=bool(token and storage_repo)
     uploaded=None
@@ -1358,8 +1365,6 @@ with st.sidebar:
         st.caption("Uploads are saved to your separate private GitHub repository.")
     else:
         st.caption("Read-only access. Only the administrator can upload or replace projections.")
-        if not admin_password:
-            st.warning("Admin access is not enabled yet. Add ADMIN_PASSWORD in Streamlit Secrets.")
     st.divider()
     nav_options=["Overview","Bankroll Performance","🔴 Bankroll Live Tracking"]+(["💸 My Bets"] if is_admin else [])+["Bankroll Builder","Model's Favorite Props","All Player Props","Three-Point Projections","Individual Games"]
     section=st.radio("Navigate",nav_options,label_visibility="visible",key="site_nav")
