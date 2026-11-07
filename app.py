@@ -329,7 +329,6 @@ def performance_graph(frame):
         </div>
         <div><div class="bk-muted">DAILY HIT RATE</div><div class="bk-chart">{''.join(bars)}</div></div>
       </div>
-      <div class="bk-muted" style="margin-top:16px">Totals reported in the previous ChatGPT tracker; player-level breakdowns may be incomplete · Hit rate does not measure profit</div>
     </div>""",unsafe_allow_html=True)
 
 def show_bankroll_performance():
