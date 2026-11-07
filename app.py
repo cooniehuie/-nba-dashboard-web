@@ -364,8 +364,85 @@ NOV6_PICKS = [
     ("Ty Jerome","Points",17),
     ("Ace Bailey","Rebounds",4),
 ]
+@st.cache_data(ttl=60,show_spinner=False)
+def saved_bankroll_results():
+    try:
+        blob=github_file("bankroll_verified_results.json")
+        return json.loads(blob.decode("utf-8")) if blob else {}
+    except Exception:
+        return {}
+
+def grade_bankroll_sheet(frame,game_date):
+    """Grade only final games; never turn absent stats into a loss."""
+    import re
+    from zoneinfo import ZoneInfo
+    playercol=lookup(frame,"Player")
+    linecol=lookup(frame,"Safer line")
+    gamecol=lookup(frame,"Game")
+    marketcol=lookup(frame,"Market","Stat")
+    if not playercol or not linecol:return []
+    games,players=espn_nba_boxscores(game_date.replace("-",""))
+    if not games:return []
+    def norm_team(value):
+        return set(re.findall(r"[A-Z]{2,4}",str(value).upper()))
+    team_pairs={}
+    try:
+        req=urllib.request.Request("https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard?dates="+game_date.replace("-",""),headers={"User-Agent":"Mozilla/5.0"})
+        with urllib.request.urlopen(req,timeout=12) as response:
+            for event in json.load(response).get("events",[]):
+                comps=(event.get("competitions") or [{}])[0].get("competitors",[])
+                team_pairs[str(event.get("id"))]={c.get("team",{}).get("abbreviation","").upper() for c in comps}
+    except Exception:pass
+    rows=[]
+    for idx,pick in frame.iterrows():
+        player_name=str(pick[playercol])
+        line=str(pick[linecol])
+        market=str(pick[marketcol]).strip().title() if marketcol else ""
+        if market not in ("Points","Rebounds","Assists","Threes"):
+            low=line.lower()
+            market=next((m for key,m in [("assist","Assists"),("rebound","Rebounds"),("three","Threes"),("3pt","Threes"),("point","Points")] if key in low),"")
+        target_match=re.search(r"\d+(?:\.\d+)?",line)
+        target=float(target_match.group()) if target_match else None
+        expected=norm_team(pick[gamecol]) if gamecol else set()
+        candidate=match_espn_player(player_name,players)
+        if candidate and expected and team_pairs.get(str(candidate["game"]["id"])) not in (None,expected):
+            candidate=None
+        game=candidate["game"] if candidate else next((g for g in games if expected and team_pairs.get(str(g["id"]))==expected),None)
+        actual=candidate["stats"].get(market) if candidate else None
+        result="Pending"
+        if game and game["state"]=="post":
+            if actual is None:
+                # Missing boxscore stats may indicate DNP, injury, or a feed error.
+                # Only explicit inactive/didNotPlay evidence should be excluded.
+                result="Unverified"
+            elif target is None:
+                result="Unverified"
+            elif ("under" in line.lower() and actual<target) or ("under" not in line.lower() and actual>=target):
+                result="Hit"
+            else:
+                result="Loss"
+        rows.append({"Player":player_name,"Game":str(pick[gamecol]) if gamecol else "",
+                     "Market":market,"Safer line":line,"Actual":actual,
+                     "Result":result,"Game status":game["detail"] if game else "Unavailable"})
+    return rows
+
+def bankroll_verified_summary(rows):
+    wins=sum(r["Result"]=="Hit" for r in rows)
+    losses=sum(r["Result"]=="Loss" for r in rows)
+    excluded=sum(r["Result"]=="DNP" for r in rows)
+    return {"Wins":wins,"Losses":losses,"Excluded":excluded,
+            "Graded":wins+losses,"Hit rate":100*wins/(wins+losses) if wins+losses else 0}
+
 def bankroll_history_frame():
     frame=pd.DataFrame(BANKROLL_HISTORY)
+    verified=saved_bankroll_results()
+    for date,record in verified.items():
+        summary=bankroll_verified_summary(record.get("picks",[]))
+        replacement={"Date":date,"Wins":summary["Wins"],"Losses":summary["Losses"],
+                     "Excluded":summary["Excluded"],"Status":"Box-score verified"}
+        frame=frame[frame["Date"]!=date]
+        frame=pd.concat([frame,pd.DataFrame([replacement])],ignore_index=True)
+    frame=frame.sort_values("Date").reset_index(drop=True)
     frame["Graded"]=frame["Wins"]+frame["Losses"]
     frame["Hit rate"]=frame.apply(lambda r:100*r["Wins"]/r["Graded"] if r["Graded"] else 0,axis=1)
     return frame
@@ -475,6 +552,45 @@ def responsive_dataframe(frame,key,preferred=None,max_rows=150,desktop_frame=Non
 def show_bankroll_performance():
     st.title("📈 Bankroll Builder Performance")
     st.caption("safe line picks · October 27–November 6, 2026 · Daily totals from prior ChatGPT tracker; not independently verified")
+    st.subheader("Final box-score results")
+    st.caption("The latest Bankroll Builder workbook is used as the pick list. Only completed games are graded; missing stats stay unverified.")
+    from zoneinfo import ZoneInfo
+    today=datetime.now(ZoneInfo("America/Los_Angeles")).date()
+    grade_date=st.date_input("Results date",value=today,key="bankroll_grade_date",max_value=today)
+    date_key=grade_date.isoformat()
+    verified=saved_bankroll_results()
+    if date_key in verified:
+        st.success("Saved verified results available for "+date_key)
+        auto_rows=verified[date_key].get("picks",[])
+    elif bankroll:
+        try:
+            auto_rows=grade_bankroll_sheet(sheets[bankroll],date_key)
+        except Exception as exc:
+            auto_rows=[]
+            st.warning("Could not retrieve final box scores for this date.")
+    else:
+        auto_rows=[]
+    if auto_rows:
+        auto_summary=bankroll_verified_summary(auto_rows)
+        a,b,c,d=st.columns(4)
+        a.metric("Final hits",auto_summary["Wins"])
+        b.metric("Final misses",auto_summary["Losses"])
+        c.metric("Unverified / pending",sum(r["Result"] in ("Unverified","Pending") for r in auto_rows))
+        d.metric("Final hit rate",f'{auto_summary["Hit rate"]:.1f}%')
+        responsive_dataframe(pd.DataFrame(auto_rows),"verified_bankroll_preview",
+                             preferred=["Player","Game","Safer line","Actual","Result"],hide_index=True,use_container_width=True)
+        if is_admin and date_key not in verified:
+            if st.button("Save final results to history",key="save_verified_bankroll"):
+                if any(r["Result"]=="Pending" for r in auto_rows):
+                    st.warning("Some games are not final yet. Wait until all games finish before saving.")
+                else:
+                    verified[date_key]={"picks":auto_rows,"saved_at":datetime.now(timezone.utc).isoformat()}
+                    github_file("bankroll_verified_results.json",json.dumps(verified).encode("utf-8"))
+                    saved_bankroll_results.clear()
+                    st.rerun()
+    else:
+        st.info("No graded picks are available for this date. Historical picks require their original dated workbook.")
+    st.divider()
     history=bankroll_history_frame()
     dates=history["Date"].tolist()
     selected=st.multiselect("Filter by date",dates,default=dates,key="bankroll_history_dates")
