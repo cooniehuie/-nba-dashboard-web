@@ -1493,6 +1493,10 @@ def show_table(name, allow_filters=True):
     st.download_button("Download filtered CSV",df.to_csv(index=False).encode("utf-8"),file_name="nba_"+name.lower().replace(" ","_")+".csv",mime="text/csv",key="download_"+name)
 
 if section=="Overview":
+    st.subheader("📈 Bankroll performance")
+    performance_graph(bankroll_history_frame())
+    if st.button("View daily bankroll results",key="open_bankroll_performance"):
+        st.info("Choose Bankroll Performance in the sidebar to view daily results and date filters.")
     st.title("Daily NBA Projections")
     st.caption("Model projections · Favorites · Safer lines · Recent player performance")
     a,b,c,d=st.columns(4)
@@ -1500,10 +1504,6 @@ if section=="Overview":
     b.metric("Player props",len(sheets[allprops]) if allprops else "—")
     c.metric("Model's Favorite Props",len(sheets[favorites]) if favorites else "—")
     d.metric("Bankroll plays",len(sheets[bankroll]) if bankroll else "—")
-    st.subheader("📈 Bankroll performance")
-    performance_graph(bankroll_history_frame())
-    if st.button("View daily bankroll results",key="open_bankroll_performance"):
-        st.info("Choose Bankroll Performance in the sidebar to view daily results and date filters.")
     st.subheader("Today's games")
     if schedule:show_table(schedule,False)
     else:st.info("No game schedule sheet found.")
