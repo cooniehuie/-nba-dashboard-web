@@ -133,6 +133,14 @@ h1,h2,h3{letter-spacing:-.025em}
   font-weight:700!important;line-height:1.25!important;white-space:normal!important;
   overflow-wrap:anywhere!important;text-align:center!important}
  .st-key-mobile_bottom_nav button p{font-size:inherit!important;line-height:inherit!important;margin:0!important}
+ /* Force short bottom-tab labels to stay visible, never become ellipses. */
+ .st-key-mobile_bottom_nav button,
+ .st-key-mobile_bottom_nav button p,
+ .st-key-mobile_bottom_nav button span{
+  white-space:nowrap!important;overflow:visible!important;text-overflow:clip!important;
+  word-break:normal!important;overflow-wrap:normal!important}
+ .st-key-mobile_bottom_nav [data-testid="stPopover"] button svg{display:none!important}
+ .st-key-mobile_bottom_nav button{font-size:.79rem!important;letter-spacing:-.02em!important;padding-inline:1px!important}
  @media(max-width:360px){.st-key-mobile_bottom_nav button{font-size:.70rem!important;padding:6px 1px!important}}
  .bk-hero{padding:16px 14px!important;border-radius:15px!important}
  .bk-big{font-size:46px!important}.bk-grid{grid-template-columns:1fr!important;gap:12px!important}
@@ -1482,9 +1490,10 @@ def navigate_phone(destination):
     st.session_state["site_nav"]=destination
 
 with st.container(key="mobile_bottom_nav"):
-    shortcuts=[("⌂ Home","Overview"),("🔴 Live","🔴 Bankroll Live Tracking"),
-               ("▤ Picks","Bankroll Builder"),
-               ("💸 Bets","💸 My Bets") if is_admin else ("⭐ Fav","Model's Favorite Props")]
+    # Short, readable labels fit on narrow iPhones without truncation.
+    shortcuts=[("Home","Overview"),("Live","🔴 Bankroll Live Tracking"),
+               ("Build","Bankroll Builder"),
+               ("Bets","💸 My Bets") if is_admin else ("Faves","Model's Favorite Props")]
     columns=st.columns(5)
     for i,(label,destination) in enumerate(shortcuts):
         with columns[i]:
@@ -1492,7 +1501,7 @@ with st.container(key="mobile_bottom_nav"):
                       type="primary" if section==destination else "secondary",
                       on_click=navigate_phone,args=(destination,))
     with columns[-1]:
-        with st.popover("☰ More",use_container_width=True):
+        with st.popover("More",use_container_width=True):
             st.caption("Navigate to another page")
             for j,destination in enumerate(nav_options):
                 st.button(destination,key="phone_more_"+str(j),use_container_width=True,
