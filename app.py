@@ -1448,10 +1448,10 @@ def show_table(name, allow_filters=True):
     # Streamlit's dataframe grid does not consistently honor Styler.format().
     df=df.replace({"None":pd.NA,"none":pd.NA,"N/A":pd.NA,"n/a":pd.NA})
     number_keys={"last game","2 games ago","3 games ago","last 3 avg","last 3 average","reference line","model projection","away model pts","home model pts","projected total","edge"}
-    two_decimal={"last 3 avg","last 3 average","model projection","reference line","away model pts","home model pts","projected total","edge"}
+    two_decimal={"model projection","reference line","away model pts","home model pts","projected total","edge"}
     for c in df.columns:
         if str(c).lower() in number_keys:
-            digits=2 if str(c).lower() in two_decimal else 0
+            digits=1 if ("avg" in str(c).lower() or "average" in str(c).lower()) else (2 if str(c).lower() in two_decimal else 0)
             def fmt(v):
                 n=number(v)
                 if n is None:return "N/A"
