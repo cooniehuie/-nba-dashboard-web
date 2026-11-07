@@ -96,7 +96,7 @@ h1,h2,h3{letter-spacing:-.025em}
 @media(max-width:768px){
  html,body{overflow-x:hidden!important}
  [data-testid="stAppViewContainer"]{overflow-x:hidden!important}
- [data-testid="stMainBlockContainer"],.block-container{padding:.65rem .7rem calc(6.2rem + env(safe-area-inset-bottom))!important;max-width:100%!important}
+ [data-testid="stMainBlockContainer"],.block-container{padding:.65rem .7rem calc(7.2rem + env(safe-area-inset-bottom))!important;max-width:100%!important}
  [data-testid="stHeader"]{background:transparent!important}
  h1{font-size:1.5rem!important}h2{font-size:1.22rem!important}h3{font-size:1.07rem!important}
  [data-testid="stHorizontalBlock"]{gap:.45rem!important;flex-wrap:wrap!important}
@@ -108,13 +108,32 @@ h1,h2,h3{letter-spacing:-.025em}
  [data-testid="stSidebar"]{width:min(88vw,330px)!important}
  .st-key-mobile_top_header,[class*="st-key-mobile_data_"]{display:block!important}
  [class*="st-key-desktop_data_"]{display:none!important}
+ /* iPhone bottom nav: five equal-size buttons instead of mobile auto-stacked columns. */
  .st-key-mobile_bottom_nav{
-  display:block!important;position:fixed!important;z-index:999;left:0;right:0;bottom:0;
+  display:block!important;position:fixed!important;z-index:9999!important;
+  inset:auto 0 0 0!important;width:100%!important;max-width:100vw!important;
+  margin:0!important;box-sizing:border-box!important;
   background:var(--background-color,#fff);border-top:1px solid #94a3b855;
-  box-shadow:0 -5px 20px #00000015;padding:7px 7px calc(7px + env(safe-area-inset-bottom))!important}
- .st-key-mobile_bottom_nav [data-testid="stHorizontalBlock"]{display:flex!important;flex-wrap:nowrap!important;gap:4px!important}
- .st-key-mobile_bottom_nav [data-testid="column"]{min-width:0!important;flex:1 1 20%!important}
- .st-key-mobile_bottom_nav button{width:100%!important;min-height:43px!important;padding:4px 2px!important;border-radius:10px!important;font-size:.67rem!important;line-height:1.2!important;white-space:normal!important;overflow-wrap:anywhere!important}
+  box-shadow:0 -5px 20px #00000015;
+  padding:8px max(8px,env(safe-area-inset-right)) calc(9px + env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left))!important}
+ .st-key-mobile_bottom_nav [data-testid="stVerticalBlock"],
+ .st-key-mobile_bottom_nav [data-testid="stElementContainer"]{
+  width:100%!important;min-width:0!important;max-width:100%!important}
+ .st-key-mobile_bottom_nav [data-testid="stHorizontalBlock"]{
+  display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;
+  width:100%!important;max-width:100%!important;min-width:0!important;
+  gap:6px!important;flex-wrap:nowrap!important;align-items:stretch!important}
+ .st-key-mobile_bottom_nav [data-testid="column"]{
+  display:block!important;min-width:0!important;width:100%!important;max-width:100%!important;
+  flex:none!important;margin:0!important;padding:0!important}
+ .st-key-mobile_bottom_nav button{
+  display:flex!important;align-items:center!important;justify-content:center!important;
+  width:100%!important;max-width:100%!important;min-width:0!important;min-height:52px!important;
+  padding:7px 2px!important;border-radius:11px!important;font-size:.76rem!important;
+  font-weight:700!important;line-height:1.25!important;white-space:normal!important;
+  overflow-wrap:anywhere!important;text-align:center!important}
+ .st-key-mobile_bottom_nav button p{font-size:inherit!important;line-height:inherit!important;margin:0!important}
+ @media(max-width:360px){.st-key-mobile_bottom_nav button{font-size:.70rem!important;padding:6px 1px!important}}
  .bk-hero{padding:16px 14px!important;border-radius:15px!important}
  .bk-big{font-size:46px!important}.bk-grid{grid-template-columns:1fr!important;gap:12px!important}
  .bk-chart{overflow-x:auto;gap:5px!important}.bk-bar-wrap{min-width:30px!important}
