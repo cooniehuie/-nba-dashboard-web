@@ -509,9 +509,10 @@ def show_bankroll_live_tracker(embedded=False):
     playercol=lookup(frame,"Player")
     marketcol=lookup(frame,"Market","Stat")
     linecol=lookup(frame,"Safer line")
+    gamecol=lookup(frame,"Game")
     sidecol=lookup(frame,"Model side")
-    if not all([playercol,marketcol,linecol]):
-        st.warning("The bankroll workbook needs Player, Market, and Safer line columns for tracking.")
+    if not all([playercol,linecol]):
+        st.warning("The bankroll workbook needs Player and Safer line columns for tracking.")
         return
     prefix="embedded_bankroll" if embedded else "bankroll_live"
     game_date=st.date_input("Game date (match your uploaded workbook)",value=datetime.now(ZoneInfo("America/Los_Angeles")).date(),key=prefix+"_date")
@@ -531,10 +532,21 @@ def show_bankroll_live_tracker(embedded=False):
             st.info("No player box-score statistics are available for this date yet.")
             return
         frame2=frame.copy()
-        frame2["_match_key"]=frame2[playercol].map(live_name)+"|"+frame2[marketcol].astype(str).str.lower().str.strip()
+        def safer_market(value):
+            value=str(value).lower()
+            for token,market in [("assist","Assists"),("rebound","Rebounds"),("three","Threes"),("3pt","Threes"),("point","Points")]:
+                if token in value:return market
+            return ""
+        frame2["_market"]=frame2[marketcol].astype(str).str.title() if marketcol else frame2[linecol].map(safer_market)
+        frame2["_match_key"]=frame2[playercol].map(live_name)+"|"+frame2["_market"].str.lower().str.strip()
         ambiguous=set(stats.loc[stats["Key"].duplicated(keep=False),"Key"])
         stats_unique=stats[~stats["Key"].isin(ambiguous)].drop_duplicates("Key")
         joined=frame2.merge(stats_unique,left_on="_match_key",right_on="Key",how="left")
+        if gamecol:
+            normalize_game=lambda x:re.sub(r"[^a-z0-9]","",str(x).lower())
+            mismatch=joined["Matchup"].notna() & (joined[gamecol].map(normalize_game)!=joined["Matchup"].map(normalize_game))
+            for col in ["Actual","Matchup","Game status","Game state"]:
+                if col in joined.columns:joined.loc[mismatch,col]=None
         def evaluate(row):
             actual=number(row.get("Actual"))
             target_text=str(row.get(linecol,""))
@@ -564,10 +576,13 @@ def show_bankroll_live_tracker(embedded=False):
         c2.metric("Reached / hit",sum(v for k,v in counts.items() if "Target reached" in k or k=="🟢 Hit"))
         c3.metric("Final misses",int(counts.get("🔴 Miss",0)))
         c4.metric("Unverified",sum(v for k,v in counts.items() if "Unverified" in k or "Not started" in k))
-        columns=[playercol,marketcol,linecol]
+        columns=[playercol]
+        if gamecol:columns.append(gamecol)
+        columns.extend(["_market",linecol])
         if sidecol:columns.append(sidecol)
         columns+=["Actual","Needed","Live status","Matchup","Game status"]
-        st.dataframe(joined[[c for c in columns if c in joined.columns]],hide_index=True,use_container_width=True)
+        view=joined[[c for c in columns if c in joined.columns]].rename(columns={"_market":"Market"})
+        st.dataframe(view,hide_index=True,use_container_width=True)
         st.caption("Live progress is provisional. Unmatched players and missing box scores are not losses. Only completed games receive final statistical Hit/Miss labels; nothing is written to bankroll history.")
     render_bankroll_live()
 
@@ -1133,7 +1148,6 @@ elif section=="Individual Games":
     else:st.info("No individual game tabs found.")
 elif section=="Bankroll Builder":
     st.title("Bankroll Builder")
-    show_bankroll_live_tracker(embedded=True)
     show_table(bankroll)
 else:
     chosen={"Bankroll Builder":bankroll,"Model's Favorite Props":favorites,"All Player Props":allprops,"Three-Point Projections":threes}.get(section)
