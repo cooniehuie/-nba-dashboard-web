@@ -544,7 +544,6 @@ def show_bankroll_live_tracker(embedded=False):
     if not embedded:st.title("🔴 Bankroll Live Tracking")
     else:st.subheader("🔴 Bankroll Live Tracker")
     st.caption("Bankroll Builder workbook props · ESPN NBA box scores · auto-refresh every 30 seconds while open.")
-    st.info("Tracks model bankroll picks, not Robinhood positions. A prop reaching its target is not a confirmed bet settlement.")
     if not bankroll:
         st.warning("No Bankroll Builder sheet is available in the loaded workbook.")
         return
