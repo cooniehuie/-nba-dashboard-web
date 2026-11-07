@@ -533,6 +533,10 @@ def show_live_tracker():
     def outcome(row):
         actual=number(row.get("Actual"))
         threshold=number(row.get(linecol))
+        if threshold is None and choice=="Bankroll safer lines":
+            import re
+            match=re.search(r"\d+(?:\.\d+)?",str(row.get(linecol,"")))
+            if match:threshold=float(match.group())
         if actual is None or threshold is None:return "Unverified"
         final=str(row.get("Game state","")).lower()=="post"
         if choice=="Bankroll safer lines":
