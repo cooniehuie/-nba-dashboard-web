@@ -426,6 +426,34 @@ def grade_bankroll_sheet(frame,game_date):
                      "Result":result,"Game status":game["detail"] if game else "Unavailable"})
     return rows
 
+@st.cache_data(ttl=300,show_spinner=False)
+def historical_safe_line_grades(date_key):
+    """Use original dated selections, not the latest workbook, for past dates."""
+    if date_key=="2026-11-05":
+        picks=[(p,m,line) for p,m,line,_ in NOV5_PICKS]
+    elif date_key=="2026-11-06":
+        picks=list(NOV6_PICKS)
+    else:
+        return []
+    games,players=espn_nba_boxscores(date_key.replace("-",""))
+    if not games:return []
+    rows=[]
+    for p,m,line in picks:
+        player=match_espn_player(p,players)
+        actual=player["stats"].get(m) if player else None
+        game=player["game"] if player else None
+        if actual is None:
+            result="Unverified"
+        elif game["state"]=="post":
+            result="Hit" if actual>=line else "Loss"
+        else:
+            result="Pending"
+        rows.append({"Player":p,"Market":m,"Safer line":f"{line}+ {m.lower()}",
+                     "Actual":actual if actual is not None else "Unavailable",
+                     "Result":result,
+                     "Game status":game["detail"] if game else "Unmatched"})
+    return rows
+
 def bankroll_verified_summary(rows):
     wins=sum(r["Result"]=="Hit" for r in rows)
     losses=sum(r["Result"]=="Loss" for r in rows)
@@ -606,36 +634,77 @@ def show_bankroll_performance():
     st.download_button("Download historical results CSV",display.to_csv(index=False),file_name="bankroll_builder_performance_history.csv",mime="text/csv")
     st.subheader("Player-by-player results")
     chosen_date=st.selectbox("Select a date to see individual safer-line results",dates,index=len(dates)-1,key="bankroll_drilldown_date",format_func=lambda d:pd.to_datetime(d).strftime("%b %d, %Y"))
-    individual={
-        "2026-11-05":[
-            {"Player":p,"Market":market,"Safer line":f"{line}+ {market.lower()}","Actual":actual,
-             "Result":"Hit" if actual>=line else "Loss",
-             "Source":"https://www.basketball-reference.com/boxscores/202611050PHO.html" if p in {"Tristan da Silva","Desmond Bane","Anthony Black","Oso Ighodaro","Franz Wagner","Wendell Carter Jr.","Collin Gillespie"} else "https://www.nba.com/game/mia-vs-gsw-0022600188/box-score"}
-            for p,market,line,actual in NOV5_PICKS
-        ],
-    }
-    if chosen_date=="2026-11-06":
-        pending=pd.DataFrame([{"Player":p,"Market":m,"Safer line":f"{line}+ {m.lower()}","Actual":0 if p=="Grayson Allen" and m=="Threes" else "Not documented","Result":"Loss" if p=="Grayson Allen" and m=="Threes" else "Chat total only"} for p,m,line in NOV6_PICKS])
-        responsive_dataframe(pending,"performance_nov6",preferred=["Safer line","Actual","Result"],hide_index=True,use_container_width=True)
-        st.download_button("Download November 6 selections",pending.to_csv(index=False),file_name="bankroll_builder_nov6_picks.csv",mime="text/csv")
-        return
-    detail=pd.DataFrame(individual.get(chosen_date,[]))
-    if detail.empty:
-        st.warning("This date is awaiting verification against original safer-line selections and final NBA box scores. The daily totals are chat-reported, but individual player stats are not documented for this date.")
+    if chosen_date in verified:
+        detail=pd.DataFrame(verified[chosen_date].get("picks",[]))
+        st.caption("Saved final results for this date.")
     else:
-        wins=detail[detail["Result"]=="Hit"]
-        losses=detail[detail["Result"]=="Loss"]
-        tab_all,tab_hits,tab_losses=st.tabs([f"All recorded ({len(detail)})",f"✅ Hits ({len(wins)})",f"❌ Misses ({len(losses)})"])
-        for idx,(tab,subset) in enumerate(((tab_all,detail),(tab_hits,wins),(tab_losses,losses))):
+        try:
+            detail=pd.DataFrame(historical_safe_line_grades(chosen_date))
+        except Exception:
+            detail=pd.DataFrame()
+            st.warning("NBA box scores are temporarily unavailable for this date.")
+    if detail.empty:
+        st.warning("The original player-by-player Safe Line selections are not saved for this date. Historical daily totals alone cannot identify which players hit or missed.")
+        if is_admin:
+            with st.expander("Admin · Add original picks for this date"):
+                st.caption("Upload a CSV containing Player, Market and Safer line. The file must be the actual selections from the chosen date.")
+                upload=st.file_uploader("Original dated Safe Line picks (CSV)",type=["csv"],key="historical_picks_"+chosen_date)
+                if upload is not None:
+                    try:
+                        original=pd.read_csv(upload)
+                        required={"Player","Market","Safer line"}
+                        if not required.issubset(original.columns):
+                            st.error("Required columns: Player, Market, Safer line")
+                        else:
+                            if st.button("Verify these dated picks",key="verify_historical_"+chosen_date):
+                                st.session_state["historical_input_"+chosen_date]=original.to_dict("records")
+                                st.rerun()
+                    except Exception as exc:
+                        st.error("Could not read the CSV: "+str(exc))
+                custom=st.session_state.get("historical_input_"+chosen_date)
+                if custom:
+                    try:
+                        original=pd.DataFrame(custom)
+                        graded=grade_bankroll_sheet(original,chosen_date)
+                        st.dataframe(pd.DataFrame(graded),hide_index=True,use_container_width=True)
+                        if st.button("Save verified historical picks",key="save_historical_"+chosen_date):
+                            if any(row["Result"]=="Pending" for row in graded):
+                                st.warning("Some games are not final yet.")
+                            else:
+                                records=saved_bankroll_results()
+                                records[chosen_date]={"picks":graded,"saved_at":datetime.now(timezone.utc).isoformat()}
+                                github_file("bankroll_verified_results.json",json.dumps(records).encode("utf-8"))
+                                saved_bankroll_results.clear()
+                                st.rerun()
+                    except Exception:
+                        st.warning("Could not grade the uploaded picks against NBA box scores.")
+    else:
+        verified_count=int(detail["Result"].isin(["Hit","Loss"]).sum())
+        hit_count=int((detail["Result"]=="Hit").sum())
+        loss_count=int((detail["Result"]=="Loss").sum())
+        st.caption(f"Box-score graded: {verified_count}/{len(detail)} picks · {hit_count} hits · {loss_count} misses. Unavailable player stats remain unverified.")
+        tab_all,tab_hits,tab_losses,tab_unknown=st.tabs([
+            f"All ({len(detail)})",f"✅ Hits ({hit_count})",f"❌ Misses ({loss_count})",
+            f"Unverified ({len(detail)-verified_count})"])
+        subsets=(detail,detail[detail["Result"]=="Hit"],detail[detail["Result"]=="Loss"],
+                 detail[~detail["Result"].isin(["Hit","Loss"])])
+        for idx,(tab,subset) in enumerate(zip((tab_all,tab_hits,tab_losses,tab_unknown),subsets)):
             with tab:
-                if subset.empty:st.caption("No individually documented selections in this category yet.")
+                if subset.empty:st.caption("No selections in this category.")
                 else:responsive_dataframe(subset,"performance_detail_"+str(idx),preferred=["Safer line","Actual","Result"],hide_index=True,use_container_width=True)
-        total=history.loc[history["Date"]==chosen_date].iloc[0]
-        missing=int(total["Graded"])-len(detail)
-        if missing>0:st.info(f"{len(detail)} of {int(total['Graded'])} graded selections have player-level details. {missing} individual results are still missing; the daily totals remain unchanged.")
-        st.download_button("Download this date's documented player results",detail.to_csv(index=False),file_name="bankroll_builder_players_"+chosen_date+".csv",mime="text/csv",key="player_detail_csv")
-    st.caption("November 5 has a player-by-player breakdown. November 6 has chat-reported totals and one documented player result. Other dates have chat-reported totals only.")
-
+        st.download_button("Download player results CSV",detail.to_csv(index=False),
+                           file_name="bankroll_builder_players_"+chosen_date+".csv",mime="text/csv",key="player_detail_csv")
+        if is_admin and chosen_date not in verified:
+            if st.button("Save these final player results",key="save_player_detail_"+chosen_date):
+                if any(x in ("Pending","Unverified") for x in detail["Result"]):
+                    st.warning("Some selections are still pending or unverified. Resolve them before replacing the historical daily total.")
+                else:
+                    records=saved_bankroll_results()
+                    records[chosen_date]={"picks":detail.to_dict("records"),"saved_at":datetime.now(timezone.utc).isoformat()}
+                    github_file("bankroll_verified_results.json",json.dumps(records).encode("utf-8"))
+                    saved_bankroll_results.clear()
+                    st.rerun()
+    st.caption("Only dates with original saved selections can be independently graded. Earlier chat-reported totals remain separate until verified.")
 
 
 MODEL_FIELDS=["Date","Player","Market","Reference line","Model projection","Model side","Actual","Odds","Stake","Status"]
