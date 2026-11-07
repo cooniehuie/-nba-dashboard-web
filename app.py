@@ -339,6 +339,121 @@ def show_bankroll_performance():
     st.caption("November 5 has a player-by-player breakdown. November 6 has chat-reported totals and one documented player result. Other dates have chat-reported totals only.")
 
 
+
+MODEL_FIELDS=["Date","Player","Market","Reference line","Model projection","Model side","Actual","Odds","Stake","Status"]
+@st.cache_data(ttl=120,show_spinner=False)
+def model_log():
+    try:
+        blob=github_file("model_results.csv")
+        return pd.read_csv(__import__("io").BytesIO(blob)).fillna("") if blob else pd.DataFrame(columns=MODEL_FIELDS)
+    except Exception:
+        return pd.DataFrame(columns=MODEL_FIELDS)
+
+def model_grades(raw):
+    d=raw.copy()
+    for c in MODEL_FIELDS:
+        if c not in d:d[c]=""
+    for c in ["Reference line","Model projection","Actual","Odds","Stake"]:
+        d[c]=pd.to_numeric(d[c],errors="coerce")
+    d["Outcome"]="Ungraded"
+    ready=d["Status"].astype(str).str.lower().isin(["final","verified"]) & d["Actual"].notna() & d["Reference line"].notna()
+    over=d["Model side"].astype(str).str.lower()=="over"
+    under=d["Model side"].astype(str).str.lower()=="under"
+    d.loc[ready & (over|under),"Outcome"]="Loss"
+    d.loc[ready & ((over & (d["Actual"]>d["Reference line"]))|(under & (d["Actual"]<d["Reference line"]))),"Outcome"]="Win"
+    d.loc[ready & (over|under) & (d["Actual"]==d["Reference line"]),"Outcome"]="Push"
+    priced=d["Outcome"].isin(["Win","Loss","Push"]) & (d["Stake"]>0) & ((d["Odds"]>=100)|(d["Odds"]<=-100))
+    d["Net profit"]=float("nan")
+    w=priced & (d["Outcome"]=="Win")
+    d.loc[w,"Net profit"]=d.loc[w,"Stake"]*d.loc[w,"Odds"].map(lambda o:o/100 if o>0 else 100/abs(o))
+    l=priced & (d["Outcome"]=="Loss")
+    d.loc[l,"Net profit"]=-d.loc[l,"Stake"]
+    d.loc[priced & (d["Outcome"]=="Push"),"Net profit"]=0.0
+    d["ROI stake"]=d["Stake"].where(priced,0)
+    return d
+
+def show_model_accuracy():
+    st.title("🎯 Model Accuracy & ROI")
+    st.caption("Model Over/Under decisions are graded against the sportsbook reference line, not the model projection. Missing actuals and DNPs are excluded.")
+    if is_admin:
+        with st.expander("Admin · Import final results or enter a result"):
+            st.download_button("Download CSV template",pd.DataFrame(columns=MODEL_FIELDS).to_csv(index=False),file_name="model_results_template.csv",mime="text/csv")
+            uploaded_results=st.file_uploader("Import model results CSV",type="csv",key="outcome_import")
+            if uploaded_results is not None:
+                try:
+                    candidate=pd.read_csv(uploaded_results,dtype=str).fillna("")
+                    missing=set(["Date","Player","Market","Reference line","Model side","Actual","Status"])-set(candidate.columns)
+                    if missing:st.error("Missing fields: "+", ".join(sorted(missing)))
+                    else:
+                        st.dataframe(candidate.head(10),hide_index=True)
+                        if st.button("Replace saved model results with this CSV",type="primary"):
+                            github_file("model_results.csv",candidate.reindex(columns=MODEL_FIELDS,fill_value="").to_csv(index=False).encode())
+                            model_log.clear()
+                            st.rerun()
+                except Exception as e:st.error("CSV could not be imported: "+str(e))
+            with st.form("add_outcome"):
+                a,b,c=st.columns(3)
+                date=a.date_input("Date",key="outcome_date")
+                player=b.text_input("Player",key="outcome_player")
+                market=c.selectbox("Market",["Points","Rebounds","Assists","Threes"],key="outcome_market")
+                a,b,c=st.columns(3)
+                ref=a.number_input("Reference line",min_value=0.0,step=0.5)
+                proj=b.number_input("Model projection",min_value=0.0,step=0.5)
+                side=c.selectbox("Model side",["Over","Under"])
+                a,b,c=st.columns(3)
+                actual=a.number_input("Actual",min_value=0.0,step=1.0)
+                status=b.selectbox("Status",["Final","Pending","DNP"])
+                odds=c.number_input("American odds (0 if unknown)",value=0,step=5)
+                stake=st.number_input("Wager amount (0 if none)",min_value=0.0,value=0.0,step=5.0)
+                submit=st.form_submit_button("Save result")
+            if submit:
+                if not player.strip():st.error("Player name is required.")
+                elif not storage_ready:st.error("Private storage is not configured.")
+                else:
+                    old=model_log()
+                    entry={"Date":str(date),"Player":player.strip(),"Market":market,"Reference line":ref,"Model projection":proj,"Model side":side,"Actual":actual,"Odds":odds if odds else "","Stake":stake if stake else "","Status":status}
+                    combined=pd.concat([old,pd.DataFrame([entry])],ignore_index=True)
+                    github_file("model_results.csv",combined.reindex(columns=MODEL_FIELDS,fill_value="").to_csv(index=False).encode())
+                    model_log.clear()
+                    st.rerun()
+    raw=model_log()
+    if raw.empty:
+        st.info("No final model results have been saved. Daily projection workbooks do not contain verified final game outcomes. Import or enter completed games to enable the tracker.")
+        return
+    d=model_grades(raw)
+    markets=sorted(d["Market"].astype(str).unique())
+    selected=st.multiselect("Markets",markets,default=markets,key="accuracy_market")
+    d=d[d["Market"].isin(selected)]
+    graded=d[d["Outcome"].isin(["Win","Loss","Push"])]
+    decided=graded[graded["Outcome"].isin(["Win","Loss"])]
+    wins=int((decided["Outcome"]=="Win").sum())
+    paid=graded[graded["ROI stake"]>0]
+    investment=float(paid["ROI stake"].sum())
+    profit=float(paid["Net profit"].sum()) if len(paid) else 0.0
+    a,b,c,e=st.columns(4)
+    a.metric("Model win rate",str(round(100*wins/len(decided),1))+"%" if len(decided) else "N/A")
+    b.metric("Decisions graded",len(decided))
+    c.metric("Net profit",("$"+format(profit,",.2f")) if investment else "N/A")
+    e.metric("ROI",str(round(100*profit/investment,1))+"%" if investment else "N/A")
+    st.caption(str(len(d)-len(graded))+" ungraded · "+str(int((graded["Outcome"]=="Push").sum()))+" pushes · "+str(len(paid))+" bets with valid odds and stake. ROI excludes bets without odds/stake.")
+    if len(decided):
+        st.subheader("Accuracy by market")
+        group=decided.groupby("Market")["Outcome"].agg(Total="size",Wins=lambda x:(x=="Win").sum()).reset_index()
+        group["Hit rate"]=100*group["Wins"]/group["Total"]
+        st.dataframe(group,hide_index=True,use_container_width=True)
+    st.subheader("Projection vs. actual")
+    chart=d[d["Model projection"].notna() & d["Actual"].notna() & d["Outcome"].isin(["Win","Loss","Push"])].copy()
+    if chart.empty:st.info("No completed projection/actual pairs yet.")
+    else:
+        import altair as alt
+        maxval=max(float(chart["Actual"].max()),float(chart["Model projection"].max()),1)
+        dots=alt.Chart(chart).mark_circle(size=85).encode(x=alt.X("Model projection:Q",scale=alt.Scale(domain=[0,maxval])),y=alt.Y("Actual:Q",scale=alt.Scale(domain=[0,maxval])),color="Market:N",tooltip=["Date","Player","Market","Model projection","Actual","Outcome"])
+        diagonal=alt.Chart(pd.DataFrame({"x":[0,maxval],"y":[0,maxval]})).mark_line(strokeDash=[5,5],color="#94a3b8").encode(x="x:Q",y="y:Q")
+        st.altair_chart(diagonal+dots,use_container_width=True)
+    st.subheader("Saved outcome history")
+    st.dataframe(d,hide_index=True,use_container_width=True)
+    st.download_button("Export model outcomes",d.to_csv(index=False),file_name="model_outcomes.csv",mime="text/csv")
+
 with st.sidebar:
     st.title("🏀 Huie's Degen Center")
     st.caption("Your private model dashboard")
@@ -374,7 +489,7 @@ with st.sidebar:
         if not admin_password:
             st.warning("Admin access is not enabled yet. Add ADMIN_PASSWORD in Streamlit Secrets.")
     st.divider()
-    section=st.radio("Navigate",["Overview","Bankroll Performance","Bankroll Builder","Favorite Props","All Player Props","Three-Point Projections","Individual Games"],label_visibility="visible")
+    section=st.radio("Navigate",["Overview","Bankroll Performance","Model Accuracy & ROI","Live Prop Tracker","Bankroll Builder","Favorite Props","All Player Props","Three-Point Projections","Individual Games"],label_visibility="visible")
 
 source=uploaded.getvalue() if uploaded else None
 if source is None and storage_ready:
@@ -520,6 +635,8 @@ if section=="Overview":
     if bankroll:show_table(bankroll,False)
 elif section=="Bankroll Performance":
     show_bankroll_performance()
+elif section=="Model Accuracy & ROI":
+    show_model_accuracy()
 elif section=="Individual Games":
     st.title("Individual Game Projections")
     if games:
