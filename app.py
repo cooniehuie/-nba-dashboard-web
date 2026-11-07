@@ -69,6 +69,20 @@ h1,h2,h3{letter-spacing:-.025em}
 .bk-live-progress-fill{height:100%;border-radius:9px;background:#eab308}
 .bk-live-card.hit .bk-live-progress-fill{background:#16a34a}
 .bk-live-note{font-size:.76rem;opacity:.8;margin-top:7px}
+/* Compact live-tracking cards: scan the current stat and amount needed first. */
+.bk-live-game{padding:9px 2px 3px;font-size:.87rem}
+.bk-live-game small{font-size:.71rem;margin-top:1px}
+.bk-live-card{padding:10px 12px;margin:5px 0 8px}
+.bk-live-name{font-size:1.03rem}
+.bk-live-status{font-size:.70rem;padding:3px 7px}
+.bk-live-subtitle{font-size:.84rem;line-height:1.35;margin:5px 0 3px;opacity:.9}
+.bk-live-subtitle b{font-weight:750}
+.bk-live-model-short{opacity:.8}
+.bk-live-focus{display:flex;justify-content:space-between;align-items:end;gap:8px;margin:4px 0}
+.bk-live-current small{display:block;font-size:.67rem;font-weight:650;opacity:.7}
+.bk-live-current strong{font-size:1.75rem;line-height:1.08;font-variant-numeric:tabular-nums}
+.bk-live-needed{font-size:.86rem;font-weight:750;text-align:right;padding-bottom:3px}
+.bk-live-card .bk-live-progress{margin:8px 0 0}
 @media(max-width:768px){
  .st-key-bankroll_live_desktop_grid,.st-key-embedded_bankroll_desktop_grid{display:none!important}
  .st-key-bankroll_live_mobile_ui,.st-key-embedded_bankroll_mobile_ui{display:block!important}
@@ -677,7 +691,6 @@ def show_bankroll_live_tracker(embedded=False):
     import re
     if not embedded:st.title("🔴 Bankroll Live Tracking")
     else:st.subheader("🔴 Bankroll Live Tracker")
-    st.caption("Bankroll Builder workbook props · ESPN NBA box scores · auto-refresh every 30 seconds while open.")
     if not bankroll:
         st.warning("No Bankroll Builder sheet is available in the loaded workbook.")
         return
@@ -692,19 +705,17 @@ def show_bankroll_live_tracker(embedded=False):
         st.warning("The bankroll workbook needs Player and Safer line columns for tracking.")
         return
     prefix="embedded_bankroll" if embedded else "bankroll_live"
-    game_date=st.date_input("Game date (match your uploaded workbook)",value=datetime.now(ZoneInfo("America/Los_Angeles")).date(),key=prefix+"_date")
-    st.caption("Check the selected date: player-name matching alone cannot prove a prop belongs to a particular game.")
+    chosen_day=st.session_state.get(prefix+"_date",datetime.now(ZoneInfo("America/Los_Angeles")).date())
+    with st.expander("📅 "+chosen_day.strftime("%b %d, %Y")+" · Change date",expanded=False):
+        game_date=st.date_input("Game date",value=chosen_day,key=prefix+"_date")
     @st.fragment(run_every="30s")
     def render_bankroll_live():
-        if st.button("↻ Refresh now",key=prefix+"_refresh"):
-            espn_nba_boxscores.clear()
         try:
             games,players=espn_nba_boxscores(game_date.strftime("%Y%m%d"))
         except Exception as exc:
             st.warning("ESPN box scores unavailable. No picks have been graded or saved.")
             with st.expander("Connection details"):st.code(str(exc))
             return
-        st.caption(str(len(games))+" NBA games found · Last checked "+datetime.now(ZoneInfo("America/Los_Angeles")).strftime("%I:%M:%S %p PT"))
         if not games:
             st.info("No NBA games found for this date.")
             return
@@ -778,78 +789,87 @@ def show_bankroll_live_tracker(embedded=False):
             rows.append(row)
         output=pd.DataFrame(rows)
         counts=output["Live status"].value_counts()
-        c1,c2,c3,c4=st.columns(4)
-        c1.metric("Bankroll props",len(output))
-        c2.metric("Reached / hit",sum(v for k,v in counts.items() if "Target reached" in k or k=="🟢 Hit"))
-        c3.metric("Final misses",int(counts.get("🔴 Miss",0)))
-        c4.metric("Unverified",sum(v for k,v in counts.items() if "Unverified" in k))
         output=output.sort_values(["_tipoff","Game","Player"],kind="stable")
-        # On a phone, the full-width table disappears automatically. The card UI
-        # keeps the player, model projection, safer line, actual and status together.
+        # Keep the desktop summary above the table; on phones player progress comes first.
         with st.container(key=prefix+"_desktop_grid"):
+            c1,c2,c3,c4=st.columns(4)
+            c1.metric("Props",len(output))
+            c2.metric("Reached / hit",sum(v for k,v in counts.items() if "Target reached" in k or k=="🟢 Hit"))
+            c3.metric("Misses",int(counts.get("🔴 Miss",0)))
+            c4.metric("Unverified",sum(v for k,v in counts.items() if "Unverified" in k))
             st.dataframe(output.drop(columns=["_tipoff"]),hide_index=True,use_container_width=True)
         with st.container(key=prefix+"_mobile_ui"):
             import html
-            choice=st.radio("Player filter",["Active","All","Live","Hit","Miss","Unverified"],
-                            horizontal=True,key=prefix+"_mobile_filter",
-                            help="Active hides unverified stats; All includes a collapsed unverified list.")
+            with st.expander("Filter players",expanded=False):
+                choice=st.radio("Show",["Active","All","Live","Hit","Miss","Unverified"],
+                                horizontal=True,key=prefix+"_mobile_filter",label_visibility="collapsed")
             def unverified_status(status):
                 return "Unverified" in status or "Not started" in status
             def card_group(data):
                 if data.empty:
-                    st.caption("No player props in this filter.")
+                    st.caption("No matching props.")
                     return
                 chunks=[]
-                # Grouping by actual game start time, then matchup, preserves tipoff order.
+                # Follow tipoff order and make the actual stat the focal point.
                 for (start,matchup),group in data.groupby(["_tipoff","Game"],sort=False,dropna=False):
                     start_label=""
                     if start and start!="9999":
                         try:
                             start_label=datetime.fromisoformat(str(start).replace("Z","+00:00")).astimezone(
-                                ZoneInfo("America/Los_Angeles")).strftime("%-I:%M %p PT")
+                                ZoneInfo("America/Los_Angeles")).strftime("%-I:%M %p")
                         except (ValueError,TypeError):
                             pass
                     game_label=str(matchup) if matchup and str(matchup)!="nan" else "Matchup unavailable"
-                    game_status=group.iloc[0]["Game status"]
+                    game_status=str(group.iloc[0]["Game status"])
+                    game_context=" · ".join(p for p in (start_label,game_status if game_status not in ("Unavailable","Scheduled") else "") if p)
                     chunks.append('<div class="bk-live-game">'+html.escape(game_label)+
-                                  '<small>'+html.escape(start_label or "Tipoff unavailable")+
-                                  ' · '+html.escape(str(game_status))+'</small></div>')
+                                  ('<small>'+html.escape(game_context)+'</small>' if game_context else "")+'</div>')
                     for _,r in group.iterrows():
                         state=str(r["Live status"])
                         kind=("hit" if "🟢" in state else "miss" if "🔴" in state
                               else "live" if "🟡" in state else "unverified")
                         actual=r["Actual"]
                         has_actual=pd.notna(actual)
-                        actual_text=(format(float(actual),"g") if has_actual else "—")
-                        needed=r["Needed"]
-                        needed_text=(format(float(needed),"g") if pd.notna(needed) else "—")
+                        actual_text=format(float(actual),"g") if has_actual else "—"
                         line=str(r["Safer line"])
                         match=re.search(r"\d+(?:\.\d+)?",line)
                         threshold=float(match.group()) if match else None
                         under="under" in line.lower()
                         pct=(min(100,max(0,float(actual)/threshold*100))
                              if has_actual and threshold and threshold>0 and not under else 0)
-                        status_text=state.split(" ",1)[-1]
-                        model_info=('<div class="bk-live-model">Model projection: <b>'+
-                                    html.escape(str(r["Model line"]))+'</b></div>'
-                                    if str(r["Model line"]).strip() else "")
+                        status_text=("Hit" if state=="🟢 Hit" else
+                                     "Reached" if "Target reached" in state else
+                                     "Miss" if "Miss" in state else
+                                     "Live" if "progress" in state else
+                                     "Pending")
+                        market_code={"Points":"PTS","Rebounds":"REB","Assists":"AST","Threes":"3PM"}.get(str(r["Market"]),str(r["Market"]))
+                        raw_model=str(r["Model line"]).strip()
+                        model_info=('<span class="bk-live-model-short"> · Model <b>'+
+                                    html.escape(raw_model)+'</b></span>'
+                                    if raw_model and raw_model.lower() not in ("nan","none") else "")
+                        if not has_actual:
+                            needed_label="Awaiting stats"
+                        elif under and threshold is not None:
+                            needed_label="Below line" if float(actual)<threshold else "Above line"
+                        elif threshold is None:
+                            needed_label=""
+                        elif float(actual)>=threshold:
+                            needed_label="Reached"
+                        elif "Miss" in state:
+                            needed_label="Short "+format(threshold-float(actual),"g")
+                        else:
+                            needed_label="Need "+format(threshold-float(actual),"g")
                         bar=('<div class="bk-live-progress"><div class="bk-live-progress-fill" style="width:'+
                              f'{pct:.0f}%"></div></div>' if threshold and not under and has_actual else "")
-                        note=("Under line · monitor until final" if under and has_actual else
-                              f'{pct:.0f}% of target · Provisional until final' if has_actual and threshold else
-                              "Awaiting verified player stats")
                         chunks.append('<div class="bk-live-card '+kind+'">'+
                             '<div class="bk-live-head"><span class="bk-live-name">'+
                             html.escape(str(r["Player"]))+'</span><span class="bk-live-status">'+
                             html.escape(status_text)+'</span></div>'+
-                            '<div class="bk-live-line">🎯 '+html.escape(line)+'</div>'+model_info+
-                            '<div class="bk-live-stats">'+
-                            '<div class="bk-live-stat"><span>ACTUAL</span><b>'+actual_text+'</b></div>'+
-                            '<div class="bk-live-stat"><span>TARGET</span><b>'+
-                            (format(threshold,"g") if threshold is not None else "—")+'</b></div>'+
-                            '<div class="bk-live-stat"><span>NEEDED</span><b>'+needed_text+'</b></div>'+
-                            '</div>'+bar+
-                            '<div class="bk-live-note">'+html.escape(note)+'</div></div>')
+                            '<div class="bk-live-subtitle">'+html.escape(market_code)+' · <b>'+
+                            html.escape(line)+'</b>'+model_info+'</div>'+
+                            '<div class="bk-live-focus"><div class="bk-live-current"><small>NOW</small><strong>'+
+                            html.escape(actual_text)+'</strong></div><div class="bk-live-needed">'+
+                            html.escape(needed_label)+'</div></div>'+bar+'</div>')
                 st.markdown("".join(chunks),unsafe_allow_html=True)
             unknown=output["Live status"].map(unverified_status)
             if choice=="Active":
@@ -868,7 +888,10 @@ def show_bankroll_live_tracker(embedded=False):
             if choice in ("Active","All") and unknown.any():
                 with st.expander("⚪ Unverified / awaiting stats ("+str(int(unknown.sum()))+")",expanded=False):
                     card_group(output[unknown])
-        st.caption("Uses the same ESPN player stats as My Bets. In-progress targets are provisional; missing players and missing box scores are never treated as losses.")
+        st.caption("Updated "+datetime.now(ZoneInfo("America/Los_Angeles")).strftime("%-I:%M %p")+" · Auto-refresh 30s · Live results provisional")
+        if st.button("↻ Refresh",key=prefix+"_refresh"):
+            espn_nba_boxscores.clear()
+            st.rerun()
     render_bankroll_live()
 
 
