@@ -538,7 +538,7 @@ def show_bankroll_live_tracker(embedded=False):
         def evaluate(row):
             actual=number(row.get("Actual"))
             target_text=str(row.get(linecol,""))
-            target_match=re.search(r"\\d+(?:\\.\\d+)?",target_text)
+            target_match=re.search(r"\d+(?:\.\d+)?",target_text)
             target=float(target_match.group()) if target_match else None
             if actual is None or target is None:return "⚪ Unverified"
             state=str(row.get("Game state","")).lower()
@@ -554,8 +554,8 @@ def show_bankroll_live_tracker(embedded=False):
             return "⚪ Not started / unverified"
         joined["Live status"]=joined.apply(evaluate,axis=1)
         joined["Needed"]=joined.apply(lambda row:(
-            max(0,float(re.search(r"\\d+(?:\\.\\d+)?",str(row.get(linecol))).group())-number(row.get("Actual")))
-            if number(row.get("Actual")) is not None and re.search(r"\\d+(?:\\.\\d+)?",str(row.get(linecol))) and
+            max(0,float(re.search(r"\d+(?:\.\d+)?",str(row.get(linecol))).group())-number(row.get("Actual")))
+            if number(row.get("Actual")) is not None and re.search(r"\d+(?:\.\d+)?",str(row.get(linecol))) and
             not ("under" in str(row.get(linecol)).lower() or (sidecol and str(row.get(sidecol,"")).lower()=="under"))
             else None),axis=1)
         counts=joined["Live status"].value_counts()
