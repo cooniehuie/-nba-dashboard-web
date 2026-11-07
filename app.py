@@ -520,70 +520,85 @@ def show_bankroll_live_tracker(embedded=False):
     @st.fragment(run_every="30s")
     def render_bankroll_live():
         if st.button("↻ Refresh now",key=prefix+"_refresh"):
-            espn_stats.clear()
+            espn_nba_boxscores.clear()
         try:
-            stats,game_count=espn_stats(str(game_date))
+            games,players=espn_nba_boxscores(game_date.strftime("%Y%m%d"))
         except Exception as exc:
-            st.warning("ESPN box scores unavailable. No bets have been graded or saved.")
+            st.warning("ESPN box scores unavailable. No picks have been graded or saved.")
             with st.expander("Connection details"):st.code(str(exc))
             return
-        st.caption(str(game_count)+" NBA games found · Last checked "+datetime.now(ZoneInfo("America/Los_Angeles")).strftime("%I:%M:%S %p PT"))
-        if stats.empty:
-            st.info("No player box-score statistics are available for this date yet.")
+        st.caption(str(len(games))+" NBA games found · Last checked "+datetime.now(ZoneInfo("America/Los_Angeles")).strftime("%I:%M:%S %p PT"))
+        if not games:
+            st.info("No NBA games found for this date.")
             return
-        frame2=frame.copy()
+        if any(g.get("boxscore_error") for g in games):
+            st.warning("Some game box scores could not be loaded. Missing stats are not counted as losses.")
         def safer_market(value):
-            value=str(value).lower()
-            for token,market in [("assist","Assists"),("rebound","Rebounds"),("three","Threes"),("3pt","Threes"),("point","Points")]:
-                if token in value:return market
+            v=str(value).lower()
+            for token,market in [("assist","Assists"),("rebound","Rebounds"),("three","Threes"),("3pt","Threes"),("3-pointer","Threes"),("point","Points")]:
+                if token in v:return market
             return ""
-        frame2["_market"]=frame2[marketcol].astype(str).str.title() if marketcol else frame2[linecol].map(safer_market)
-        frame2["_match_key"]=frame2[playercol].map(live_name)+"|"+frame2["_market"].str.lower().str.strip()
-        ambiguous=set(stats.loc[stats["Key"].duplicated(keep=False),"Key"])
-        stats_unique=stats[~stats["Key"].isin(ambiguous)].drop_duplicates("Key")
-        joined=frame2.merge(stats_unique,left_on="_match_key",right_on="Key",how="left")
-        if gamecol:
-            normalize_game=lambda x:re.sub(r"[^a-z0-9]","",str(x).lower())
-            mismatch=joined["Matchup"].notna() & (joined[gamecol].map(normalize_game)!=joined["Matchup"].map(normalize_game))
-            for col in ["Actual","Matchup","Game status","Game state"]:
-                if col in joined.columns:joined.loc[mismatch,col]=None
-        def evaluate(row):
-            actual=number(row.get("Actual"))
-            target_text=str(row.get(linecol,""))
-            target_match=re.search(r"\d+(?:\.\d+)?",target_text)
+        def teams_from_matchup(value):
+            # Compare the two teams rather than exact ESPN display punctuation/order.
+            return set(re.findall(r"[A-Z]{2,4}",str(value).upper()))
+        game_by_id={str(g["id"]):g for g in games}
+        # ESPN scoreboard competition team abbreviations are more reliable than
+        # shortName punctuation; accept either home/away ordering.
+        import urllib.request
+        team_pairs={}
+        try:
+            request=urllib.request.Request("https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard?dates="+game_date.strftime("%Y%m%d"),headers={"User-Agent":"Mozilla/5.0"})
+            with urllib.request.urlopen(request,timeout=12) as response:
+                board=json.load(response)
+            for event in board.get("events",[]):
+                competitors=(event.get("competitions") or [{}])[0].get("competitors",[])
+                team_pairs[str(event.get("id"))]={c.get("team",{}).get("abbreviation","").upper() for c in competitors}
+        except Exception:
+            pass
+        rows=[]
+        for _,pick in frame.iterrows():
+            player_name=str(pick[playercol])
+            market=str(pick[marketcol]).strip().title() if marketcol else safer_market(pick[linecol])
+            if market not in ("Points","Rebounds","Assists","Threes"):
+                market=safer_market(pick[linecol])
+            workbook_game=str(pick[gamecol]) if gamecol else ""
+            expected_teams=teams_from_matchup(workbook_game)
+            candidate=match_espn_player(player_name,players)
+            game=candidate["game"] if candidate else None
+            actual=candidate["stats"].get(market) if candidate else None
+            if candidate and expected_teams:
+                live_teams=team_pairs.get(str(game["id"]),set())
+                if live_teams and live_teams!=expected_teams:
+                    candidate=None
+                    game=None
+                    actual=None
+            target_match=re.search(r"\d+(?:\.\d+)?",str(pick[linecol]))
             target=float(target_match.group()) if target_match else None
-            if actual is None or target is None:return "⚪ Unverified"
-            state=str(row.get("Game state","")).lower()
-            direction=str(row.get(sidecol,"")).strip().lower() if sidecol else ""
-            # Safer lines usually mean a minimum (e.g. 15+); only apply
-            # an under rule if the workbook explicitly identifies Under.
-            is_under=("under" in target_text.lower() or direction=="under")
-            reached=(actual<target if is_under else actual>=target)
-            if state=="post":return "🟢 Hit" if reached else "🔴 Miss"
-            if state=="in":
-                if is_under:return "🟡 In progress (under not final)"
-                return "🟢 Target reached" if reached else "🟡 In progress"
-            return "⚪ Not started / unverified"
-        joined["Live status"]=joined.apply(evaluate,axis=1)
-        joined["Needed"]=joined.apply(lambda row:(
-            max(0,float(re.search(r"\d+(?:\.\d+)?",str(row.get(linecol))).group())-number(row.get("Actual")))
-            if number(row.get("Actual")) is not None and re.search(r"\d+(?:\.\d+)?",str(row.get(linecol))) and
-            not ("under" in str(row.get(linecol)).lower() or (sidecol and str(row.get(sidecol,"")).lower()=="under"))
-            else None),axis=1)
-        counts=joined["Live status"].value_counts()
+            under="under" in str(pick[linecol]).lower()
+            if actual is None or target is None:
+                result="⚪ Unverified"
+            elif game["state"]=="post":
+                result="🟢 Hit" if (actual<target if under else actual>=target) else "🔴 Miss"
+            elif game["state"]=="in":
+                result=("🟡 Under in progress" if under else ("🟢 Target reached" if actual>=target else "🟡 In progress"))
+            else:
+                result="⚪ Not started / unverified"
+            needed=max(0,target-actual) if actual is not None and target is not None and not under else None
+            row={"Player":player_name,"Game":workbook_game,"Market":market,
+                 "Safer line":str(pick[linecol]),"Actual":actual,"Needed":needed,
+                 "Live status":result,"Game status":game["detail"] if game else "Unavailable",
+                 "_tipoff":game.get("start_utc","") if game else "9999"}
+            rows.append(row)
+        output=pd.DataFrame(rows)
+        counts=output["Live status"].value_counts()
         c1,c2,c3,c4=st.columns(4)
-        c1.metric("Bankroll props",len(joined))
+        c1.metric("Bankroll props",len(output))
         c2.metric("Reached / hit",sum(v for k,v in counts.items() if "Target reached" in k or k=="🟢 Hit"))
         c3.metric("Final misses",int(counts.get("🔴 Miss",0)))
-        c4.metric("Unverified",sum(v for k,v in counts.items() if "Unverified" in k or "Not started" in k))
-        columns=[playercol]
-        if gamecol:columns.append(gamecol)
-        columns.extend(["_market",linecol])
-        if sidecol:columns.append(sidecol)
-        columns+=["Actual","Needed","Live status","Matchup","Game status"]
-        view=joined[[c for c in columns if c in joined.columns]].rename(columns={"_market":"Market"})
-        st.dataframe(view,hide_index=True,use_container_width=True)
-        st.caption("Live progress is provisional. Unmatched players and missing box scores are not losses. Only completed games receive final statistical Hit/Miss labels; nothing is written to bankroll history.")
+        c4.metric("Unverified",sum(v for k,v in counts.items() if "Unverified" in k))
+        output=output.sort_values(["_tipoff","Game","Player"],kind="stable").drop(columns="_tipoff")
+        st.dataframe(output,hide_index=True,use_container_width=True)
+        st.caption("Uses the same ESPN player stats as My Bets. In-progress targets are provisional; missing players and missing box scores are never treated as losses.")
     render_bankroll_live()
 
 
