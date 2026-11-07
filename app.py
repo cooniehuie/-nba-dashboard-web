@@ -120,7 +120,7 @@ h1,h2,h3{letter-spacing:-.025em}
  .st-key-mobile_bottom_nav [data-testid="stElementContainer"]{
   width:100%!important;min-width:0!important;max-width:100%!important}
  .st-key-mobile_bottom_nav [data-testid="stHorizontalBlock"]{
-  display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;
+  display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;
   width:100%!important;max-width:100%!important;min-width:0!important;
   gap:6px!important;flex-wrap:nowrap!important;align-items:stretch!important}
  .st-key-mobile_bottom_nav [data-testid="column"]{
@@ -133,12 +133,16 @@ h1,h2,h3{letter-spacing:-.025em}
   font-weight:700!important;line-height:1.25!important;white-space:normal!important;
   overflow-wrap:anywhere!important;text-align:center!important}
  .st-key-mobile_bottom_nav button p{font-size:inherit!important;line-height:inherit!important;margin:0!important}
- /* Force short bottom-tab labels to stay visible, never become ellipses. */
+ /* Four tabs for viewers; five for admins (Bets). */
+ .st-key-mobile_bottom_nav [data-testid="stHorizontalBlock"]:has(> [data-testid="column"]:nth-child(5)){
+  grid-template-columns:repeat(5,minmax(0,1fr))!important}
+ /* Wrap full tab names onto two lines without ellipses. */
  .st-key-mobile_bottom_nav button,
  .st-key-mobile_bottom_nav button p,
  .st-key-mobile_bottom_nav button span{
-  white-space:nowrap!important;overflow:visible!important;text-overflow:clip!important;
+  white-space:normal!important;overflow:visible!important;text-overflow:clip!important;
   word-break:normal!important;overflow-wrap:normal!important}
+ .st-key-mobile_bottom_nav button p{width:100%!important;text-align:center!important}
  .st-key-mobile_bottom_nav [data-testid="stPopover"] button svg{display:none!important}
  .st-key-mobile_bottom_nav button{font-size:.79rem!important;letter-spacing:-.02em!important;padding-inline:1px!important}
  @media(max-width:360px){.st-key-mobile_bottom_nav button{font-size:.70rem!important;padding:6px 1px!important}}
@@ -1490,11 +1494,13 @@ def navigate_phone(destination):
     st.session_state["site_nav"]=destination
 
 with st.container(key="mobile_bottom_nav"):
-    # Short, readable labels fit on narrow iPhones without truncation.
-    shortcuts=[("Home","Overview"),("Live","🔴 Bankroll Live Tracking"),
-               ("Build","Bankroll Builder"),
-               ("Bets","💸 My Bets") if is_admin else ("Faves","Model's Favorite Props")]
-    columns=st.columns(5)
+    # Favorites is available in More. The three key pages use their full labels.
+    shortcuts=[("Home","Overview"),
+               ("Live Tracker","🔴 Bankroll Live Tracking"),
+               ("Bankroll Builder","Bankroll Builder")]
+    if is_admin:
+        shortcuts.append(("Bets","💸 My Bets"))
+    columns=st.columns(len(shortcuts)+1)
     for i,(label,destination) in enumerate(shortcuts):
         with columns[i]:
             st.button(label,key="phone_nav_"+str(i),use_container_width=True,
