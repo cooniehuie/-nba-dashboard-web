@@ -1245,8 +1245,12 @@ with st.sidebar:
         if not admin_password:
             st.warning("Admin access is not enabled yet. Add ADMIN_PASSWORD in Streamlit Secrets.")
     st.divider()
-    section=st.radio("Navigate",["Overview","Bankroll Performance","🔴 Bankroll Live Tracking"]+(["💸 My Bets"] if is_admin else [])+["Bankroll Builder","Model's Favorite Props","All Player Props","Three-Point Projections","Individual Games"],label_visibility="visible")
-    phone_view=st.toggle("📱 Phone-friendly cards",value=False,key="phone_view",help="Switch wide data tables to easy-to-read vertical cards on a phone.")
+    nav_options=["Overview","Bankroll Performance","🔴 Bankroll Live Tracking"]+(["💸 My Bets"] if is_admin else [])+["Bankroll Builder","Model's Favorite Props","All Player Props","Three-Point Projections","Individual Games"]
+    section=st.radio("Navigate",nav_options,label_visibility="visible",key="site_nav")
+    phone_view=st.toggle("📱 Preview phone cards on desktop",value=False,key="phone_view",help="Cards appear automatically on phones. Enable this to preview card layout on desktop.")
+
+with st.container(key="mobile_top_header"):
+    st.markdown("""<div class="mobile-site-head"><div><b>🏀 Huie's Degen Center</b><small>NBA models &amp; player tracking</small></div><span class="mobile-live-dot">● NBA</span></div>""",unsafe_allow_html=True)
 
 source=uploaded.getvalue() if uploaded else None
 if source is None and storage_ready:
@@ -1421,3 +1425,26 @@ else:
     chosen={"Bankroll Builder":bankroll,"Model's Favorite Props":favorites,"All Player Props":allprops,"Three-Point Projections":threes}.get(section)
     st.title(section)
     show_table(chosen)
+
+# Touch-friendly phone navigation; the original desktop sidebar is unchanged.
+def navigate_phone(destination):
+    st.session_state["site_nav"]=destination
+
+with st.container(key="mobile_bottom_nav"):
+    shortcuts=[("⌂ Home","Overview"),("🔴 Live","🔴 Bankroll Live Tracking"),
+               ("▤ Picks","Bankroll Builder"),
+               ("💸 Bets","💸 My Bets") if is_admin else ("⭐ Fav","Model's Favorite Props")]
+    columns=st.columns(5)
+    for i,(label,destination) in enumerate(shortcuts):
+        with columns[i]:
+            st.button(label,key="phone_nav_"+str(i),use_container_width=True,
+                      type="primary" if section==destination else "secondary",
+                      on_click=navigate_phone,args=(destination,))
+    with columns[-1]:
+        with st.popover("☰ More",use_container_width=True):
+            st.caption("Navigate to another page")
+            for j,destination in enumerate(nav_options):
+                st.button(destination,key="phone_more_"+str(j),use_container_width=True,
+                          type="primary" if section==destination else "secondary",
+                          on_click=navigate_phone,args=(destination,))
+            st.caption("Uploads, sign-out and admin settings remain in the sidebar.")
