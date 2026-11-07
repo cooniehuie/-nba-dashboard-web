@@ -395,7 +395,7 @@ def performance_graph(frame):
     @media(max-width:750px){.bk-grid{grid-template-columns:1fr}.bk-hero{padding:20px}.bk-chart{height:160px}}
     </style>""",unsafe_allow_html=True)
     st.markdown(f"""<div class="bk-hero">
-      <div class="bk-kicker">🏀 SAFE LINE PERFORMANCE · HISTORICAL</div>
+      <div class="bk-kicker">🏀 BANKROLL BUILDER · SAFE LINE HISTORY</div>
       <div class="bk-grid">
         <div><div class="bk-big">{pct:.1f}%</div><div class="bk-muted">Overall hit rate · {graded} graded selections</div>
           <div class="bk-track"><div class="bk-fill" style="width:{pct:.2f}%"></div></div>
@@ -465,7 +465,7 @@ def responsive_dataframe(frame,key,preferred=None,max_rows=150,desktop_frame=Non
 
 
 def show_bankroll_performance():
-    st.title("📈 Bankroll Performance")
+    st.title("📈 Bankroll Builder Performance")
     st.caption("safe line picks · October 27–November 6, 2026 · Daily totals from prior ChatGPT tracker; not independently verified")
     history=bankroll_history_frame()
     dates=history["Date"].tolist()
@@ -673,8 +673,8 @@ def show_bankroll_live_tracker(embedded=False):
     from datetime import date
     from zoneinfo import ZoneInfo
     import re
-    if not embedded:st.title("🔴 Bankroll Live Tracking")
-    else:st.subheader("🔴 Bankroll Live Tracker")
+    if not embedded:st.title("🔴 Bankroll Builder Live Tracking")
+    else:st.subheader("🔴 Bankroll Builder Live Tracker")
     if not bankroll:
         st.warning("No Bankroll Builder sheet is available in the loaded workbook.")
         return
@@ -686,7 +686,7 @@ def show_bankroll_live_tracker(embedded=False):
     sidecol=lookup(frame,"Model side")
     modelcol=lookup(frame,"Model projection","Reference line")
     if not all([playercol,linecol]):
-        st.warning("The bankroll workbook needs Player and Safer line columns for tracking.")
+        st.warning("The Bankroll Builder sheet needs Player and Safer line columns for tracking.")
         return
     prefix="embedded_bankroll" if embedded else "bankroll_live"
     chosen_day=st.session_state.get(prefix+"_date",datetime.now(ZoneInfo("America/Los_Angeles")).date())
@@ -886,15 +886,15 @@ def show_live_tracker():
     pacific=ZoneInfo("America/Los_Angeles")
     day=st.date_input("NBA game date (must match the workbook)",value=datetime.now(pacific).date(),key="live_date")
     st.warning("The currently uploaded workbook may be from another date. Select the matching game date; player-name matches alone do not verify a matchup.")
-    choice=st.radio("Prop source",["Bankroll safer lines","Model reference lines"],horizontal=True)
-    sheet=bankroll if choice=="Bankroll safer lines" else allprops
+    choice=st.radio("Prop source",["Bankroll Builder safer lines","Model reference lines"],horizontal=True)
+    sheet=bankroll if choice=="Bankroll Builder safer lines" else allprops
     if not sheet:
         st.info("The selected sheet is not available in the workbook.")
         return
     props=sheets[sheet].copy()
     playercol=lookup(props,"Player")
     marketcol=lookup(props,"Market")
-    linecol=lookup(props,"Safer line") if choice=="Bankroll safer lines" else lookup(props,"Reference line")
+    linecol=lookup(props,"Safer line") if choice=="Bankroll Builder safer lines" else lookup(props,"Reference line")
     sidecol=lookup(props,"Model side")
     if not playercol or not marketcol or not linecol:
         st.warning("Required Player, Market or target line columns are missing.")
@@ -918,13 +918,13 @@ def show_live_tracker():
     def outcome(row):
         actual=number(row.get("Actual"))
         threshold=number(row.get(linecol))
-        if threshold is None and choice=="Bankroll safer lines":
+        if threshold is None and choice=="Bankroll Builder safer lines":
             import re
             match=re.search(r"\d+(?:\.\d+)?",str(row.get(linecol,"")))
             if match:threshold=float(match.group())
         if actual is None or threshold is None:return "Unverified"
         final=str(row.get("Game state","")).lower()=="post"
-        if choice=="Bankroll safer lines":
+        if choice=="Bankroll Builder safer lines":
             if final:return "Hit" if actual>=threshold else "Miss"
             return "Target reached (in progress)" if actual>=threshold else "In progress"
         direction=str(row.get(sidecol,"")).strip().lower() if sidecol else ""
@@ -934,7 +934,7 @@ def show_live_tracker():
         return "Hit" if ((direction=="over" and actual>threshold) or (direction=="under" and actual<threshold)) else "Miss"
     joined["Live result"]=joined.apply(outcome,axis=1)
     cols=[playercol,marketcol,linecol,"Actual","Live result","Matchup","Game status"]
-    if choice!="Bankroll safer lines" and sidecol:cols.insert(3,sidecol)
+    if choice!="Bankroll Builder safer lines" and sidecol:cols.insert(3,sidecol)
     responsive_dataframe(joined[[c for c in cols if c in joined.columns]],"extra_live_tracker",preferred=["Market","Actual","Model projection","Reference line"],hide_index=True,use_container_width=True)
     st.caption("Missing players, ambiguous names, incomplete box scores and games still in progress are not counted as final losses. Results are not automatically saved to the historical model accuracy log.")
 
@@ -1366,7 +1366,7 @@ with st.sidebar:
     else:
         st.caption("Read-only access. Only the administrator can upload or replace projections.")
     st.divider()
-    nav_options=["Overview","Bankroll Performance","🔴 Bankroll Live Tracking"]+(["💸 My Bets"] if is_admin else [])+["Bankroll Builder","Model's Favorite Props","All Player Props","Three-Point Projections","Individual Games"]
+    nav_options=["Overview","Bankroll Builder Performance","🔴 Bankroll Builder Live Tracking"]+(["💸 My Bets"] if is_admin else [])+["Bankroll Builder","Model's Favorite Props","All Player Props","Three-Point Projections","Individual Games"]
     section=st.radio("Navigate",nav_options,label_visibility="visible",key="site_nav")
     phone_view=st.toggle("📱 Preview phone cards on desktop",value=False,key="phone_view",help="Cards appear automatically on phones. Enable this to preview card layout on desktop.")
 
@@ -1535,9 +1535,9 @@ def show_table(name, allow_filters=True):
     st.download_button("Download filtered CSV",df.to_csv(index=False).encode("utf-8"),file_name="nba_"+name.lower().replace(" ","_")+".csv",mime="text/csv",key="download_"+name)
 
 if section=="Overview":
-    st.subheader("📈 Bankroll performance")
+    st.subheader("📈 Bankroll Builder Performance")
     performance_graph(bankroll_history_frame())
-    if st.button("View daily bankroll results",key="open_bankroll_performance"):
+    if st.button("View daily Bankroll Builder results",key="open_bankroll_performance"):
         st.info("Choose Bankroll Performance in the sidebar to view daily results and date filters.")
     st.title("Daily NBA Projections")
     st.caption("Model projections · Favorites · Safer lines · Recent player performance")
@@ -1545,7 +1545,7 @@ if section=="Overview":
     a.metric("Games",len(sheets[schedule]) if schedule else len(games))
     b.metric("Player props",len(sheets[allprops]) if allprops else "—")
     c.metric("Model's Favorite Props",len(sheets[favorites]) if favorites else "—")
-    d.metric("Bankroll plays",len(sheets[bankroll]) if bankroll else "—")
+    d.metric("Bankroll Builder plays",len(sheets[bankroll]) if bankroll else "—")
     st.subheader("Today's games")
     if schedule:show_table(schedule,False)
     else:st.info("No game schedule sheet found.")
@@ -1561,13 +1561,13 @@ if section=="Overview":
                 responsive_dataframe(candidates[wanted].head(12),"overview_three_hits",preferred=["Market","Model side","Model projection","Last 3 avg"],hide_index=True,use_container_width=True)
                 st.caption(f"{len(candidates)} prop rows had 3 of 3 recent games on the model side.")
             else:st.info("No props with three available recent games and a 3/3 historical match.")
-    st.subheader("Bankroll builder")
+    st.subheader("Bankroll Builder")
     if bankroll:show_table(bankroll,False)
     st.subheader("Model's Favorite Props")
     if favorites:show_table(favorites,False)
-elif section=="Bankroll Performance":
+elif section=="Bankroll Builder Performance":
     show_bankroll_performance()
-elif section=="🔴 Bankroll Live Tracking":
+elif section=="🔴 Bankroll Builder Live Tracking":
     show_bankroll_live_tracker()
 elif section=="💸 My Bets" and is_admin:
     show_personal_bets()
@@ -1596,7 +1596,7 @@ def navigate_phone(destination):
 with st.container(key="mobile_bottom_nav"):
     # Favorites is available in More. The three key pages use their full labels.
     shortcuts=[("Home","Overview"),
-               ("Live Tracker","🔴 Bankroll Live Tracking"),
+               ("Live Tracker","🔴 Bankroll Builder Live Tracking"),
                ("Bankroll Builder","Bankroll Builder")]
     if is_admin:
         shortcuts.append(("Bets","💸 My Bets"))
