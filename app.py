@@ -1691,13 +1691,13 @@ if section=="Overview":
         st.subheader("Model's Favorite Props")
         if favorites:show_table(favorites,False)
 
-    # Mobile-only homepage: each section stays collapsed until tapped.
+    # Mobile-only homepage: performance stays visible; other sections start collapsed.
     with st.container(key="mobile_overview"):
-        with st.expander("📈 Bankroll Builder Performance",expanded=False):
-            performance_graph(bankroll_history_frame())
-            if st.button("View daily Bankroll Builder results",key="open_bankroll_performance_mobile",
-                         on_click=lambda:st.session_state.update({"site_nav":"Bankroll Builder Performance"})):
-                pass
+        st.subheader("📈 Bankroll Builder Performance")
+        performance_graph(bankroll_history_frame())
+        if st.button("View daily Bankroll Builder results",key="open_bankroll_performance_mobile",
+                     on_click=lambda:st.session_state.update({"site_nav":"Bankroll Builder Performance"})):
+            pass
         with st.expander("🏀 Daily NBA Projections",expanded=False):
             st.caption("Model projections · Favorites · Safer lines")
             a,b=st.columns(2)
