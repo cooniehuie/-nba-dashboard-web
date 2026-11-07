@@ -449,7 +449,7 @@ def show_bankroll_performance():
     st.subheader("Daily results")
     display=visible[["Date","Wins","Losses","Excluded","Graded","Hit rate","Status"]].copy()
     display["Hit rate"]=display["Hit rate"].map(lambda x:f"{x:.1f}%")
-    st.dataframe(display,hide_index=True,use_container_width=True)
+    responsive_dataframe(display,"performance_daily",preferred=["Wins","Losses","Hit rate","Excluded"],hide_index=True,use_container_width=True)
     st.download_button("Download historical results CSV",display.to_csv(index=False),file_name="bankroll_performance_history.csv",mime="text/csv")
     st.subheader("Player-by-player results")
     chosen_date=st.selectbox("Select a date to see individual safer-line results",dates,index=len(dates)-1,key="bankroll_drilldown_date",format_func=lambda d:pd.to_datetime(d).strftime("%b %d, %Y"))
@@ -464,7 +464,7 @@ def show_bankroll_performance():
     if chosen_date=="2026-11-06":
         st.info("November 6: prior chat reports 14 hits, 4 misses and 2 DNPs (77.8% of 18 graded picks). The complete player-by-player actual stats were not available from that chat summary; only the explicitly documented result below is shown.")
         pending=pd.DataFrame([{"Player":p,"Market":m,"Safer line":f"{line}+ {m.lower()}","Actual":0 if p=="Grayson Allen" and m=="Threes" else "Not documented","Result":"Loss" if p=="Grayson Allen" and m=="Threes" else "Chat total only"} for p,m,line in NOV6_PICKS])
-        st.dataframe(pending,hide_index=True,use_container_width=True)
+        responsive_dataframe(pending,"performance_nov6",preferred=["Safer line","Actual","Result"],hide_index=True,use_container_width=True)
         st.download_button("Download November 6 selections",pending.to_csv(index=False),file_name="bankroll_nov6_picks.csv",mime="text/csv")
         return
     detail=pd.DataFrame(individual.get(chosen_date,[]))
@@ -474,10 +474,10 @@ def show_bankroll_performance():
         wins=detail[detail["Result"]=="Hit"]
         losses=detail[detail["Result"]=="Loss"]
         tab_all,tab_hits,tab_losses=st.tabs([f"All recorded ({len(detail)})",f"✅ Hits ({len(wins)})",f"❌ Misses ({len(losses)})"])
-        for tab,subset in ((tab_all,detail),(tab_hits,wins),(tab_losses,losses)):
+        for idx,(tab,subset) in enumerate(((tab_all,detail),(tab_hits,wins),(tab_losses,losses))):
             with tab:
                 if subset.empty:st.caption("No individually documented selections in this category yet.")
-                else:st.dataframe(subset,hide_index=True,use_container_width=True)
+                else:responsive_dataframe(subset,"performance_detail_"+str(idx),preferred=["Safer line","Actual","Result"],hide_index=True,use_container_width=True)
         total=history.loc[history["Date"]==chosen_date].iloc[0]
         missing=int(total["Graded"])-len(detail)
         if missing>0:st.info(f"{len(detail)} of {int(total['Graded'])} graded selections have player-level details. {missing} individual results are still missing; the daily totals remain unchanged.")
@@ -531,7 +531,7 @@ def show_model_accuracy():
                     missing=set(["Date","Player","Market","Reference line","Model side","Actual","Status"])-set(candidate.columns)
                     if missing:st.error("Missing fields: "+", ".join(sorted(missing)))
                     else:
-                        st.dataframe(candidate.head(10),hide_index=True)
+                        responsive_dataframe(candidate.head(10),"outcome_import_preview",hide_index=True)
                         if st.button("Replace saved model results with this CSV",type="primary"):
                             github_file("model_results.csv",candidate.reindex(columns=MODEL_FIELDS,fill_value="").to_csv(index=False).encode())
                             model_log.clear()
@@ -586,7 +586,7 @@ def show_model_accuracy():
         st.subheader("Accuracy by market")
         group=decided.groupby("Market")["Outcome"].agg(Total="size",Wins=lambda x:(x=="Win").sum()).reset_index()
         group["Hit rate"]=100*group["Wins"]/group["Total"]
-        st.dataframe(group,hide_index=True,use_container_width=True)
+        responsive_dataframe(group,"model_accuracy_by_market",preferred=["Total","Wins","Hit rate"],hide_index=True,use_container_width=True)
     st.subheader("Projection vs. actual")
     chart=d[d["Model projection"].notna() & d["Actual"].notna() & d["Outcome"].isin(["Win","Loss","Push"])].copy()
     if chart.empty:st.info("No completed projection/actual pairs yet.")
@@ -597,7 +597,7 @@ def show_model_accuracy():
         diagonal=alt.Chart(pd.DataFrame({"x":[0,maxval],"y":[0,maxval]})).mark_line(strokeDash=[5,5],color="#94a3b8").encode(x="x:Q",y="y:Q")
         st.altair_chart(diagonal+dots,use_container_width=True)
     st.subheader("Saved outcome history")
-    st.dataframe(d,hide_index=True,use_container_width=True)
+    responsive_dataframe(d,"model_accuracy_history",preferred=["Market","Model side","Reference line","Model projection"],hide_index=True,use_container_width=True)
     st.download_button("Export model outcomes",d.to_csv(index=False),file_name="model_outcomes.csv",mime="text/csv")
 
 
@@ -897,7 +897,7 @@ def show_live_tracker():
     joined["Live result"]=joined.apply(outcome,axis=1)
     cols=[playercol,marketcol,linecol,"Actual","Live result","Matchup","Game status"]
     if choice!="Bankroll safer lines" and sidecol:cols.insert(3,sidecol)
-    st.dataframe(joined[[c for c in cols if c in joined.columns]],hide_index=True,use_container_width=True)
+    responsive_dataframe(joined[[c for c in cols if c in joined.columns]],"extra_live_tracker",preferred=["Market","Actual","Model projection","Reference line"],hide_index=True,use_container_width=True)
     st.caption("Missing players, ambiguous names, incomplete box scores and games still in progress are not counted as final losses. Results are not automatically saved to the historical model accuracy log.")
 
 
@@ -988,7 +988,7 @@ def show_bulk_bet_import():
                 st.success(str(len(parsed))+" positions recognized. Check all legs and prices before saving.")
                 for i,item in enumerate(parsed,1):
                     st.markdown("**Position "+str(i)+" · "+str(item["qty"])+" Yes @ "+str(item["cents"])+"¢ · "+str(len(item["legs"]))+" recognized legs**")
-                    st.dataframe(pd.DataFrame(item["legs"],columns=["Player","Market","Target"]),hide_index=True,use_container_width=True)
+                    responsive_dataframe(pd.DataFrame(item["legs"],columns=["Player","Market","Target"]),"bulk_import_"+str(i),preferred=["Market","Target"],hide_index=True,use_container_width=True)
                 st.warning("If any legs are missing or truncated, do not save; fix the pasted text first.")
                 if st.button("Save reviewed positions to private storage",key="save_bulk_bets",type="primary"):
                     if not storage_ready:st.error("Private GitHub storage is not configured.")
@@ -1176,9 +1176,9 @@ def show_personal_bets():
                 t1,t2=st.tabs(["Player statistics","Combo progress"])
                 with t1:
                     stats_df=pd.DataFrame(rows).sort_values(["_sort_time","Game","Player","Stat","Target"],kind="stable").drop(columns=["_sort_time"])
-                    st.dataframe(stats_df,hide_index=True,use_container_width=True)
+                    responsive_dataframe(stats_df,"mybets_live_stats",preferred=["Stat","Target","Actual","Needed"],hide_index=True,use_container_width=True)
                 with t2:
-                    st.dataframe(pd.DataFrame(combos),hide_index=True,use_container_width=True,
+                    responsive_dataframe(pd.DataFrame(combos),"mybets_combo_progress",preferred=["Reached","Progress","Unavailable legs"],hide_index=True,use_container_width=True,
                                  column_config={"Progress":st.column_config.ProgressColumn("Progress",min_value=0,max_value=1,format="%.0f%%")})
                 st.caption("An unavailable or unmatched player is never treated as zero or a lost leg. Reached thresholds are provisional until official market settlement.")
         except Exception as exc:
@@ -1192,13 +1192,13 @@ def show_personal_bets():
         matched=next((r for r in ROBINHOOD_NOV7_BETS if r[0]==name and r[1]==qty and r[2]==price),None)
         cost=matched[3] if matched else qty*price/100
         summary.append({"Combo":labels.get(name,name),"Legs":len(legs),"Wager":round(cost,2),"Potential profit":round(qty-cost,2),"Status":byid.get(name,{}).get("Status","Pending")})
-    st.dataframe(pd.DataFrame(summary),hide_index=True,use_container_width=True,column_config={"Wager":st.column_config.NumberColumn("Wager",format="$%.2f"),"Potential profit":st.column_config.NumberColumn("Potential profit",format="$%.2f")})
+    responsive_dataframe(pd.DataFrame(summary),"mybets_summary",preferred=["Wager","Potential profit","Status","Legs"],hide_index=True,use_container_width=True,column_config={"Wager":st.column_config.NumberColumn("Wager",format="$%.2f"),"Potential profit":st.column_config.NumberColumn("Potential profit",format="$%.2f")})
     from collections import Counter
     exposure=Counter((p,m,t) for _,_,_,legs in all_bets for p,m,t in legs)
     st.subheader("Repeated player props")
     st.caption("Shows which individual outcomes affect multiple combos. Counts are appearances, not independent bets.")
     repeated=[{"Player":p,"Prop":str(t)+"+ "+m,"Combos depending on it":n} for (p,m,t),n in exposure.most_common() if n>1]
-    if repeated:st.dataframe(pd.DataFrame(repeated),hide_index=True,use_container_width=True)
+    if repeated:responsive_dataframe(pd.DataFrame(repeated),"mybets_repeated",preferred=["Prop","Combos depending on it"],hide_index=True,use_container_width=True)
     else:st.caption("No repeated props.")
     with st.expander("View individual combo legs"):
         for name,qty,price,legs in all_bets:
@@ -1207,7 +1207,7 @@ def show_personal_bets():
             status=byid.get(name,{}).get("Status","Pending")
             with st.expander(labels.get(name,name)+" · "+status):
                 st.caption("Wager: $"+format(cost,",.2f")+" · Max payout: $"+format(qty,",.2f")+" · Potential profit: $"+format(qty-cost,",.2f"))
-                st.dataframe(pd.DataFrame([{"Player":p,"Market":m,"Target":str(t)+"+","Actual":"Not verified","Leg status":"Pending"} for p,m,t in legs]),hide_index=True,use_container_width=True)
+                responsive_dataframe(pd.DataFrame([{"Player":p,"Market":m,"Target":str(t)+"+","Actual":"Not verified","Leg status":"Pending"} for p,m,t in legs]),"mybets_legs_"+str(name).replace(" ","_"),preferred=["Market","Target","Actual","Leg status"],hide_index=True,use_container_width=True)
     st.caption("Overlapping legs are tracked separately within combos but financial totals count each combo once. Settlements are manual and never inferred from incomplete box scores.")
 
 with st.sidebar:
