@@ -73,6 +73,53 @@ h1,h2,h3{letter-spacing:-.025em}
  .st-key-bankroll_live_desktop_grid,.st-key-embedded_bankroll_desktop_grid{display:none!important}
  .st-key-bankroll_live_mobile_ui,.st-key-embedded_bankroll_mobile_ui{display:block!important}
 }
+
+/* Responsive app navigation and data views; all desktop widgets remain unchanged. */
+.mobile-site-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 14px;border-radius:15px;background:#112440;color:#fff;margin:4px 0 16px}
+.mobile-site-head b{font-size:14px}.mobile-site-head small{display:block;font-size:10px;color:#cad9ec;margin-top:2px}
+.mobile-site-head .mobile-live-dot{font-size:10px;background:#17493f;color:#99edbe;border-radius:24px;padding:6px 9px;white-space:nowrap}
+.mobile-data-card{background:var(--secondary-background-color,#fff);border:1px solid #94a3b855;border-radius:13px;padding:13px;margin:9px 0;overflow-wrap:anywhere}
+.mobile-data-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.mobile-data-title{font-size:1.05rem;line-height:1.3;font-weight:800;min-width:0}
+.mobile-data-badge{font-size:.7rem;font-weight:700;border:1px solid #94a3b866;border-radius:30px;padding:4px 8px;max-width:48%;text-align:right}
+.mobile-data-context{font-size:.78rem;opacity:.76;margin:6px 0}
+.mobile-data-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin:11px 0 7px}
+.mobile-data-field{background:#94a3b81b;padding:9px 10px;border-radius:9px;min-width:0}
+.mobile-data-field small{display:block;font-size:.65rem;opacity:.75;letter-spacing:.2px;text-transform:uppercase}
+.mobile-data-field strong{display:block;font-size:1.02rem;line-height:1.35;margin-top:3px;overflow-wrap:anywhere}
+.mobile-data-more{font-size:.8rem;opacity:.85;margin-top:8px}
+.mobile-data-more summary{cursor:pointer;padding:6px 0;font-weight:750}
+.mobile-data-more dl{margin:4px 0}
+.mobile-data-more dt{font-size:.71rem;opacity:.7;margin-top:9px}
+.mobile-data-more dd{font-size:.84rem;font-weight:650;margin:1px 0}
+.st-key-mobile_top_header,.st-key-mobile_bottom_nav,[class*="st-key-mobile_data_"]{display:none!important}
+@media(max-width:768px){
+ html,body{overflow-x:hidden!important}
+ [data-testid="stAppViewContainer"]{overflow-x:hidden!important}
+ [data-testid="stMainBlockContainer"],.block-container{padding:.65rem .7rem calc(6.2rem + env(safe-area-inset-bottom))!important;max-width:100%!important}
+ [data-testid="stHeader"]{background:transparent!important}
+ h1{font-size:1.5rem!important}h2{font-size:1.22rem!important}h3{font-size:1.07rem!important}
+ [data-testid="stHorizontalBlock"]{gap:.45rem!important;flex-wrap:wrap!important}
+ [data-testid="column"]{min-width:0!important;flex:1 1 calc(50% - 8px)!important}
+ [data-testid="stMetric"]{padding:10px!important}
+ [data-testid="stMetricLabel"]{font-size:.75rem!important}
+ [data-testid="stMetricValue"]{font-size:1.28rem!important;overflow-wrap:anywhere}
+ [data-testid="stTabs"] button{font-size:.8rem!important;white-space:nowrap!important}
+ [data-testid="stSidebar"]{width:min(88vw,330px)!important}
+ .st-key-mobile_top_header,[class*="st-key-mobile_data_"]{display:block!important}
+ [class*="st-key-desktop_data_"]{display:none!important}
+ .st-key-mobile_bottom_nav{
+  display:block!important;position:fixed!important;z-index:999;left:0;right:0;bottom:0;
+  background:var(--background-color,#fff);border-top:1px solid #94a3b855;
+  box-shadow:0 -5px 20px #00000015;padding:7px 7px calc(7px + env(safe-area-inset-bottom))!important}
+ .st-key-mobile_bottom_nav [data-testid="stHorizontalBlock"]{display:flex!important;flex-wrap:nowrap!important;gap:4px!important}
+ .st-key-mobile_bottom_nav [data-testid="column"]{min-width:0!important;flex:1 1 20%!important}
+ .st-key-mobile_bottom_nav button{width:100%!important;min-height:43px!important;padding:4px 2px!important;border-radius:10px!important;font-size:.67rem!important;line-height:1.2!important;white-space:normal!important;overflow-wrap:anywhere!important}
+ .bk-hero{padding:16px 14px!important;border-radius:15px!important}
+ .bk-big{font-size:46px!important}.bk-grid{grid-template-columns:1fr!important;gap:12px!important}
+ .bk-chart{overflow-x:auto;gap:5px!important}.bk-bar-wrap{min-width:30px!important}
+ .bk-stat strong{font-size:21px!important}
+}
 </style>""",unsafe_allow_html=True)
 viewer_password=st.secrets.get("DASHBOARD_PASSWORD","")
 admin_password=st.secrets.get("ADMIN_PASSWORD","")
@@ -330,6 +377,63 @@ def performance_graph(frame):
         <div><div class="bk-muted">DAILY HIT RATE</div><div class="bk-chart">{''.join(bars)}</div></div>
       </div>
     </div>""",unsafe_allow_html=True)
+
+
+def mobile_cards(frame,preferred=None,max_rows=150):
+    """Phone cards that keep each player's model, line and stats together."""
+    import html
+    if frame is None or frame.empty:
+        st.caption("No rows to display.")
+        return
+    cols=list(frame.columns)
+    title_col=next((c for c in ("Player","Combo","Game","Date","Market","Bet") if c in cols),cols[0])
+    context=[c for c in ("Game","Matchup","Market","Stat","Game time","Tipoff PST","Clock / Status") if c in cols and c!=title_col]
+    status=next((c for c in ("Live status","Leg progress","Result","Outcome","Status","Model side") if c in cols),None)
+    priorities=preferred or ["Safer line","Our play","Model projection","Reference line","Actual","Needed","Target","Wager","Potential profit","Reached","Hit rate","Progress"]
+    priorities=[c for c in priorities if c in cols and c not in [title_col,status] + context]
+    def safe(v):
+        try:
+            if pd.isna(v):return "—"
+        except (TypeError,ValueError):
+            pass
+        val=str(v).strip()
+        return html.escape(val) if val and val.lower() not in ("nan","none","<na>") else "—"
+    pieces=[]
+    for _,row in frame.head(max_rows).iterrows():
+        ctx=" · ".join(safe(row[c]) for c in context if safe(row[c])!="—")
+        badge=safe(row[status]) if status else ""
+        pieces.append('<article class="mobile-data-card"><div class="mobile-data-top"><div class="mobile-data-title">'+safe(row[title_col])+'</div>')
+        if badge and badge!="—":pieces.append('<span class="mobile-data-badge">'+badge+'</span>')
+        pieces.append('</div>')
+        if ctx:pieces.append('<div class="mobile-data-context">'+ctx+'</div>')
+        fields=priorities[:4] or [c for c in cols if c not in [title_col,status]+context][:4]
+        pieces.append('<div class="mobile-data-grid">')
+        for c in fields:
+            pieces.append('<div class="mobile-data-field"><small>'+html.escape(str(c))+'</small><strong>'+safe(row[c])+'</strong></div>')
+        pieces.append('</div>')
+        if "Progress" in fields:
+            frac=number(row["Progress"])
+            if frac is not None:
+                frac=max(0,min(1,frac))
+                pieces.append('<div class="bk-live-progress"><div class="bk-live-progress-fill" style="width:'+str(round(frac*100))+'%"></div></div>')
+        extras=[c for c in cols if c not in [title_col,status]+context+fields and not str(c).startswith("_")]
+        if extras:
+            pieces.append('<details class="mobile-data-more"><summary>More details</summary><dl>')
+            for c in extras:
+                pieces.append('<dt>'+html.escape(str(c))+'</dt><dd>'+safe(row[c])+'</dd>')
+            pieces.append('</dl></details>')
+        pieces.append('</article>')
+    st.markdown("".join(pieces),unsafe_allow_html=True)
+    if len(frame)>max_rows:
+        st.caption("Showing first "+str(max_rows)+" of "+str(len(frame))+" rows. Search or filter to narrow the list.")
+
+def responsive_dataframe(frame,key,preferred=None,max_rows=150,desktop_frame=None,**kwargs):
+    """Retain Streamlit desktop dataframes; show matching native cards on phones."""
+    with st.container(key="desktop_data_"+key):
+        st.dataframe(desktop_frame if desktop_frame is not None else frame,**kwargs)
+    with st.container(key="mobile_data_"+key):
+        mobile_cards(frame,preferred=preferred,max_rows=max_rows)
+
 
 def show_bankroll_performance():
     st.title("📈 Bankroll Performance")
@@ -1173,28 +1277,6 @@ threes=find_sheet("three-point","three point","3-point")
 excluded={x for x in [schedule,bankroll,favorites,allprops,threes] if x}
 games=[n for n in names if n not in excluded]
 
-def mobile_cards(frame,preferred=None,max_rows=100):
-    """Readable mobile-only cards; desktop keeps its existing data grid."""
-    import html
-    if frame is None or frame.empty:return
-    preferred=preferred or []
-    cols=[c for c in preferred if c in frame.columns]
-    cols+= [c for c in frame.columns if c not in cols]
-    if not cols:return
-    title_col=next((c for c in cols if str(c).lower()=="player"),cols[0])
-    chunks=['<div class="mobile-only-cards">']
-    for _,row in frame.head(max_rows).iterrows():
-        def safe(value):
-            if pd.isna(value):return "—"
-            return html.escape(str(value))
-        chunks.append('<div class="mobile-prop-card"><div class="mobile-prop-title">'+safe(row[title_col])+'</div><div class="mobile-prop-detail">')
-        for col in cols:
-            if col==title_col:continue
-            chunks.append('<div><b>'+html.escape(str(col))+':</b> '+safe(row[col])+'</div>')
-        chunks.append('</div></div>')
-    chunks.append('</div>')
-    st.markdown("".join(chunks),unsafe_allow_html=True)
-
 def show_table(name, allow_filters=True):
     if not name:
         st.info("This section is not present in the uploaded workbook.")
@@ -1275,9 +1357,14 @@ def show_table(name, allow_filters=True):
         config[heading]=st.column_config.TextColumn(str(heading),width=pixels)
 
     if phone_view:
-        mobile_cards(df,preferred=["Player","Game","Our play","Safer line","Market","Model side","Model projection","Hit rate"],max_rows=500)
+        mobile_cards(df,preferred=["Safer line","Our play","Model projection","Reference line","Last 3 hit rate"],max_rows=250)
     else:
-        st.dataframe(df.style.apply(paint_row,axis=1),hide_index=True,use_container_width=True,height=min(680,max(230,39*(len(df)+1))),column_config=config)
+        responsive_dataframe(df,"models_"+str(name).replace(" ","_"),
+                             preferred=["Safer line","Our play","Model projection","Reference line","Last 3 hit rate"],
+                             max_rows=12 if not allow_filters else 250,
+                             desktop_frame=df.style.apply(paint_row,axis=1),
+                             hide_index=True,use_container_width=True,
+                             height=min(680,max(230,39*(len(df)+1))),column_config=config)
     st.download_button("Download filtered CSV",df.to_csv(index=False).encode("utf-8"),file_name="nba_"+name.lower().replace(" ","_")+".csv",mime="text/csv",key="download_"+name)
 
 if section=="Overview":
@@ -1304,7 +1391,7 @@ if section=="Overview":
             if len(candidates):
                 wanted=[lookup(candidates,c) for c in ("Player","Game","Market","Model side","Model projection","Last 3 avg")]
                 wanted=[c for c in wanted if c]
-                st.dataframe(candidates[wanted].head(12),hide_index=True,use_container_width=True)
+                responsive_dataframe(candidates[wanted].head(12),"overview_three_hits",preferred=["Market","Model side","Model projection","Last 3 avg"],hide_index=True,use_container_width=True)
                 st.caption(f"{len(candidates)} prop rows had 3 of 3 recent games on the model side.")
             else:st.info("No props with three available recent games and a 3/3 historical match.")
     st.subheader("Bankroll builder")
