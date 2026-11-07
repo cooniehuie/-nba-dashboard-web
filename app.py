@@ -1638,8 +1638,9 @@ def show_table(name, allow_filters=True, key_suffix=""):
         game_col=lookup(df,"Game")
         if game_col:
             try:
-                today=datetime.now(ZoneInfo("America/Los_Angeles")).strftime("%Y%m%d")
-                tipoffs=nba_tipoff_times(today)
+                selected_date=st.session_state.get("bankroll_builder_date")
+                date_key=selected_date.strftime("%Y%m%d") if selected_date else datetime.now(ZoneInfo("America/Los_Angeles")).strftime("%Y%m%d")
+                tipoffs=nba_tipoff_times(date_key)
             except Exception:
                 tipoffs={}
             def game_sort(value):
@@ -1815,6 +1816,14 @@ elif section=="Individual Games":
     else:st.info("No individual game tabs found.")
 elif section=="Bankroll Builder":
     st.title("Bankroll Builder")
+    from zoneinfo import ZoneInfo
+    selected_date=st.date_input(
+        "📅 Props game date",
+        value=datetime.now(ZoneInfo("America/Los_Angeles")).date(),
+        key="bankroll_builder_date",
+        help="Select the game date that matches the uploaded Bankroll Builder picks. This is not automatically verified from the workbook."
+    )
+    st.caption("Showing props for **"+selected_date.strftime("%A, %B %d, %Y")+"** (selected date). Confirm it matches your uploaded workbook.")
     show_table(bankroll)
 else:
     chosen={"Bankroll Builder":bankroll,"Model's Favorite Props":favorites,"All Player Props":allprops,"Three-Point Projections":threes}.get(section)
