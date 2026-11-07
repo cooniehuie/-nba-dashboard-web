@@ -177,18 +177,18 @@ def saved_workbook():
     return github_file("latest.xlsx")
 
 
-# Historical daily totals from the prior tracker; unverified dates remain labeled provisional.
+# Historical daily totals from the user’s prior ChatGPT tracker. These are chat-reported, not independently box-score verified.
 BANKROLL_HISTORY = [
-    {"Date":"2026-10-27","Wins":16,"Losses":4,"Excluded":0,"Status":"Provisional"},
-    {"Date":"2026-10-28","Wins":13,"Losses":5,"Excluded":2,"Status":"Provisional"},
-    {"Date":"2026-10-29","Wins":9,"Losses":3,"Excluded":3,"Status":"Provisional"},
-    {"Date":"2026-10-30","Wins":15,"Losses":1,"Excluded":4,"Status":"Provisional"},
-    {"Date":"2026-10-31","Wins":12,"Losses":6,"Excluded":2,"Status":"Provisional"},
-    {"Date":"2026-11-01","Wins":14,"Losses":3,"Excluded":3,"Status":"Provisional"},
-    {"Date":"2026-11-02","Wins":15,"Losses":4,"Excluded":1,"Status":"Provisional"},
-    {"Date":"2026-11-04","Wins":16,"Losses":4,"Excluded":0,"Status":"Provisional"},
-    {"Date":"2026-11-05","Wins":14,"Losses":5,"Excluded":0,"Status":"Box-score checked"},
-    {"Date":"2026-11-06","Wins":0,"Losses":0,"Excluded":20,"Status":"20 picks · Awaiting box-score verification"},
+    {"Date":"2026-10-27","Wins":16,"Losses":4,"Excluded":0,"Status":"Chat-reported"},
+    {"Date":"2026-10-28","Wins":13,"Losses":5,"Excluded":2,"Status":"Chat-reported"},
+    {"Date":"2026-10-29","Wins":9,"Losses":3,"Excluded":3,"Status":"Chat-reported"},
+    {"Date":"2026-10-30","Wins":15,"Losses":1,"Excluded":4,"Status":"Chat-reported"},
+    {"Date":"2026-10-31","Wins":12,"Losses":6,"Excluded":2,"Status":"Chat-reported"},
+    {"Date":"2026-11-01","Wins":14,"Losses":3,"Excluded":3,"Status":"Chat-reported"},
+    {"Date":"2026-11-02","Wins":15,"Losses":4,"Excluded":1,"Status":"Chat-reported"},
+    {"Date":"2026-11-04","Wins":16,"Losses":4,"Excluded":0,"Status":"Chat-reported"},
+    {"Date":"2026-11-05","Wins":14,"Losses":5,"Excluded":0,"Status":"Chat-reported"},
+    {"Date":"2026-11-06","Wins":14,"Losses":4,"Excluded":2,"Status":"Chat-reported · 2 DNP"},
 ]
 # Source: user's November 5 screenshot; actuals checked against NBA box scores.
 # Keep each original safer-line selection distinct, even when a player appears multiple times.
@@ -286,12 +286,12 @@ def performance_graph(frame):
         </div>
         <div><div class="bk-muted">DAILY HIT RATE</div><div class="bk-chart">{''.join(bars)}</div></div>
       </div>
-      <div class="bk-muted" style="margin-top:16px">Includes provisional historical totals pending player-level box-score checks · Hit rate does not measure profit</div>
+      <div class="bk-muted" style="margin-top:16px">Totals reported in the previous ChatGPT tracker; player-level breakdowns may be incomplete · Hit rate does not measure profit</div>
     </div>""",unsafe_allow_html=True)
 
 def show_bankroll_performance():
     st.title("📈 Bankroll Performance")
-    st.caption("Green safer-line picks · October 27–November 6, 2026 · Unverified days marked provisional")
+    st.caption("Green safer-line picks · October 27–November 6, 2026 · Daily totals from prior ChatGPT tracker; not independently verified")
     history=bankroll_history_frame()
     dates=history["Date"].tolist()
     selected=st.multiselect("Filter by date",dates,default=dates,key="bankroll_history_dates")
@@ -316,14 +316,14 @@ def show_bankroll_performance():
         ],
     }
     if chosen_date=="2026-11-06":
-        st.info("November 6: all 20 safer-line selections have been imported from your screenshot. Actual player stats and hit/miss outcomes are pending box-score verification.")
-        pending=pd.DataFrame([{"Player":p,"Market":m,"Safer line":f"{line}+ {m.lower()}","Actual":"Pending","Result":"Pending"} for p,m,line in NOV6_PICKS])
+        st.info("November 6: prior chat reports 14 hits, 4 misses and 2 DNPs (77.8% of 18 graded picks). The complete player-by-player actual stats were not available from that chat summary; only the explicitly documented result below is shown.")
+        pending=pd.DataFrame([{"Player":p,"Market":m,"Safer line":f"{line}+ {m.lower()}","Actual":0 if p=="Grayson Allen" and m=="Threes" else "Not documented","Result":"Loss" if p=="Grayson Allen" and m=="Threes" else "Chat total only"} for p,m,line in NOV6_PICKS])
         st.dataframe(pending,hide_index=True,use_container_width=True)
         st.download_button("Download November 6 selections",pending.to_csv(index=False),file_name="bankroll_nov6_picks.csv",mime="text/csv")
         return
     detail=pd.DataFrame(individual.get(chosen_date,[]))
     if detail.empty:
-        st.warning("This date is awaiting verification against original safer-line selections and final NBA box scores. The historical daily totals are provisional.")
+        st.warning("This date is awaiting verification against original safer-line selections and final NBA box scores. The daily totals are chat-reported, but individual player stats are not documented for this date.")
     else:
         wins=detail[detail["Result"]=="Hit"]
         losses=detail[detail["Result"]=="Loss"]
@@ -336,7 +336,7 @@ def show_bankroll_performance():
         missing=int(total["Graded"])-len(detail)
         if missing>0:st.info(f"{len(detail)} of {int(total['Graded'])} graded selections have player-level details. {missing} individual results are still missing; the daily totals remain unchanged.")
         st.download_button("Download this date's documented player results",detail.to_csv(index=False),file_name="bankroll_players_"+chosen_date+".csv",mime="text/csv",key="player_detail_csv")
-    st.caption("November 5 has a player-by-player breakdown; November 6 selections are imported but awaiting verified actual stats. Other dates remain provisional.")
+    st.caption("November 5 has a player-by-player breakdown. November 6 has chat-reported totals and one documented player result. Other dates have chat-reported totals only.")
 
 
 with st.sidebar:
