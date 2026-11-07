@@ -460,7 +460,7 @@ def live_name(value):
     normalized=unicodedata.normalize("NFKD",str(value)).encode("ascii","ignore").decode().lower()
     return re.sub("[^a-z0-9]","",normalized)
 
-@st.cache_data(ttl=120,show_spinner=False)
+@st.cache_data(ttl=30,show_spinner=False)
 def espn_stats(day):
     root="https://site.api.espn.com/apis/site/v2/sports/basketball/nba/"
     def fetch(endpoint):
@@ -493,6 +493,84 @@ def espn_stats(day):
                     for market,actual in [("Points",stat("PTS")),("Rebounds",stat("REB")),("Assists",stat("AST")),("Threes",threes)]:
                         if actual is not None:rows.append({"Key":live_name(name)+"|"+market.lower(),"Actual":actual,"Matchup":event.get("shortName",""),"Game status":status.get("shortDetail",""),"Game state":status.get("state",""),"Player source":name})
     return pd.DataFrame(rows),len(events)
+
+def show_bankroll_live_tracker(embedded=False):
+    from datetime import date
+    from zoneinfo import ZoneInfo
+    import re
+    if not embedded:st.title("🔴 Bankroll Live Tracking")
+    else:st.subheader("🔴 Bankroll Live Tracker")
+    st.caption("Bankroll Builder workbook props · ESPN NBA box scores · auto-refresh every 30 seconds while open.")
+    st.info("Tracks model bankroll picks, not Robinhood positions. A prop reaching its target is not a confirmed bet settlement.")
+    if not bankroll:
+        st.warning("No Bankroll Builder sheet is available in the loaded workbook.")
+        return
+    frame=sheets[bankroll].copy()
+    playercol=lookup(frame,"Player")
+    marketcol=lookup(frame,"Market","Stat")
+    linecol=lookup(frame,"Safer line")
+    sidecol=lookup(frame,"Model side")
+    if not all([playercol,marketcol,linecol]):
+        st.warning("The bankroll workbook needs Player, Market, and Safer line columns for tracking.")
+        return
+    prefix="embedded_bankroll" if embedded else "bankroll_live"
+    game_date=st.date_input("Game date (match your uploaded workbook)",value=datetime.now(ZoneInfo("America/Los_Angeles")).date(),key=prefix+"_date")
+    st.caption("Check the selected date: player-name matching alone cannot prove a prop belongs to a particular game.")
+    @st.fragment(run_every="30s")
+    def render_bankroll_live():
+        if st.button("↻ Refresh now",key=prefix+"_refresh"):
+            espn_stats.clear()
+        try:
+            stats,game_count=espn_stats(str(game_date))
+        except Exception as exc:
+            st.warning("ESPN box scores unavailable. No bets have been graded or saved.")
+            with st.expander("Connection details"):st.code(str(exc))
+            return
+        st.caption(str(game_count)+" NBA games found · Last checked "+datetime.now(ZoneInfo("America/Los_Angeles")).strftime("%I:%M:%S %p PT"))
+        if stats.empty:
+            st.info("No player box-score statistics are available for this date yet.")
+            return
+        frame2=frame.copy()
+        frame2["_match_key"]=frame2[playercol].map(live_name)+"|"+frame2[marketcol].astype(str).str.lower().str.strip()
+        ambiguous=set(stats.loc[stats["Key"].duplicated(keep=False),"Key"])
+        stats_unique=stats[~stats["Key"].isin(ambiguous)].drop_duplicates("Key")
+        joined=frame2.merge(stats_unique,left_on="_match_key",right_on="Key",how="left")
+        def evaluate(row):
+            actual=number(row.get("Actual"))
+            target_text=str(row.get(linecol,""))
+            target_match=re.search(r"\\d+(?:\\.\\d+)?",target_text)
+            target=float(target_match.group()) if target_match else None
+            if actual is None or target is None:return "⚪ Unverified"
+            state=str(row.get("Game state","")).lower()
+            direction=str(row.get(sidecol,"")).strip().lower() if sidecol else ""
+            # Safer lines usually mean a minimum (e.g. 15+); only apply
+            # an under rule if the workbook explicitly identifies Under.
+            is_under=("under" in target_text.lower() or direction=="under")
+            reached=(actual<target if is_under else actual>=target)
+            if state=="post":return "🟢 Hit" if reached else "🔴 Miss"
+            if state=="in":
+                if is_under:return "🟡 In progress (under not final)"
+                return "🟢 Target reached" if reached else "🟡 In progress"
+            return "⚪ Not started / unverified"
+        joined["Live status"]=joined.apply(evaluate,axis=1)
+        joined["Needed"]=joined.apply(lambda row:(
+            max(0,float(re.search(r"\\d+(?:\\.\\d+)?",str(row.get(linecol))).group())-number(row.get("Actual")))
+            if number(row.get("Actual")) is not None and re.search(r"\\d+(?:\\.\\d+)?",str(row.get(linecol))) and
+            not ("under" in str(row.get(linecol)).lower() or (sidecol and str(row.get(sidecol,"")).lower()=="under"))
+            else None),axis=1)
+        counts=joined["Live status"].value_counts()
+        c1,c2,c3,c4=st.columns(4)
+        c1.metric("Bankroll props",len(joined))
+        c2.metric("Reached / hit",sum(v for k,v in counts.items() if "Target reached" in k or k=="🟢 Hit"))
+        c3.metric("Final misses",int(counts.get("🔴 Miss",0)))
+        c4.metric("Unverified",sum(v for k,v in counts.items() if "Unverified" in k or "Not started" in k))
+        columns=[playercol,marketcol,linecol]
+        if sidecol:columns.append(sidecol)
+        columns+=["Actual","Needed","Live status","Matchup","Game status"]
+        st.dataframe(joined[[c for c in columns if c in joined.columns]],hide_index=True,use_container_width=True)
+        st.caption("Live progress is provisional. Unmatched players and missing box scores are not losses. Only completed games receive final statistical Hit/Miss labels; nothing is written to bankroll history.")
+    render_bankroll_live()
+
 
 def show_live_tracker():
     st.title("🔴 Live Prop Tracker")
@@ -893,7 +971,7 @@ with st.sidebar:
         if not admin_password:
             st.warning("Admin access is not enabled yet. Add ADMIN_PASSWORD in Streamlit Secrets.")
     st.divider()
-    section=st.radio("Navigate",["Overview","Bankroll Performance"]+(["💸 My Bets"] if is_admin else [])+["Bankroll Builder","Model's Favorite Props","All Player Props","Three-Point Projections","Individual Games"],label_visibility="visible")
+    section=st.radio("Navigate",["Overview","Bankroll Performance","🔴 Bankroll Live Tracking"]+(["💸 My Bets"] if is_admin else [])+["Bankroll Builder","Model's Favorite Props","All Player Props","Three-Point Projections","Individual Games"],label_visibility="visible")
 
 source=uploaded.getvalue() if uploaded else None
 if source is None and storage_ready:
@@ -1039,6 +1117,8 @@ if section=="Overview":
     if favorites:show_table(favorites,False)
 elif section=="Bankroll Performance":
     show_bankroll_performance()
+elif section=="🔴 Bankroll Live Tracking":
+    show_bankroll_live_tracker()
 elif section=="💸 My Bets" and is_admin:
     show_personal_bets()
 elif section=="Model Accuracy & ROI":
@@ -1051,6 +1131,10 @@ elif section=="Individual Games":
         selected=st.selectbox("Choose matchup",games)
         show_table(selected)
     else:st.info("No individual game tabs found.")
+elif section=="Bankroll Builder":
+    st.title("Bankroll Builder")
+    show_bankroll_live_tracker(embedded=True)
+    show_table(bankroll)
 else:
     chosen={"Bankroll Builder":bankroll,"Model's Favorite Props":favorites,"All Player Props":allprops,"Three-Point Projections":threes}.get(section)
     st.title(section)
