@@ -45,7 +45,7 @@ h1,h2,h3{letter-spacing:-.025em}
  .mobile-only-cards{display:block!important}
  .mobile-hide-table{display:none!important}
 }
-.mobile-only-cards{display:none}
+.mobile-only-cards{display:block}
 .mobile-prop-card{padding:12px 14px;margin:8px 0;border:1px solid #9ca3af55;border-radius:12px;background:#8080800a;overflow-wrap:anywhere}
 .mobile-prop-title{font-size:1rem;font-weight:700;margin-bottom:5px}
 .mobile-prop-detail{font-size:.87rem;line-height:1.6}
@@ -617,10 +617,10 @@ def show_bankroll_live_tracker(embedded=False):
         c3.metric("Final misses",int(counts.get("🔴 Miss",0)))
         c4.metric("Unverified",sum(v for k,v in counts.items() if "Unverified" in k))
         output=output.sort_values(["_tipoff","Game","Player"],kind="stable").drop(columns="_tipoff")
-        mobile_cards(output,preferred=["Player","Game","Safer line","Actual","Needed","Live status","Game status"])
-        st.markdown('<div class="mobile-hide-table">',unsafe_allow_html=True)
-        st.dataframe(output,hide_index=True,use_container_width=True)
-        st.markdown('</div>',unsafe_allow_html=True)
+        if phone_view:
+            mobile_cards(output,preferred=["Player","Game","Safer line","Actual","Needed","Live status","Game status"])
+        else:
+            st.dataframe(output,hide_index=True,use_container_width=True)
         st.caption("Uses the same ESPN player stats as My Bets. In-progress targets are provisional; missing players and missing box scores are never treated as losses.")
     render_bankroll_live()
 
@@ -1025,6 +1025,7 @@ with st.sidebar:
             st.warning("Admin access is not enabled yet. Add ADMIN_PASSWORD in Streamlit Secrets.")
     st.divider()
     section=st.radio("Navigate",["Overview","Bankroll Performance","🔴 Bankroll Live Tracking"]+(["💸 My Bets"] if is_admin else [])+["Bankroll Builder","Model's Favorite Props","All Player Props","Three-Point Projections","Individual Games"],label_visibility="visible")
+    phone_view=st.toggle("📱 Phone-friendly cards",value=False,key="phone_view",help="Switch wide data tables to easy-to-read vertical cards on a phone.")
 
 source=uploaded.getvalue() if uploaded else None
 if source is None and storage_ready:
@@ -1156,10 +1157,10 @@ def show_table(name, allow_filters=True):
         pixels=max(minimum,min(maximum,int(longest*7.3+24)))
         config[heading]=st.column_config.TextColumn(str(heading),width=pixels)
 
-    mobile_cards(df,preferred=["Player","Game","Our play","Safer line","Market","Model side","Model projection","Hit rate"])
-    st.markdown('<div class="mobile-hide-table">',unsafe_allow_html=True)
-    st.dataframe(df.style.apply(paint_row,axis=1),hide_index=True,use_container_width=True,height=min(680,max(230,39*(len(df)+1))),column_config=config)
-    st.markdown('</div>',unsafe_allow_html=True)
+    if phone_view:
+        mobile_cards(df,preferred=["Player","Game","Our play","Safer line","Market","Model side","Model projection","Hit rate"],max_rows=500)
+    else:
+        st.dataframe(df.style.apply(paint_row,axis=1),hide_index=True,use_container_width=True,height=min(680,max(230,39*(len(df)+1))),column_config=config)
     st.download_button("Download filtered CSV",df.to_csv(index=False).encode("utf-8"),file_name="nba_"+name.lower().replace(" ","_")+".csv",mime="text/csv",key="download_"+name)
 
 if section=="Overview":
