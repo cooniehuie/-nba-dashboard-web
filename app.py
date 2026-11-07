@@ -258,14 +258,35 @@ def show_bankroll_performance():
     display["Hit rate"]=display["Hit rate"].map(lambda x:f"{x:.1f}%")
     st.dataframe(display,hide_index=True,use_container_width=True)
     st.download_button("Download historical results CSV",display.to_csv(index=False),file_name="bankroll_performance_history.csv",mime="text/csv")
-    with st.expander("November 6 — corrected losing picks"):
-        st.dataframe(pd.DataFrame([
+    st.subheader("Player-by-player results")
+    chosen_date=st.selectbox("Select a date to see individual safer-line results",dates,index=len(dates)-1,key="bankroll_drilldown_date",format_func=lambda d:pd.to_datetime(d).strftime("%b %d, %Y"))
+    # Verified individual results available from the prior tracker. Other dates
+    # have aggregate counts only; do not infer player results from totals.
+    individual={
+        "2026-11-06":[
             {"Player":"Cam Spencer","Safer line":"2+ rebounds","Actual":1,"Result":"Loss"},
             {"Player":"Cam Spencer","Safer line":"4+ assists","Actual":0,"Result":"Loss"},
             {"Player":"Grayson Allen","Safer line":"2+ threes","Actual":0,"Result":"Loss"},
             {"Player":"Zach LaVine","Safer line":"15+ points","Actual":14,"Result":"Loss"},
-        ]),hide_index=True,use_container_width=True)
-    st.info("The historical tracker is an imported snapshot of prior chat results. Future automatic grading and complete individual-bet history are not yet connected.")
+        ]
+    }
+    detail=pd.DataFrame(individual.get(chosen_date,[]))
+    if detail.empty:
+        st.warning("Individual player results have not been imported for this date. The win/loss totals above are available, but player names, safe lines and actual stats cannot be reconstructed from those totals.")
+    else:
+        wins=detail[detail["Result"]=="Hit"]
+        losses=detail[detail["Result"]=="Loss"]
+        tab_all,tab_hits,tab_losses=st.tabs([f"All recorded ({len(detail)})",f"✅ Hits ({len(wins)})",f"❌ Misses ({len(losses)})"])
+        for tab,subset in ((tab_all,detail),(tab_hits,wins),(tab_losses,losses)):
+            with tab:
+                if subset.empty:st.caption("No individually documented selections in this category yet.")
+                else:st.dataframe(subset,hide_index=True,use_container_width=True)
+        total=history.loc[history["Date"]==chosen_date].iloc[0]
+        missing=int(total["Graded"])-len(detail)
+        if missing>0:st.info(f"{len(detail)} of {int(total['Graded'])} graded selections have player-level details. {missing} individual results are still missing; the daily totals remain unchanged.")
+        st.download_button("Download this date's documented player results",detail.to_csv(index=False),file_name="bankroll_players_"+chosen_date+".csv",mime="text/csv",key="player_detail_csv")
+    st.caption("Individual results are shown only when supported by the historical tracker. Additional dates require their actual player-by-player results to be imported.")
+
 
 with st.sidebar:
     st.title("🏀 NBA Model Center")
