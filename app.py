@@ -561,6 +561,25 @@ PERSONAL_BETS=[
 ("7-leg A",483,39.4,[("J. Murray","Threes",2),("A. Nembhard","Threes",1),("A. Nembhard","Assists",4),("P. Siakam","Assists",2),("A. Nembhard","Points",10),("P. Siakam","Points",15),("P. Siakam","Rebounds",4)]),
 ("9-leg",1113,7.8,[("A. Nembhard","Assists",6),("C. Braun","Points",10),("J. Murray","Points",20),("N. Jokic","Points",20),("A. Nesmith","Points",10),("P. Siakam","Points",15),("A. Gordon","Rebounds",4),("J. Murray","Rebounds",4),("N. Jokic","Rebounds",8)])
 ]
+ROBINHOOD_NOV7_BETS=[
+("9-leg",1113,7.8,101.96,15.15,[["A. Nembhard","Assists",6],["C. Braun","Points",10],["J. Murray","Points",20],["N. Jokić","Points",20],["A. Nesmith","Points",10],["P. Siakam","Points",15],["A. Gordon","Rebounds",4],["J. Murray","Rebounds",4],["N. Jokić","Rebounds",8]]),
+("5-leg",1281,6.5,99.98,16.72,[["N. Alexander-Walker","Threes",3],["J. Murray","Threes",3],["J. Smith Jr.","Threes",2],["T. Silva","Threes",3],["T. Camara","Threes",3]]),
+("7-leg A",483,39.4,199.97,9.67,[["J. Murray","Threes",2],["A. Nembhard","Threes",1],["A. Nembhard","Assists",4],["P. Siakam","Assists",2],["A. Nembhard","Points",10],["P. Siakam","Points",15],["P. Siakam","Rebounds",4]]),
+("3-leg C",276,34.2,99.92,5.53,[["N. Alexander-Walker","Threes",3],["T. Silva","Threes",2],["T. Camara","Threes",2]]),
+("7-leg B",1117,7.6,100,15.11,[["J. Murray","Threes",2],["A. Nembhard","Assists",6],["A. Nembhard","Points",15],["A. Nesmith","Points",10],["O. Toppin","Points",10],["J. Murray","Rebounds",4],["O. Toppin","Rebounds",4]]),
+("4-leg A",800,11,99.92,11.92,[["L. Dort","Threes",2],["N. Alexander-Walker","Threes",4],["O. Okongwu","Threes",1],["M. Porter Jr.","Threes",3]]),
+("3-leg A",1264,6.6,99.97,16.55,[["J. Murray","Threes",4],["A. Nembhard","Threes",3],["O. Toppin","Threes",2]]),
+("3-leg B",289,32.4,99.42,5.78,[["C. Johnson","Threes",1],["J. Murray","Threes",3],["A. Nembhard","Threes",2]]),
+("4-leg B",293,32.1,99.92,5.87,[["A. Nembhard","Assists",6],["R. Sheppard","Assists",2],["A. Nembhard","Points",10],["O. Okongwu","Rebounds",6]]),
+("4-leg C",255,37.2,99.96,5.1,[["C. McCollum","Assists",2],["D. Daniels","Assists",4],["F. Wagner","Assists",6],["D. Avdija","Assists",4]]),
+("3-leg D",314,29.8,99.86,6.29,[["N. Alexander-Walker","Threes",3],["E. Mobley","Threes",1],["S. Gilgeous-Alexander","Threes",2]]),
+("3-leg E",272,34.7,99.83,5.45,[["J. Smith Jr.","Threes",2],["T. Silva","Threes",2],["T. Camara","Threes",2]]),
+("6-leg",835,10.5,99.96,12.29,[["N. Alexander-Walker","Threes",3],["J. Smith Jr.","Threes",2],["E. Mobley","Threes",1],["T. Silva","Threes",2],["T. Camara","Threes",2],["S. Gilgeous-Alexander","Threes",2]]),
+("3-leg F",1851,4.2,99.99,22.25,[["A. Sengun","Assists",8],["D. Green","Assists",8],["D. Avdija","Assists",8]]),
+("3-leg G",385,24,99.77,7.37,[["A. Sengun","Assists",6],["D. Green","Assists",6],["D. Avdija","Assists",6]]),
+("3-leg H",286,32.9,99.82,5.73,[["O. Toppin","Points",10],["J. Smith Jr.","Points",10],["T. Silva","Points",10]])
+]
+
 @st.cache_data(ttl=120,show_spinner=False)
 def saved_bet_statuses():
     try:
@@ -644,15 +663,15 @@ def show_bulk_bet_import():
 def show_personal_bets():
     st.title("💸 My Bets · Robinhood")
     st.caption("Admin-only · November 7, 2026 · Denver vs. Indiana")
-    st.info("Positions transcribed from your screenshots. Displayed entry prices are rounded; estimated costs exclude fees. No legs have been verified or settled.")
+    st.info("November 7 positions imported from your Robinhood transaction text. Total cost includes actual reported fees for these 16 purchases. No legs have been verified or settled.")
     show_bulk_bet_import()
     imported=imported_bet_rows()
-    all_bets=list(PERSONAL_BETS)
+    all_bets=[(name,qty,price,legs) for name,qty,price,cost,fees,legs in ROBINHOOD_NOV7_BETS]
     for i,item in enumerate(imported,1):
         all_bets.append((str(item.get("date",""))+" · Import "+str(i),int(item["qty"]),float(item["cents"]),item["legs"]))
     saved=saved_bet_statuses()
     byid={r["Bet"]:r for _,r in saved.iterrows()} if not saved.empty else {}
-    total=sum(q*p/100 for _,q,p,_ in all_bets)
+    total=sum(cost for _,_,_,cost,_,_ in ROBINHOOD_NOV7_BETS)+sum(q*p/100 for _,q,p,_ in all_bets[len(ROBINHOOD_NOV7_BETS):])
     settled=[]
     for row in byid.values():
         if row.get("Status") in ["Won","Lost","Closed"]:
@@ -661,8 +680,9 @@ def show_personal_bets():
     a,b,c,d=st.columns(4)
     a.metric("Combos",len(all_bets))
     b.metric("Legs",sum(len(legs) for _,_,_,legs in all_bets))
-    c.metric("Estimated entry cost","$"+format(total,",.2f"))
+    c.metric("Total entry cost","$"+format(total,",.2f"))
     d.metric("Realized P/L","$"+format(sum(settled),",.2f") if settled else "Not recorded")
+    st.caption("November 7: $1,700.25 total paid including $166.78 in commissions and fees across 16 purchases. Additional bulk-imported bets are estimated before fees.")
     if storage_ready:
         with st.expander("Record settlement (admin)"):
             with st.form("personal_settlement"):
@@ -681,13 +701,14 @@ def show_personal_bets():
                 except ValueError:st.error("Enter a valid dollar amount.")
                 except Exception as exc:st.error("Could not save: "+str(exc))
     for name,qty,price,legs in all_bets:
-        cost=qty*price/100
+        matched=next((r for r in ROBINHOOD_NOV7_BETS if r[0]==name and r[1]==qty and r[2]==price),None)
+        cost=matched[3] if matched else qty*price/100
         status=byid.get(name,{}).get("Status","Pending")
         with st.expander(name+" · "+str(len(legs))+" legs · "+str(qty)+" Yes @ "+str(price)+"¢ · "+status):
             a,b,c=st.columns(3)
-            a.metric("Estimated cost","$"+format(cost,",.2f"))
+            a.metric("Total paid incl. fees" if matched else "Estimated cost","$"+format(cost,",.2f"))
             b.metric("Max gross payout","$"+format(qty,",.2f"))
-            c.metric("Max net profit before fees","$"+format(qty-cost,",.2f"))
+            c.metric("Max profit after entry fees" if matched else "Max profit before fees","$"+format(qty-cost,",.2f"))
             st.dataframe(pd.DataFrame([{"Player":p,"Market":m,"Target":str(t)+"+","Actual":"Not verified","Leg status":"Pending"} for p,m,t in legs]),hide_index=True,use_container_width=True)
     st.caption("Overlapping legs are tracked separately within combos but financial totals count each combo once. Settlements are manual and never inferred from incomplete box scores.")
 
