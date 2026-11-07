@@ -8,7 +8,7 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
-st.set_page_config(page_title="Huie's Degen Center", page_icon="🏀", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="Huie's Degen Center", page_icon="🏀", layout="wide", initial_sidebar_state="auto")
 st.markdown("""<style>
 .block-container{padding-top:1.6rem;max-width:1600px}
 [data-testid="stAppViewContainer"]{background:linear-gradient(160deg,#0f172a08,transparent 32%)}
@@ -30,6 +30,26 @@ st.markdown("""<style>
 h1,h2,h3{letter-spacing:-.025em}
 [data-testid="stMetric"]{border:1px solid #37415130;border-radius:14px;padding:12px 16px;background:#8080800b}
 [data-testid="stSidebar"]{border-right:1px solid #80808030}
+@media(max-width:700px){
+ .block-container{padding:0.75rem 0.65rem 3rem!important}
+ h1{font-size:1.65rem!important;line-height:1.2!important}
+ h2{font-size:1.35rem!important}
+ h3{font-size:1.12rem!important}
+ [data-testid="stMetric"]{padding:8px!important;min-width:0!important}
+ [data-testid="stMetricLabel"]{font-size:.77rem!important}
+ [data-testid="stMetricValue"]{font-size:1.25rem!important}
+ [data-testid="stHorizontalBlock"]{gap:.45rem!important;flex-wrap:wrap!important}
+ [data-testid="column"]{min-width:145px!important;flex:1 1 45%!important}
+ [data-testid="stDataFrame"]{max-width:100%;overflow:auto}
+ [data-testid="stDataFrame"] canvas{touch-action:pan-x pan-y}
+ .mobile-only-cards{display:block!important}
+ .mobile-hide-table{display:none!important}
+}
+.mobile-only-cards{display:none}
+.mobile-prop-card{padding:12px 14px;margin:8px 0;border:1px solid #9ca3af55;border-radius:12px;background:#8080800a;overflow-wrap:anywhere}
+.mobile-prop-title{font-size:1rem;font-weight:700;margin-bottom:5px}
+.mobile-prop-detail{font-size:.87rem;line-height:1.6}
+.mobile-prop-detail b{font-weight:650}
 </style>""",unsafe_allow_html=True)
 viewer_password=st.secrets.get("DASHBOARD_PASSWORD","")
 admin_password=st.secrets.get("ADMIN_PASSWORD","")
@@ -597,7 +617,10 @@ def show_bankroll_live_tracker(embedded=False):
         c3.metric("Final misses",int(counts.get("🔴 Miss",0)))
         c4.metric("Unverified",sum(v for k,v in counts.items() if "Unverified" in k))
         output=output.sort_values(["_tipoff","Game","Player"],kind="stable").drop(columns="_tipoff")
+        mobile_cards(output,preferred=["Player","Game","Safer line","Actual","Needed","Live status","Game status"])
+        st.markdown('<div class="mobile-hide-table">',unsafe_allow_html=True)
         st.dataframe(output,hide_index=True,use_container_width=True)
+        st.markdown('</div>',unsafe_allow_html=True)
         st.caption("Uses the same ESPN player stats as My Bets. In-progress targets are provisional; missing players and missing box scores are never treated as losses.")
     render_bankroll_live()
 
@@ -1032,6 +1055,28 @@ threes=find_sheet("three-point","three point","3-point")
 excluded={x for x in [schedule,bankroll,favorites,allprops,threes] if x}
 games=[n for n in names if n not in excluded]
 
+def mobile_cards(frame,preferred=None,max_rows=100):
+    """Readable mobile-only cards; desktop keeps its existing data grid."""
+    import html
+    if frame is None or frame.empty:return
+    preferred=preferred or []
+    cols=[c for c in preferred if c in frame.columns]
+    cols+= [c for c in frame.columns if c not in cols]
+    if not cols:return
+    title_col=next((c for c in cols if str(c).lower()=="player"),cols[0])
+    chunks=['<div class="mobile-only-cards">']
+    for _,row in frame.head(max_rows).iterrows():
+        def safe(value):
+            if pd.isna(value):return "—"
+            return html.escape(str(value))
+        chunks.append('<div class="mobile-prop-card"><div class="mobile-prop-title">'+safe(row[title_col])+'</div><div class="mobile-prop-detail">')
+        for col in cols:
+            if col==title_col:continue
+            chunks.append('<div><b>'+html.escape(str(col))+':</b> '+safe(row[col])+'</div>')
+        chunks.append('</div></div>')
+    chunks.append('</div>')
+    st.markdown("".join(chunks),unsafe_allow_html=True)
+
 def show_table(name, allow_filters=True):
     if not name:
         st.info("This section is not present in the uploaded workbook.")
@@ -1111,7 +1156,10 @@ def show_table(name, allow_filters=True):
         pixels=max(minimum,min(maximum,int(longest*7.3+24)))
         config[heading]=st.column_config.TextColumn(str(heading),width=pixels)
 
+    mobile_cards(df,preferred=["Player","Game","Our play","Safer line","Market","Model side","Model projection","Hit rate"])
+    st.markdown('<div class="mobile-hide-table">',unsafe_allow_html=True)
     st.dataframe(df.style.apply(paint_row,axis=1),hide_index=True,use_container_width=True,height=min(680,max(230,39*(len(df)+1))),column_config=config)
+    st.markdown('</div>',unsafe_allow_html=True)
     st.download_button("Download filtered CSV",df.to_csv(index=False).encode("utf-8"),file_name="nba_"+name.lower().replace(" ","_")+".csv",mime="text/csv",key="download_"+name)
 
 if section=="Overview":
