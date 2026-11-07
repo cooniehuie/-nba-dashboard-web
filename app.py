@@ -664,7 +664,6 @@ def show_personal_bets():
     st.title("💸 My Bets · Robinhood")
     st.caption("Admin-only · November 7, 2026 · Denver vs. Indiana")
     st.info("November 7 positions imported from your Robinhood transaction text. Total cost includes actual reported fees for these 16 purchases. No legs have been verified or settled.")
-    show_bulk_bet_import()
     imported=imported_bet_rows()
     all_bets=[(name,qty,price,legs) for name,qty,price,cost,fees,legs in ROBINHOOD_NOV7_BETS]
     for i,item in enumerate(imported,1):
@@ -677,11 +676,12 @@ def show_personal_bets():
         if row.get("Status") in ["Won","Lost","Closed"]:
             try:settled.append(float(row["Net P/L"]))
             except (TypeError,ValueError):pass
-    a,b,c,d=st.columns(4)
-    a.metric("Combos",len(all_bets))
-    b.metric("Legs",sum(len(legs) for _,_,_,legs in all_bets))
-    c.metric("Total entry cost","$"+format(total,",.2f"))
-    d.metric("Realized P/L","$"+format(sum(settled),",.2f") if settled else "Not recorded")
+    potential_profit=sum(qty for _,qty,_,_ in all_bets)-total
+    a,b,c=st.columns(3)
+    a.metric("Total entry cost","$"+format(total,",.2f"))
+    b.metric("Total potential profit","$"+format(potential_profit,",.2f"))
+    c.metric("Realized P/L","$"+format(sum(settled),",.2f") if settled else "Not recorded")
+    st.caption(str(len(all_bets))+" combos · "+str(sum(len(legs) for _,_,_,legs in all_bets))+" legs · Potential profit assumes every Yes combo wins, with recorded entry fees included where available; excludes any future exit fees.")
     st.caption("November 7: $1,700.25 total paid including $166.78 in commissions and fees across 16 purchases. Additional bulk-imported bets are estimated before fees.")
     if storage_ready:
         with st.expander("Record settlement (admin)"):
