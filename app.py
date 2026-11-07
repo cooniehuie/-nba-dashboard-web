@@ -1187,12 +1187,22 @@ def show_personal_bets():
                 st.code(str(exc))
     render_live_nba_tracker()
     st.subheader("Quick bet overview")
-    summary=[]
+    st.caption("Tap a parlay to expand its individual legs.")
     for name,qty,price,legs in all_bets:
         matched=next((r for r in ROBINHOOD_NOV7_BETS if r[0]==name and r[1]==qty and r[2]==price),None)
         cost=matched[3] if matched else qty*price/100
-        summary.append({"Combo":labels.get(name,name),"Legs":len(legs),"Wager":round(cost,2),"Potential profit":round(qty-cost,2),"Status":byid.get(name,{}).get("Status","Pending")})
-    responsive_dataframe(pd.DataFrame(summary),"mybets_summary",preferred=["Wager","Potential profit","Status","Legs"],hide_index=True,use_container_width=True,column_config={"Wager":st.column_config.NumberColumn("Wager",format="$%.2f"),"Potential profit":st.column_config.NumberColumn("Potential profit",format="$%.2f")})
+        status=byid.get(name,{}).get("Status","Pending")
+        heading=(labels.get(name,name)+"  ·  Wager $"+format(cost,",.2f")+
+                 "  ·  Profit $"+format(qty-cost,",.2f")+"  ·  "+status)
+        with st.expander(heading):
+            st.caption(str(len(legs))+" legs · Max payout $"+format(qty,",.2f")+
+                       " · Potential profit $"+format(qty-cost,",.2f"))
+            leg_rows=[{"Leg":i,"Player":p,"Market":m,"Target":str(t)+"+",
+                       "Actual":"Not verified","Status":"Pending"}
+                      for i,(p,m,t) in enumerate(legs,1)]
+            responsive_dataframe(pd.DataFrame(leg_rows),"overview_legs_"+str(name).replace(" ","_"),
+                                 preferred=["Leg","Market","Target","Actual","Status"],
+                                 hide_index=True,use_container_width=True)
     from collections import Counter
     exposure=Counter((p,m,t) for _,_,_,legs in all_bets for p,m,t in legs)
     st.subheader("Repeated player props")
@@ -1200,14 +1210,6 @@ def show_personal_bets():
     repeated=[{"Player":p,"Prop":str(t)+"+ "+m,"Combos depending on it":n} for (p,m,t),n in exposure.most_common() if n>1]
     if repeated:responsive_dataframe(pd.DataFrame(repeated),"mybets_repeated",preferred=["Prop","Combos depending on it"],hide_index=True,use_container_width=True)
     else:st.caption("No repeated props.")
-    with st.expander("View individual combo legs"):
-        for name,qty,price,legs in all_bets:
-            matched=next((r for r in ROBINHOOD_NOV7_BETS if r[0]==name and r[1]==qty and r[2]==price),None)
-            cost=matched[3] if matched else qty*price/100
-            status=byid.get(name,{}).get("Status","Pending")
-            with st.expander(labels.get(name,name)+" · "+status):
-                st.caption("Wager: $"+format(cost,",.2f")+" · Max payout: $"+format(qty,",.2f")+" · Potential profit: $"+format(qty-cost,",.2f"))
-                responsive_dataframe(pd.DataFrame([{"Player":p,"Market":m,"Target":str(t)+"+","Actual":"Not verified","Leg status":"Pending"} for p,m,t in legs]),"mybets_legs_"+str(name).replace(" ","_"),preferred=["Market","Target","Actual","Leg status"],hide_index=True,use_container_width=True)
     st.caption("Overlapping legs are tracked separately within combos but financial totals count each combo once. Settlements are manual and never inferred from incomplete box scores.")
 
 with st.sidebar:
