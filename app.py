@@ -569,27 +569,104 @@ def saved_bet_statuses():
     except Exception:
         return pd.DataFrame(columns=["Bet","Status","Net P/L"])
 
+
+@st.cache_data(ttl=120,show_spinner=False)
+def imported_bet_rows():
+    try:
+        raw=github_file("personal_bets_imports.json")
+        data=json.loads(raw.decode("utf-8")) if raw else []
+        return data if isinstance(data,list) else []
+    except Exception:
+        return []
+
+def parse_robinhood_positions(text):
+    import re
+    # Supports copied desktop position lists with contract description followed by
+    # "289 Yes @ 32.4¢". Wrapped descriptions are joined before parsing.
+    text=text.replace("\u00a0"," ").replace("￠","¢")
+    lines=[x.strip() for x in text.splitlines() if x.strip()]
+    found=[]
+    pattern=re.compile(r"^([\d,]+)\s+Yes\s*@\s*([\d.]+)\s*(?:¢|cents?)",re.I)
+    leg_pattern=re.compile(r"^(.+?)\s+(\d+)\+\s*(Threes|Points|Assists|Rebounds)\s*$",re.I)
+    buffer=[]
+    for line in lines:
+        m=pattern.match(line)
+        if m:
+            description=" ".join(buffer).strip()
+            # Strip header/UI artifacts when present; only validated prop tokens survive.
+            parts=[x.strip() for x in description.split(",")]
+            legs=[]
+            for part in parts:
+                lm=leg_pattern.match(part)
+                if lm:
+                    legs.append([lm.group(1).strip(),lm.group(3).title(),int(lm.group(2))])
+            if legs:
+                qty=int(m.group(1).replace(",",""))
+                price=float(m.group(2))
+                if qty>0 and 0<price<=100:
+                    found.append({"qty":qty,"cents":price,"legs":legs,"raw":description})
+            buffer=[]
+        elif not line.lower().startswith(("your positions","close ","getting price")):
+            buffer.append(line)
+    return found
+
+def show_bulk_bet_import():
+    with st.expander("📋 Bulk import Robinhood positions",expanded=False):
+        st.caption("Copy the entire Your Positions list from Robinhood desktop and paste it below. Review parsed legs before saving. Nothing is submitted to Robinhood.")
+        import_date=st.date_input("Game date for imported positions",value=datetime.now().date(),key="bulk_bet_date")
+        pasted=st.text_area("Paste positions",height=180,placeholder="J. Murray 2+ Threes, A. Nembhard 6+ Assists\n1,117 Yes @ 7.6¢",key="bulk_bets_text")
+        parsed=parse_robinhood_positions(pasted) if pasted.strip() else []
+        if pasted.strip():
+            if not parsed:st.warning("No complete positions recognized. Include each description and its quantity / Yes @ price line.")
+            else:
+                st.success(str(len(parsed))+" positions recognized. Check all legs and prices before saving.")
+                for i,item in enumerate(parsed,1):
+                    st.markdown("**Position "+str(i)+" · "+str(item["qty"])+" Yes @ "+str(item["cents"])+"¢ · "+str(len(item["legs"]))+" recognized legs**")
+                    st.dataframe(pd.DataFrame(item["legs"],columns=["Player","Market","Target"]),hide_index=True,use_container_width=True)
+                st.warning("If any legs are missing or truncated, do not save; fix the pasted text first.")
+                if st.button("Save reviewed positions to private storage",key="save_bulk_bets",type="primary"):
+                    if not storage_ready:st.error("Private GitHub storage is not configured.")
+                    else:
+                        current=imported_bet_rows()
+                        added=0
+                        for item in parsed:
+                            row={"date":str(import_date),"qty":item["qty"],"cents":item["cents"],"legs":item["legs"]}
+                            if row not in current:
+                                current.append(row)
+                                added+=1
+                        try:
+                            github_file("personal_bets_imports.json",json.dumps(current,ensure_ascii=False,indent=2).encode("utf-8"))
+                            imported_bet_rows.clear()
+                            st.success(str(added)+" new positions saved; "+str(len(parsed)-added)+" duplicates skipped.")
+                            st.rerun()
+                        except Exception as exc:st.error("Unable to save positions: "+str(exc))
+
 def show_personal_bets():
     st.title("💸 My Bets · Robinhood")
     st.caption("Admin-only · November 7, 2026 · Denver vs. Indiana")
     st.info("Positions transcribed from your screenshots. Displayed entry prices are rounded; estimated costs exclude fees. No legs have been verified or settled.")
+    show_bulk_bet_import()
+    imported=imported_bet_rows()
+    all_bets=list(PERSONAL_BETS)
+    for i,item in enumerate(imported,1):
+        all_bets.append((str(item.get("date",""))+" · Import "+str(i),int(item["qty"]),float(item["cents"]),item["legs"]))
     saved=saved_bet_statuses()
     byid={r["Bet"]:r for _,r in saved.iterrows()} if not saved.empty else {}
-    total=sum(q*p/100 for _,q,p,_ in PERSONAL_BETS)
+    total=sum(q*p/100 for _,q,p,_ in all_bets)
     settled=[]
     for row in byid.values():
         if row.get("Status") in ["Won","Lost","Closed"]:
             try:settled.append(float(row["Net P/L"]))
             except (TypeError,ValueError):pass
     a,b,c,d=st.columns(4)
-    a.metric("Combos",len(PERSONAL_BETS))
-    b.metric("Legs",sum(len(legs) for _,_,_,legs in PERSONAL_BETS))
+    a.metric("Combos",len(all_bets))
+    b.metric("Legs",sum(len(legs) for _,_,_,legs in all_bets))
     c.metric("Estimated entry cost","$"+format(total,",.2f"))
     d.metric("Realized P/L","$"+format(sum(settled),",.2f") if settled else "Not recorded")
     if storage_ready:
         with st.expander("Record settlement (admin)"):
             with st.form("personal_settlement"):
-                bet=st.selectbox("Combo",[x[0] for x in PERSONAL_BETS])
+                bet=st.selectbox("Combo",[x[0] for x in all_bets])
                 status=st.selectbox("Status",["Pending","Won","Lost","Closed","Voided"])
                 pnl=st.text_input("Realized net P/L in dollars (blank if unknown)")
                 submit=st.form_submit_button("Save")
@@ -603,7 +680,7 @@ def show_personal_bets():
                     st.rerun()
                 except ValueError:st.error("Enter a valid dollar amount.")
                 except Exception as exc:st.error("Could not save: "+str(exc))
-    for name,qty,price,legs in PERSONAL_BETS:
+    for name,qty,price,legs in all_bets:
         cost=qty*price/100
         status=byid.get(name,{}).get("Status","Pending")
         with st.expander(name+" · "+str(len(legs))+" legs · "+str(qty)+" Yes @ "+str(price)+"¢ · "+status):
