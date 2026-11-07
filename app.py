@@ -188,7 +188,7 @@ BANKROLL_HISTORY = [
     {"Date":"2026-11-02","Wins":15,"Losses":4,"Excluded":1,"Status":"Provisional"},
     {"Date":"2026-11-04","Wins":16,"Losses":4,"Excluded":0,"Status":"Provisional"},
     {"Date":"2026-11-05","Wins":14,"Losses":5,"Excluded":0,"Status":"Box-score checked"},
-    {"Date":"2026-11-06","Wins":0,"Losses":0,"Excluded":0,"Status":"No games"},
+    {"Date":"2026-11-06","Wins":0,"Losses":0,"Excluded":20,"Status":"20 picks · Awaiting box-score verification"},
 ]
 # Source: user's November 5 screenshot; actuals checked against NBA box scores.
 # Keep each original safer-line selection distinct, even when a player appears multiple times.
@@ -212,6 +212,30 @@ NOV5_PICKS = [
     ("Anthony Black","Points",10,10),
     ("Anthony Black","Assists",3,6),
     ("Yaxel Lendeborg","Assists",3,6),
+]
+# November 6 safer lines transcribed from the user-provided Sam's Models screenshot.
+# Actual stats intentionally unfilled until independently verified.
+NOV6_PICKS = [
+    ("Cam Spencer","Rebounds",2),
+    ("Cam Spencer","Threes",1),
+    ("Grayson Allen","Threes",2),
+    ("Sidy Cissoko","Rebounds",2),
+    ("Cedric Coward","Rebounds",6),
+    ("Toumani Camara","Threes",2),
+    ("Jarrett Allen","Rebounds",6),
+    ("Cam Spencer","Assists",4),
+    ("Jaden McDaniels","Assists",2),
+    ("Jalen Johnson","Rebounds",8),
+    ("Darius Acuff Jr.","Assists",4),
+    ("Zach LaVine","Points",15),
+    ("Evan Mobley","Threes",1),
+    ("Alex Caruso","Rebounds",3),
+    ("Rudy Gobert","Rebounds",10),
+    ("Nickeil Alexander-Walker","Threes",2),
+    ("Deni Avdija","Assists",5),
+    ("Robert Williams III","Rebounds",4),
+    ("Ty Jerome","Points",17),
+    ("Ace Bailey","Rebounds",4),
 ]
 def bankroll_history_frame():
     frame=pd.DataFrame(BANKROLL_HISTORY)
@@ -292,7 +316,10 @@ def show_bankroll_performance():
         ],
     }
     if chosen_date=="2026-11-06":
-        st.info("No NBA games on November 6. No safer-line bets were graded.")
+        st.info("November 6: all 20 safer-line selections have been imported from your screenshot. Actual player stats and hit/miss outcomes are pending box-score verification.")
+        pending=pd.DataFrame([{"Player":p,"Market":m,"Safer line":f"{line}+ {m.lower()}","Actual":"Pending","Result":"Pending"} for p,m,line in NOV6_PICKS])
+        st.dataframe(pending,hide_index=True,use_container_width=True)
+        st.download_button("Download November 6 selections",pending.to_csv(index=False),file_name="bankroll_nov6_picks.csv",mime="text/csv")
         return
     detail=pd.DataFrame(individual.get(chosen_date,[]))
     if detail.empty:
@@ -309,7 +336,7 @@ def show_bankroll_performance():
         missing=int(total["Graded"])-len(detail)
         if missing>0:st.info(f"{len(detail)} of {int(total['Graded'])} graded selections have player-level details. {missing} individual results are still missing; the daily totals remain unchanged.")
         st.download_button("Download this date's documented player results",detail.to_csv(index=False),file_name="bankroll_players_"+chosen_date+".csv",mime="text/csv",key="player_detail_csv")
-    st.caption("November 5 has a player-by-player box-score breakdown. Other dates remain provisional until their original picks are checked against final game statistics.")
+    st.caption("November 5 has a player-by-player breakdown; November 6 selections are imported but awaiting verified actual stats. Other dates remain provisional.")
 
 
 with st.sidebar:
