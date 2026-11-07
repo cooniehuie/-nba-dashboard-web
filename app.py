@@ -150,20 +150,25 @@ def show_table(name, allow_filters=True):
         front=[lookup(df,k) for k in priority]
         front=[c for c in front if c is not None]
         df=df[front+[c for c in df.columns if c not in front]]
+    # Convert values to display strings before passing them to Streamlit.
+    # Streamlit's dataframe grid does not consistently honor Styler.format().
     df=df.replace({"None":pd.NA,"none":pd.NA,"N/A":pd.NA,"n/a":pd.NA})
-    numeric_columns=[]
+    number_keys={"last game","2 games ago","3 games ago","last 3 avg","last 3 average","reference line","model projection","away model pts","home model pts","projected total","edge"}
+    two_decimal={"last 3 avg","last 3 average","model projection","reference line","away model pts","home model pts","projected total","edge"}
     for c in df.columns:
-        if str(c).lower() in {"last game","2 games ago","3 games ago","last 3 avg","last 3 average","reference line","model projection","away model pts","home model pts","projected total","edge"}:
-            df[c]=pd.to_numeric(df[c],errors="coerce")
-            numeric_columns.append(c)
-    styler=df.style.apply(paint_row,axis=1).format(na_rep="N/A")
-    for c in numeric_columns:
-        digits=2 if str(c).lower() in {"last 3 avg","last 3 average","model projection","reference line","away model pts","home model pts","projected total","edge"} else 0
-        styler=styler.format({c:("{:,.%df}"%digits)},na_rep="N/A")
-    config={c:st.column_config.NumberColumn(c,width="small") for c in numeric_columns}
+        if str(c).lower() in number_keys:
+            digits=2 if str(c).lower() in two_decimal else 0
+            def fmt(v):
+                n=number(v)
+                if n is None:return "N/A"
+                return f"{n:,.{digits}f}"
+            df[c]=df[c].map(fmt)
+        else:
+            df[c]=df[c].map(lambda v:"N/A" if pd.isna(v) or str(v).strip().lower() in {"none","nan","n/a"} else v)
+    config={}
     if "Player" in df.columns:config["Player"]=st.column_config.TextColumn("Player",width="medium")
     if "Game" in df.columns:config["Game"]=st.column_config.TextColumn("Game",width="large")
-    st.dataframe(styler,hide_index=True,use_container_width=True,height=min(680,max(230,39*(len(df)+1))),column_config=config)
+    st.dataframe(df.style.apply(paint_row,axis=1),hide_index=True,use_container_width=True,height=min(680,max(230,39*(len(df)+1))),column_config=config)
     st.download_button("Download filtered CSV",df.to_csv(index=False).encode("utf-8"),file_name="nba_"+name.lower().replace(" ","_")+".csv",mime="text/csv",key="download_"+name)
 
 if section=="Overview":
