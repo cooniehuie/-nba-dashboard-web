@@ -395,7 +395,7 @@ def performance_graph(frame):
     @media(max-width:750px){.bk-grid{grid-template-columns:1fr}.bk-hero{padding:20px}.bk-chart{height:160px}}
     </style>""",unsafe_allow_html=True)
     st.markdown(f"""<div class="bk-hero">
-      <div class="bk-kicker">🏀 GREEN SAFER-LINE PERFORMANCE · HISTORICAL</div>
+      <div class="bk-kicker">🏀 SAFE LINE PERFORMANCE · HISTORICAL</div>
       <div class="bk-grid">
         <div><div class="bk-big">{pct:.1f}%</div><div class="bk-muted">Overall hit rate · {graded} graded selections</div>
           <div class="bk-track"><div class="bk-fill" style="width:{pct:.2f}%"></div></div>
@@ -466,7 +466,7 @@ def responsive_dataframe(frame,key,preferred=None,max_rows=150,desktop_frame=Non
 
 def show_bankroll_performance():
     st.title("📈 Bankroll Performance")
-    st.caption("Green safer-line picks · October 27–November 6, 2026 · Daily totals from prior ChatGPT tracker; not independently verified")
+    st.caption("safe line picks · October 27–November 6, 2026 · Daily totals from prior ChatGPT tracker; not independently verified")
     history=bankroll_history_frame()
     dates=history["Date"].tolist()
     selected=st.multiselect("Filter by date",dates,default=dates,key="bankroll_history_dates")
