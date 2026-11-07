@@ -176,6 +176,97 @@ def github_file(path, data=None):
 def saved_workbook():
     return github_file("latest.xlsx")
 
+
+# Historical safer-line results transcribed from the user's shared bankroll tracker.
+# Nov 6 incorporates the corrected Grayson Allen loss. Nov 3 had no report.
+BANKROLL_HISTORY = [
+    {"Date":"2026-10-27","Wins":16,"Losses":4,"Excluded":0},
+    {"Date":"2026-10-28","Wins":13,"Losses":5,"Excluded":2},
+    {"Date":"2026-10-29","Wins":9,"Losses":3,"Excluded":3},
+    {"Date":"2026-10-30","Wins":15,"Losses":1,"Excluded":4},
+    {"Date":"2026-10-31","Wins":12,"Losses":6,"Excluded":2},
+    {"Date":"2026-11-01","Wins":14,"Losses":3,"Excluded":3},
+    {"Date":"2026-11-02","Wins":15,"Losses":4,"Excluded":1},
+    {"Date":"2026-11-04","Wins":16,"Losses":4,"Excluded":0},
+    {"Date":"2026-11-05","Wins":14,"Losses":5,"Excluded":0},
+    {"Date":"2026-11-06","Wins":14,"Losses":4,"Excluded":2},
+]
+def bankroll_history_frame():
+    frame=pd.DataFrame(BANKROLL_HISTORY)
+    frame["Graded"]=frame["Wins"]+frame["Losses"]
+    frame["Hit rate"]=100*frame["Wins"]/frame["Graded"]
+    return frame
+
+def performance_graph(frame):
+    wins=int(frame["Wins"].sum())
+    losses=int(frame["Losses"].sum())
+    excluded=int(frame["Excluded"].sum())
+    graded=wins+losses
+    pct=100*wins/graded if graded else 0
+    # HTML/CSS visualization avoids a chart library and adapts to screen width.
+    bars=[]
+    for _,r in frame.iterrows():
+        day=pd.to_datetime(r["Date"]).strftime("%b %-d") if hasattr(pd.to_datetime(r["Date"]),"strftime") else r["Date"]
+        rate=float(r["Hit rate"])
+        bars.append(f'<div class="bk-bar-wrap"><div class="bk-bar-track"><div class="bk-bar" style="height:{rate:.1f}%"></div></div><span>{day}</span><b>{rate:.1f}%</b></div>')
+    st.markdown("""<style>
+    .bk-hero{border-radius:22px;padding:26px 30px;background:linear-gradient(125deg,#0f172a,#172554 62%,#0e7490);color:#fff;box-shadow:0 16px 35px #0f172a20;margin:14px 0 22px}
+    .bk-kicker{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:#93c5fd;font-weight:700}
+    .bk-grid{display:grid;grid-template-columns:1.2fr 1fr;gap:24px;align-items:center}
+    .bk-big{font-size:clamp(48px,6vw,82px);font-weight:850;line-height:1.12;letter-spacing:-.05em}
+    .bk-muted{color:#cbd5e1;font-size:13px}
+    .bk-stats{display:flex;gap:20px;flex-wrap:wrap;margin-top:18px}
+    .bk-stat strong{display:block;font-size:25px;color:#fff}
+    .bk-stat span{font-size:12px;color:#cbd5e1}
+    .bk-track{height:12px;border-radius:30px;background:#fb7185;overflow:hidden;margin:16px 0 7px}
+    .bk-fill{height:100%;background:linear-gradient(90deg,#34d399,#a7f3d0);border-radius:30px}
+    .bk-chart{display:flex;align-items:end;gap:7px;height:170px;padding-top:12px}
+    .bk-bar-wrap{flex:1;min-width:0;text-align:center;display:flex;flex-direction:column;align-items:center;gap:5px;height:100%}
+    .bk-bar-track{width:100%;height:118px;display:flex;align-items:end;border-radius:7px;background:#ffffff14;overflow:hidden}
+    .bk-bar{width:100%;border-radius:6px 6px 0 0;background:linear-gradient(#67e8f9,#34d399)}
+    .bk-bar-wrap span{font-size:10px;color:#cbd5e1;white-space:nowrap}
+    .bk-bar-wrap b{font-size:10px;color:white}
+    @media(max-width:750px){.bk-grid{grid-template-columns:1fr}.bk-hero{padding:20px}.bk-chart{height:160px}}
+    </style>""",unsafe_allow_html=True)
+    st.markdown(f"""<div class="bk-hero">
+      <div class="bk-kicker">🏀 GREEN SAFER-LINE PERFORMANCE · HISTORICAL</div>
+      <div class="bk-grid">
+        <div><div class="bk-big">{pct:.1f}%</div><div class="bk-muted">Overall hit rate · {graded} graded selections</div>
+          <div class="bk-track"><div class="bk-fill" style="width:{pct:.2f}%"></div></div>
+          <div class="bk-stats"><div class="bk-stat"><strong>{wins}</strong><span>WINS</span></div>
+          <div class="bk-stat"><strong>{losses}</strong><span>LOSSES</span></div>
+          <div class="bk-stat"><strong>{excluded}</strong><span>EXCLUDED</span></div></div>
+        </div>
+        <div><div class="bk-muted">DAILY HIT RATE</div><div class="bk-chart">{''.join(bars)}</div></div>
+      </div>
+      <div class="bk-muted" style="margin-top:16px">Previously reported results, not independently reverified · Hit rate does not measure profit</div>
+    </div>""",unsafe_allow_html=True)
+
+def show_bankroll_performance():
+    st.title("📈 Bankroll Performance")
+    st.caption("Historical results for green safer-line picks · October 27–November 6, 2026")
+    history=bankroll_history_frame()
+    dates=history["Date"].tolist()
+    selected=st.multiselect("Filter by date",dates,default=dates,key="bankroll_history_dates")
+    visible=history[history["Date"].isin(selected)]
+    if visible.empty:
+        st.info("Select at least one date to view performance.")
+        return
+    performance_graph(visible)
+    st.subheader("Daily results")
+    display=visible[["Date","Wins","Losses","Excluded","Graded","Hit rate"]].copy()
+    display["Hit rate"]=display["Hit rate"].map(lambda x:f"{x:.1f}%")
+    st.dataframe(display,hide_index=True,use_container_width=True)
+    st.download_button("Download historical results CSV",display.to_csv(index=False),file_name="bankroll_performance_history.csv",mime="text/csv")
+    with st.expander("November 6 — corrected losing picks"):
+        st.dataframe(pd.DataFrame([
+            {"Player":"Cam Spencer","Safer line":"2+ rebounds","Actual":1,"Result":"Loss"},
+            {"Player":"Cam Spencer","Safer line":"4+ assists","Actual":0,"Result":"Loss"},
+            {"Player":"Grayson Allen","Safer line":"2+ threes","Actual":0,"Result":"Loss"},
+            {"Player":"Zach LaVine","Safer line":"15+ points","Actual":14,"Result":"Loss"},
+        ]),hide_index=True,use_container_width=True)
+    st.info("The historical tracker is an imported snapshot of prior chat results. Future automatic grading and complete individual-bet history are not yet connected.")
+
 with st.sidebar:
     st.title("🏀 NBA Model Center")
     st.caption("Your private model dashboard")
@@ -211,7 +302,7 @@ with st.sidebar:
         if not admin_password:
             st.warning("Admin access is not enabled yet. Add ADMIN_PASSWORD in Streamlit Secrets.")
     st.divider()
-    section=st.radio("Navigate",["Overview","Bankroll Builder","Favorite Props","All Player Props","Three-Point Projections","Individual Games"],label_visibility="visible")
+    section=st.radio("Navigate",["Overview","Bankroll Performance","Bankroll Builder","Favorite Props","All Player Props","Three-Point Projections","Individual Games"],label_visibility="visible")
 
 source=uploaded.getvalue() if uploaded else None
 if source is None and storage_ready:
@@ -332,6 +423,10 @@ if section=="Overview":
     b.metric("Player props",len(sheets[allprops]) if allprops else "—")
     c.metric("Favorite props",len(sheets[favorites]) if favorites else "—")
     d.metric("Bankroll plays",len(sheets[bankroll]) if bankroll else "—")
+    st.subheader("📈 Bankroll performance")
+    performance_graph(bankroll_history_frame())
+    if st.button("View daily bankroll results",key="open_bankroll_performance"):
+        st.info("Choose Bankroll Performance in the sidebar to view daily results and date filters.")
     if allprops:
         candidates=historical_summary(sheets[allprops])
         if "Recent hits" in candidates:
@@ -351,6 +446,8 @@ if section=="Overview":
     if favorites:show_table(favorites,False)
     st.subheader("Bankroll builder")
     if bankroll:show_table(bankroll,False)
+elif section=="Bankroll Performance":
+    show_bankroll_performance()
 elif section=="Individual Games":
     st.title("Individual Game Projections")
     if games:
