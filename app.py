@@ -177,28 +177,50 @@ def saved_workbook():
     return github_file("latest.xlsx")
 
 
-# Historical safer-line results transcribed from the user's shared bankroll tracker.
-# Nov 6 incorporates the corrected Grayson Allen loss. Nov 3 had no report.
+# Historical daily totals from the prior tracker; unverified dates remain labeled provisional.
 BANKROLL_HISTORY = [
-    {"Date":"2026-10-27","Wins":16,"Losses":4,"Excluded":0},
-    {"Date":"2026-10-28","Wins":13,"Losses":5,"Excluded":2},
-    {"Date":"2026-10-29","Wins":9,"Losses":3,"Excluded":3},
-    {"Date":"2026-10-30","Wins":15,"Losses":1,"Excluded":4},
-    {"Date":"2026-10-31","Wins":12,"Losses":6,"Excluded":2},
-    {"Date":"2026-11-01","Wins":14,"Losses":3,"Excluded":3},
-    {"Date":"2026-11-02","Wins":15,"Losses":4,"Excluded":1},
-    {"Date":"2026-11-04","Wins":16,"Losses":4,"Excluded":0},
-    {"Date":"2026-11-05","Wins":14,"Losses":5,"Excluded":0},
-    {"Date":"2026-11-06","Wins":14,"Losses":4,"Excluded":2},
+    {"Date":"2026-10-27","Wins":16,"Losses":4,"Excluded":0,"Status":"Provisional"},
+    {"Date":"2026-10-28","Wins":13,"Losses":5,"Excluded":2,"Status":"Provisional"},
+    {"Date":"2026-10-29","Wins":9,"Losses":3,"Excluded":3,"Status":"Provisional"},
+    {"Date":"2026-10-30","Wins":15,"Losses":1,"Excluded":4,"Status":"Provisional"},
+    {"Date":"2026-10-31","Wins":12,"Losses":6,"Excluded":2,"Status":"Provisional"},
+    {"Date":"2026-11-01","Wins":14,"Losses":3,"Excluded":3,"Status":"Provisional"},
+    {"Date":"2026-11-02","Wins":15,"Losses":4,"Excluded":1,"Status":"Provisional"},
+    {"Date":"2026-11-04","Wins":16,"Losses":4,"Excluded":0,"Status":"Provisional"},
+    {"Date":"2026-11-05","Wins":14,"Losses":5,"Excluded":0,"Status":"Box-score checked"},
+    {"Date":"2026-11-06","Wins":0,"Losses":0,"Excluded":0,"Status":"No games"},
+]
+# Source: user's November 5 screenshot; actuals checked against NBA box scores.
+# Keep each original safer-line selection distinct, even when a player appears multiple times.
+NOV5_PICKS = [
+    ("Tristan da Silva","Threes",2,4),
+    ("De'Anthony Melton","Threes",1,0),
+    ("Desmond Bane","Threes",2,3),
+    ("Tristan da Silva","Points",8,18),
+    ("Anthony Black","Threes",1,1),
+    ("Desmond Bane","Points",16,15),
+    ("De'Anthony Melton","Rebounds",3,6),
+    ("Oso Ighodaro","Assists",2,1),
+    ("Franz Wagner","Rebounds",5,8),
+    ("Stephen Curry","Points",23,29),
+    ("Franz Wagner","Assists",5,15),
+    ("Stephen Curry","Threes",3,6),
+    ("Wendell Carter Jr.","Rebounds",7,13),
+    ("Collin Gillespie","Assists",3,2),
+    ("Brandin Podziemski","Assists",3,3),
+    ("Franz Wagner","Points",19,15),
+    ("Anthony Black","Points",10,10),
+    ("Anthony Black","Assists",3,6),
+    ("Yaxel Lendeborg","Assists",3,6),
 ]
 def bankroll_history_frame():
     frame=pd.DataFrame(BANKROLL_HISTORY)
     frame["Graded"]=frame["Wins"]+frame["Losses"]
-    frame["Hit rate"]=100*frame["Wins"]/frame["Graded"]
+    frame["Hit rate"]=frame.apply(lambda r:100*r["Wins"]/r["Graded"] if r["Graded"] else 0,axis=1)
     return frame
 
 def performance_graph(frame):
-    wins=int(frame["Wins"].sum())
+    frame=frame[frame["Graded"]>0]\n    wins=int(frame["Wins"].sum())
     losses=int(frame["Losses"].sum())
     excluded=int(frame["Excluded"].sum())
     graded=wins+losses
@@ -239,12 +261,12 @@ def performance_graph(frame):
         </div>
         <div><div class="bk-muted">DAILY HIT RATE</div><div class="bk-chart">{''.join(bars)}</div></div>
       </div>
-      <div class="bk-muted" style="margin-top:16px">Previously reported results, not independently reverified · Hit rate does not measure profit</div>
+      <div class="bk-muted" style="margin-top:16px">Includes provisional historical totals pending player-level box-score checks · Hit rate does not measure profit</div>
     </div>""",unsafe_allow_html=True)
 
 def show_bankroll_performance():
     st.title("📈 Bankroll Performance")
-    st.caption("Historical results for green safer-line picks · October 27–November 6, 2026")
+    st.caption("Green safer-line picks · October 27–November 6, 2026 · Unverified days marked provisional")
     history=bankroll_history_frame()
     dates=history["Date"].tolist()
     selected=st.multiselect("Filter by date",dates,default=dates,key="bankroll_history_dates")
@@ -254,25 +276,26 @@ def show_bankroll_performance():
         return
     performance_graph(visible)
     st.subheader("Daily results")
-    display=visible[["Date","Wins","Losses","Excluded","Graded","Hit rate"]].copy()
+    display=visible[["Date","Wins","Losses","Excluded","Graded","Hit rate","Status"]].copy()
     display["Hit rate"]=display["Hit rate"].map(lambda x:f"{x:.1f}%")
     st.dataframe(display,hide_index=True,use_container_width=True)
     st.download_button("Download historical results CSV",display.to_csv(index=False),file_name="bankroll_performance_history.csv",mime="text/csv")
     st.subheader("Player-by-player results")
     chosen_date=st.selectbox("Select a date to see individual safer-line results",dates,index=len(dates)-1,key="bankroll_drilldown_date",format_func=lambda d:pd.to_datetime(d).strftime("%b %d, %Y"))
-    # Verified individual results available from the prior tracker. Other dates
-    # have aggregate counts only; do not infer player results from totals.
     individual={
-        "2026-11-06":[
-            {"Player":"Cam Spencer","Safer line":"2+ rebounds","Actual":1,"Result":"Loss"},
-            {"Player":"Cam Spencer","Safer line":"4+ assists","Actual":0,"Result":"Loss"},
-            {"Player":"Grayson Allen","Safer line":"2+ threes","Actual":0,"Result":"Loss"},
-            {"Player":"Zach LaVine","Safer line":"15+ points","Actual":14,"Result":"Loss"},
-        ]
+        "2026-11-05":[
+            {"Player":p,"Market":market,"Safer line":f"{line}+ {market.lower()}","Actual":actual,
+             "Result":"Hit" if actual>=line else "Loss",
+             "Source":"https://www.basketball-reference.com/boxscores/202611050PHO.html" if p in {"Tristan da Silva","Desmond Bane","Anthony Black","Oso Ighodaro","Franz Wagner","Wendell Carter Jr.","Collin Gillespie"} else "https://www.nba.com/game/mia-vs-gsw-0022600188/box-score"}
+            for p,market,line,actual in NOV5_PICKS
+        ],
     }
+    if chosen_date=="2026-11-06":
+        st.info("No NBA games on November 6. No safer-line bets were graded.")
+        return
     detail=pd.DataFrame(individual.get(chosen_date,[]))
     if detail.empty:
-        st.warning("Individual player results have not been imported for this date. The win/loss totals above are available, but player names, safe lines and actual stats cannot be reconstructed from those totals.")
+        st.warning("This date is awaiting verification against original safer-line selections and final NBA box scores. The historical daily totals are provisional.")
     else:
         wins=detail[detail["Result"]=="Hit"]
         losses=detail[detail["Result"]=="Loss"]
@@ -285,7 +308,7 @@ def show_bankroll_performance():
         missing=int(total["Graded"])-len(detail)
         if missing>0:st.info(f"{len(detail)} of {int(total['Graded'])} graded selections have player-level details. {missing} individual results are still missing; the daily totals remain unchanged.")
         st.download_button("Download this date's documented player results",detail.to_csv(index=False),file_name="bankroll_players_"+chosen_date+".csv",mime="text/csv",key="player_detail_csv")
-    st.caption("Individual results are shown only when supported by the historical tracker. Additional dates require their actual player-by-player results to be imported.")
+    st.caption("November 5 has a player-by-player box-score breakdown. Other dates remain provisional until their original picks are checked against final game statistics.")
 
 
 with st.sidebar:
