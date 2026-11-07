@@ -1187,22 +1187,52 @@ def show_personal_bets():
                 st.code(str(exc))
     render_live_nba_tracker()
     st.subheader("Quick bet overview")
-    st.caption("Tap a parlay to expand its individual legs.")
+    st.caption("Tap any row to reveal its individual legs without leaving the table.")
+    import html
+    def esc(value):return html.escape(str(value),quote=True)
+    table_html=['''<style>
+    .bet-table{width:100%;border:1px solid #9ca3af55;border-radius:10px;overflow:hidden;font-size:14px}
+    .bet-cols{display:grid;grid-template-columns:2fr .65fr 1fr 1.15fr 1fr;align-items:center}
+    .bet-cols>span{padding:10px 12px;min-width:0;border-right:1px solid #9ca3af30}
+    .bet-cols>span:last-child{border-right:0}
+    .bet-head{background:#80808012;color:inherit;font-weight:600}
+    .bet-entry{border-top:1px solid #9ca3af40}
+    .bet-entry summary{list-style:none;cursor:pointer}
+    .bet-entry summary::-webkit-details-marker{display:none}
+    .bet-entry summary:hover{background:#80808015}
+    .bet-entry summary span:first-child:before{content:"▸";margin-right:8px;color:#64748b}
+    .bet-entry[open] summary span:first-child:before{content:"▾"}
+    .bet-number{text-align:right;font-variant-numeric:tabular-nums}
+    .bet-legs{padding:12px 16px 16px;background:#8080800a;border-top:1px solid #9ca3af35}
+    .bet-legs table{width:100%;border-collapse:collapse}
+    .bet-legs th,.bet-legs td{padding:7px 9px;text-align:left;border-bottom:1px solid #9ca3af30}
+    .bet-legs th{font-size:12px;opacity:.8}
+    @media(max-width:650px){
+      .bet-table{font-size:12px}
+      .bet-cols{grid-template-columns:1.65fr .45fr .9fr 1fr .7fr}
+      .bet-cols>span{padding:9px 4px;overflow-wrap:anywhere}
+      .bet-legs{padding:10px 5px;overflow-x:auto}
+      .bet-legs table{font-size:12px;min-width:390px}
+    }
+    </style><div class="bet-table">
+    <div class="bet-cols bet-head"><span>Combo</span><span>Legs</span><span>Wager</span><span>Potential profit</span><span>Status</span></div>''']
     for name,qty,price,legs in all_bets:
         matched=next((r for r in ROBINHOOD_NOV7_BETS if r[0]==name and r[1]==qty and r[2]==price),None)
         cost=matched[3] if matched else qty*price/100
         status=byid.get(name,{}).get("Status","Pending")
-        heading=(labels.get(name,name)+"  ·  Wager $"+format(cost,",.2f")+
-                 "  ·  Profit $"+format(qty-cost,",.2f")+"  ·  "+status)
-        with st.expander(heading):
-            st.caption(str(len(legs))+" legs · Max payout $"+format(qty,",.2f")+
-                       " · Potential profit $"+format(qty-cost,",.2f"))
-            leg_rows=[{"Leg":i,"Player":p,"Market":m,"Target":str(t)+"+",
-                       "Actual":"Not verified","Status":"Pending"}
-                      for i,(p,m,t) in enumerate(legs,1)]
-            responsive_dataframe(pd.DataFrame(leg_rows),"overview_legs_"+str(name).replace(" ","_"),
-                                 preferred=["Leg","Market","Target","Actual","Status"],
-                                 hide_index=True,use_container_width=True)
+        table_html.append('<details class="bet-entry"><summary class="bet-cols">'+
+                          '<span>'+esc(labels.get(name,name))+'</span>'+
+                          '<span class="bet-number">'+str(len(legs))+'</span>'+
+                          '<span class="bet-number">$'+format(cost,",.2f")+'</span>'+
+                          '<span class="bet-number">$'+format(qty-cost,",.2f")+'</span>'+
+                          '<span>'+esc(status)+'</span></summary>')
+        table_html.append('<div class="bet-legs"><div style="margin-bottom:8px">Max payout: $'+format(qty,",.2f")+'</div>'+
+                          '<table><thead><tr><th>Leg</th><th>Player</th><th>Market</th><th>Target</th><th>Status</th></tr></thead><tbody>')
+        for i,(p,m,t) in enumerate(legs,1):
+            table_html.append('<tr><td>'+str(i)+'</td><td>'+esc(p)+'</td><td>'+esc(m)+'</td><td>'+esc(t)+'+</td><td>Pending</td></tr>')
+        table_html.append('</tbody></table></div></details>')
+    table_html.append('</div>')
+    st.html("".join(table_html))
     from collections import Counter
     exposure=Counter((p,m,t) for _,_,_,legs in all_bets for p,m,t in legs)
     st.subheader("Repeated player props")
