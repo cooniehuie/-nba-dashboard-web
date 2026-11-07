@@ -588,7 +588,7 @@ with st.sidebar:
         if not admin_password:
             st.warning("Admin access is not enabled yet. Add ADMIN_PASSWORD in Streamlit Secrets.")
     st.divider()
-    section=st.radio("Navigate",["Overview","Bankroll Performance","Model Accuracy & ROI","Live Prop Tracker","Bankroll Builder","Favorite Props","All Player Props","Three-Point Projections","Individual Games"],label_visibility="visible")
+    section=st.radio("Navigate",["Overview","Bankroll Performance","Bankroll Builder","Favorite Props","All Player Props","Three-Point Projections","Individual Games"],label_visibility="visible")
 
 source=uploaded.getvalue() if uploaded else None
 if source is None and storage_ready:
