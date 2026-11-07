@@ -588,7 +588,7 @@ with st.sidebar:
         if not admin_password:
             st.warning("Admin access is not enabled yet. Add ADMIN_PASSWORD in Streamlit Secrets.")
     st.divider()
-    section=st.radio("Navigate",["Overview","Bankroll Performance","Bankroll Builder","Favorite Props","All Player Props","Three-Point Projections","Individual Games"],label_visibility="visible")
+    section=st.radio("Navigate",["Overview","Bankroll Performance","Bankroll Builder","Model's Favorite Props","All Player Props","Three-Point Projections","Individual Games"],label_visibility="visible")
 
 source=uploaded.getvalue() if uploaded else None
 if source is None and storage_ready:
@@ -707,7 +707,7 @@ if section=="Overview":
     a,b,c,d=st.columns(4)
     a.metric("Games",len(sheets[schedule]) if schedule else len(games))
     b.metric("Player props",len(sheets[allprops]) if allprops else "—")
-    c.metric("Favorite props",len(sheets[favorites]) if favorites else "—")
+    c.metric("Model's Favorite Props",len(sheets[favorites]) if favorites else "—")
     d.metric("Bankroll plays",len(sheets[bankroll]) if bankroll else "—")
     st.subheader("📈 Bankroll performance")
     performance_graph(bankroll_history_frame())
@@ -728,7 +728,7 @@ if section=="Overview":
     st.subheader("Today's games")
     if schedule:show_table(schedule,False)
     else:st.info("No game schedule sheet found.")
-    st.subheader("Favorite props")
+    st.subheader("Model's Favorite Props")
     if favorites:show_table(favorites,False)
     st.subheader("Bankroll builder")
     if bankroll:show_table(bankroll,False)
@@ -745,6 +745,6 @@ elif section=="Individual Games":
         show_table(selected)
     else:st.info("No individual game tabs found.")
 else:
-    chosen={"Bankroll Builder":bankroll,"Favorite Props":favorites,"All Player Props":allprops,"Three-Point Projections":threes}.get(section)
+    chosen={"Bankroll Builder":bankroll,"Model's Favorite Props":favorites,"All Player Props":allprops,"Three-Point Projections":threes}.get(section)
     st.title(section)
     show_table(chosen)
