@@ -484,7 +484,7 @@ def show_bankroll_performance():
         return
     performance_graph(visible)
     st.subheader("Daily results")
-    display=visible[["Date","Wins","Losses","Excluded","Graded","Hit rate","Status"]].copy()
+    display=visible[["Date","Wins","Losses","Excluded","Graded","Hit rate"]].copy()
     display["Hit rate"]=display["Hit rate"].map(lambda x:f"{x:.1f}%")
     responsive_dataframe(display,"performance_daily",preferred=["Wins","Losses","Hit rate","Excluded"],hide_index=True,use_container_width=True)
     st.download_button("Download historical results CSV",display.to_csv(index=False),file_name="bankroll_builder_performance_history.csv",mime="text/csv")
