@@ -1,4 +1,9 @@
 import hmac
+import base64
+import json
+import urllib.request
+import urllib.error
+from datetime import datetime, timezone
 from pathlib import Path
 import pandas as pd
 import streamlit as st
@@ -115,18 +120,78 @@ def historical_summary(df):
     result["Last 3 hit rate"]=results.map(lambda x:f"{x[0]}/{x[1]}" if x[1] else "N/A")
     return result
 
+def storage_settings():
+    token=st.secrets.get("GITHUB_STORAGE_TOKEN","")
+    repo=st.secrets.get("GITHUB_STORAGE_REPO","")
+    return token,str(repo).strip()
+
+def github_file(path, data=None):
+    token,repo=storage_settings()
+    if not token or not repo:raise RuntimeError("Private storage is not configured.")
+    if len(repo.split("/"))!=2:raise ValueError("GITHUB_STORAGE_REPO must be owner/repository.")
+    url="https://api.github.com/repos/"+repo+"/contents/"+path
+    headers={"Authorization":"Bearer "+token,"Accept":"application/vnd.github+json","X-GitHub-Api-Version":"2022-11-28","User-Agent":"NBA-Model-Center"}
+    def request(payload=None,method=None):
+        raw=json.dumps(payload).encode() if payload is not None else None
+        if raw:headers["Content-Type"]="application/json"
+        req=urllib.request.Request(url,data=raw,headers=headers,method=method or ("PUT" if raw else "GET"))
+        try:
+            with urllib.request.urlopen(req,timeout=20) as response:return json.load(response)
+        except urllib.error.HTTPError as err:
+            if err.code==404:return None
+            raise RuntimeError(f"Private storage request failed (HTTP {err.code}).") from None
+    existing=request()
+    if data is None:
+        if not existing:return None
+        return base64.b64decode(existing["content"])
+    payload={"message":"Save NBA workbook "+datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),"content":base64.b64encode(data).decode()}
+    if existing:payload["sha"]=existing["sha"]
+    result=request(payload)
+    if result is None:raise RuntimeError("Private storage file could not be saved.")
+    return result
+
+@st.cache_data(ttl=120,show_spinner=False)
+def saved_workbook():
+    return github_file("latest.xlsx")
+
 with st.sidebar:
     st.title("🏀 NBA Model Center")
     st.caption("Your private model dashboard")
     if st.button("Sign out"):
         st.session_state.authorized=False
         st.rerun()
-    uploaded=st.file_uploader("Upload daily NBA workbook",type=["xlsx"],help="Excel files are read for this browser session only.")
-    st.caption("Upload a new workbook each day. Files are not committed to GitHub.")
+    token,storage_repo=storage_settings()
+    storage_ready=bool(token and storage_repo)
+    if storage_ready:
+        st.success("Private workbook storage configured")
+    else:
+        st.info("Private storage setup needed. Uploads remain session-only until configured.")
+    uploaded=st.file_uploader("Upload daily NBA workbook",type=["xlsx"],help="Upload a new workbook and save it to private storage.")
+    if uploaded is not None and storage_ready:
+        if st.button("💾 Save workbook permanently",type="primary",use_container_width=True):
+            try:
+                data=uploaded.getvalue()
+                load_workbook(data)
+                github_file("latest.xlsx",data)
+                stamp=datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+                github_file("history/"+stamp+".xlsx",data)
+                saved_workbook.clear()
+                st.success("Saved! This workbook will load automatically on future visits.")
+            except Exception as exc:st.error(f"Could not save workbook: {exc}")
+    if storage_ready:
+        if st.button("↻ Reload saved workbook",use_container_width=True):
+            saved_workbook.clear()
+            st.rerun()
+    st.caption("Saved workbooks stay in your separate private GitHub repository.")
     st.divider()
     section=st.radio("Navigate",["Overview","Bankroll Builder","Favorite Props","All Player Props","Three-Point Projections","Individual Games"],label_visibility="visible")
 
 source=uploaded.getvalue() if uploaded else None
+if source is None and storage_ready:
+    try:
+        source=saved_workbook()
+        if source:st.sidebar.caption("✓ Loaded saved workbook automatically")
+    except Exception as exc:st.sidebar.warning(f"Saved workbook unavailable: {exc}")
 if source is None:
     default=Path("sample_nba_workbook.xlsx")
     if default.exists():source=default.read_bytes()
