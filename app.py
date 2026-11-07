@@ -977,9 +977,14 @@ def show_personal_bets():
     st.caption("Admin-only · November 7, 2026 · NBA predictions")
     st.info("November 7 positions imported from your Robinhood transaction text. Total cost includes actual reported fees for these 16 purchases. No legs have been verified or settled.")
     imported=imported_bet_rows()
-    all_bets=[(name,qty,price,legs) for name,qty,price,cost,fees,legs in ROBINHOOD_NOV7_BETS]
+    # The imported transaction listing is newest-first; display oldest-first.
+    # Retain the original name as the settlement storage key.
+    original_bets=list(reversed(ROBINHOOD_NOV7_BETS))
+    all_bets=[(name,qty,price,legs) for name,qty,price,cost,fees,legs in original_bets]
     for i,item in enumerate(imported,1):
         all_bets.append((str(item.get("date",""))+" · Import "+str(i),int(item["qty"]),float(item["cents"]),item["legs"]))
+    # Display labels are separate from persisted settlement IDs.
+    labels={name:f"Parlay {i} - {len(legs)} Legs" for i,(name,qty,price,legs) in enumerate(all_bets,1)}
     saved=saved_bet_statuses()
     byid={r["Bet"]:r for _,r in saved.iterrows()} if not saved.empty else {}
     total=sum(cost for _,_,_,cost,_,_ in ROBINHOOD_NOV7_BETS)+sum(q*p/100 for _,q,p,_ in all_bets[len(ROBINHOOD_NOV7_BETS):])
@@ -998,7 +1003,7 @@ def show_personal_bets():
     if storage_ready:
         with st.expander("Record settlement (admin)"):
             with st.form("personal_settlement"):
-                bet=st.selectbox("Combo",[x[0] for x in all_bets])
+                bet=st.selectbox("Combo",[x[0] for x in all_bets],format_func=lambda key:labels.get(key,key))
                 status=st.selectbox("Status",["Pending","Won","Lost","Closed","Voided"])
                 pnl=st.text_input("Realized net P/L in dollars (blank if unknown)")
                 submit=st.form_submit_button("Save")
@@ -1063,7 +1068,7 @@ def show_personal_bets():
                     values=[actuals.get((p,m,int(t))) for p,m,t in legs]
                     hit=sum(v is not None and v>=int(t) for v,(_,_,t) in zip(values,legs))
                     unknown=sum(v is None for v in values)
-                    combos.append({"Combo":name,"Reached":str(hit)+"/"+str(len(legs)),
+                    combos.append({"Combo":labels.get(name,name),"Reached":str(hit)+"/"+str(len(legs)),
                                    "Unavailable legs":unknown,"Progress":hit/len(legs) if legs else 0})
                 t1,t2=st.tabs(["Player statistics","Combo progress"])
                 with t1:
@@ -1083,7 +1088,7 @@ def show_personal_bets():
     for name,qty,price,legs in all_bets:
         matched=next((r for r in ROBINHOOD_NOV7_BETS if r[0]==name and r[1]==qty and r[2]==price),None)
         cost=matched[3] if matched else qty*price/100
-        summary.append({"Combo":name,"Legs":len(legs),"Wager":round(cost,2),"Potential profit":round(qty-cost,2),"Status":byid.get(name,{}).get("Status","Pending")})
+        summary.append({"Combo":labels.get(name,name),"Legs":len(legs),"Wager":round(cost,2),"Potential profit":round(qty-cost,2),"Status":byid.get(name,{}).get("Status","Pending")})
     st.dataframe(pd.DataFrame(summary),hide_index=True,use_container_width=True,column_config={"Wager":st.column_config.NumberColumn("Wager",format="$%.2f"),"Potential profit":st.column_config.NumberColumn("Potential profit",format="$%.2f")})
     from collections import Counter
     exposure=Counter((p,m,t) for _,_,_,legs in all_bets for p,m,t in legs)
@@ -1097,7 +1102,7 @@ def show_personal_bets():
             matched=next((r for r in ROBINHOOD_NOV7_BETS if r[0]==name and r[1]==qty and r[2]==price),None)
             cost=matched[3] if matched else qty*price/100
             status=byid.get(name,{}).get("Status","Pending")
-            with st.expander(name+" · "+str(len(legs))+" legs · "+status):
+            with st.expander(labels.get(name,name)+" · "+status):
                 st.caption("Wager: $"+format(cost,",.2f")+" · Max payout: $"+format(qty,",.2f")+" · Potential profit: $"+format(qty-cost,",.2f"))
                 st.dataframe(pd.DataFrame([{"Player":p,"Market":m,"Target":str(t)+"+","Actual":"Not verified","Leg status":"Pending"} for p,m,t in legs]),hide_index=True,use_container_width=True)
     st.caption("Overlapping legs are tracked separately within combos but financial totals count each combo once. Settlements are manual and never inferred from incomplete box scores.")
