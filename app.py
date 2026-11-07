@@ -479,7 +479,7 @@ def show_bankroll_performance():
     display=visible[["Date","Wins","Losses","Excluded","Graded","Hit rate","Status"]].copy()
     display["Hit rate"]=display["Hit rate"].map(lambda x:f"{x:.1f}%")
     responsive_dataframe(display,"performance_daily",preferred=["Wins","Losses","Hit rate","Excluded"],hide_index=True,use_container_width=True)
-    st.download_button("Download historical results CSV",display.to_csv(index=False),file_name="bankroll_performance_history.csv",mime="text/csv")
+    st.download_button("Download historical results CSV",display.to_csv(index=False),file_name="bankroll_builder_performance_history.csv",mime="text/csv")
     st.subheader("Player-by-player results")
     chosen_date=st.selectbox("Select a date to see individual safer-line results",dates,index=len(dates)-1,key="bankroll_drilldown_date",format_func=lambda d:pd.to_datetime(d).strftime("%b %d, %Y"))
     individual={
@@ -494,7 +494,7 @@ def show_bankroll_performance():
         st.info("November 6: prior chat reports 14 hits, 4 misses and 2 DNPs (77.8% of 18 graded picks). The complete player-by-player actual stats were not available from that chat summary; only the explicitly documented result below is shown.")
         pending=pd.DataFrame([{"Player":p,"Market":m,"Safer line":f"{line}+ {m.lower()}","Actual":0 if p=="Grayson Allen" and m=="Threes" else "Not documented","Result":"Loss" if p=="Grayson Allen" and m=="Threes" else "Chat total only"} for p,m,line in NOV6_PICKS])
         responsive_dataframe(pending,"performance_nov6",preferred=["Safer line","Actual","Result"],hide_index=True,use_container_width=True)
-        st.download_button("Download November 6 selections",pending.to_csv(index=False),file_name="bankroll_nov6_picks.csv",mime="text/csv")
+        st.download_button("Download November 6 selections",pending.to_csv(index=False),file_name="bankroll_builder_nov6_picks.csv",mime="text/csv")
         return
     detail=pd.DataFrame(individual.get(chosen_date,[]))
     if detail.empty:
@@ -510,7 +510,7 @@ def show_bankroll_performance():
         total=history.loc[history["Date"]==chosen_date].iloc[0]
         missing=int(total["Graded"])-len(detail)
         if missing>0:st.info(f"{len(detail)} of {int(total['Graded'])} graded selections have player-level details. {missing} individual results are still missing; the daily totals remain unchanged.")
-        st.download_button("Download this date's documented player results",detail.to_csv(index=False),file_name="bankroll_players_"+chosen_date+".csv",mime="text/csv",key="player_detail_csv")
+        st.download_button("Download this date's documented player results",detail.to_csv(index=False),file_name="bankroll_builder_players_"+chosen_date+".csv",mime="text/csv",key="player_detail_csv")
     st.caption("November 5 has a player-by-player breakdown. November 6 has chat-reported totals and one documented player result. Other dates have chat-reported totals only.")
 
 
@@ -1538,7 +1538,7 @@ if section=="Overview":
     st.subheader("📈 Bankroll Builder Performance")
     performance_graph(bankroll_history_frame())
     if st.button("View daily Bankroll Builder results",key="open_bankroll_performance"):
-        st.info("Choose Bankroll Performance in the sidebar to view daily results and date filters.")
+        st.info("Choose Bankroll Builder Performance in the sidebar to view daily results and date filters.")
     st.title("Daily NBA Projections")
     st.caption("Model projections · Favorites · Safer lines · Recent player performance")
     a,b,c,d=st.columns(4)
