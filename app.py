@@ -8,7 +8,7 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
-st.set_page_config(page_title="NBA Model Center", page_icon="🏀", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="Huie's Degen Center", page_icon="🏀", layout="wide", initial_sidebar_state="expanded")
 st.markdown("""<style>
 .block-container{padding-top:1.6rem;max-width:1600px}
 [data-testid="stAppViewContainer"]{background:linear-gradient(160deg,#0f172a08,transparent 32%)}
@@ -40,7 +40,7 @@ if admin_password and hmac.compare_digest(admin_password,viewer_password):
     st.error("ADMIN_PASSWORD must be different from DASHBOARD_PASSWORD.")
     st.stop()
 if not st.session_state.get("authorized",False):
-    st.title("🏀 NBA Model Center")
+    st.title("🏀 Huie's Degen Center")
     st.caption("Private access · Daily NBA model projections")
     with st.form("login"):
         supplied=st.text_input("Password",type="password")
@@ -340,7 +340,7 @@ def show_bankroll_performance():
 
 
 with st.sidebar:
-    st.title("🏀 NBA Model Center")
+    st.title("🏀 Huie's Degen Center")
     st.caption("Your private model dashboard")
     st.caption("🔐 Administrator" if is_admin else "👁 Viewer access")
     if st.button("Sign out"):
@@ -386,7 +386,7 @@ if source is None:
     default=Path("sample_nba_workbook.xlsx")
     if default.exists():source=default.read_bytes()
 if source is None:
-    st.title("🏀 NBA Model Center")
+    st.title("🏀 Huie's Degen Center")
     st.info("Upload your NBA projections Excel workbook using the sidebar to load the dashboard.")
     st.stop()
 try:raw_sheets=load_workbook(source)
