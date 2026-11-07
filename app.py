@@ -454,6 +454,101 @@ def show_model_accuracy():
     st.dataframe(d,hide_index=True,use_container_width=True)
     st.download_button("Export model outcomes",d.to_csv(index=False),file_name="model_outcomes.csv",mime="text/csv")
 
+
+def live_name(value):
+    import re,unicodedata
+    normalized=unicodedata.normalize("NFKD",str(value)).encode("ascii","ignore").decode().lower()
+    return re.sub("[^a-z0-9]","",normalized)
+
+@st.cache_data(ttl=120,show_spinner=False)
+def espn_stats(day):
+    root="https://site.api.espn.com/apis/site/v2/sports/basketball/nba/"
+    def fetch(endpoint):
+        req=urllib.request.Request(root+endpoint,headers={"User-Agent":"Mozilla/5.0","Accept":"application/json"})
+        with urllib.request.urlopen(req,timeout=12) as resp:return json.load(resp)
+    events=fetch("scoreboard?dates="+day.replace("-","")).get("events",[])
+    rows=[]
+    for event in events:
+        eid=event.get("id")
+        if not eid:continue
+        try:summary=fetch("summary?event="+str(eid))
+        except Exception:continue
+        status=event.get("status",{}).get("type",{})
+        for team in summary.get("boxscore",{}).get("players",[]):
+            for category in team.get("statistics",[]):
+                labels=category.get("labels",[])
+                for athlete in category.get("athletes",[]):
+                    if athlete.get("didNotPlay") or athlete.get("inactive"):continue
+                    stats=dict(zip(labels,athlete.get("stats",[])))
+                    def stat(k):
+                        try:return float(stats[k])
+                        except (ValueError,TypeError,KeyError):return None
+                    threes=None
+                    for k in ["3PT","3PM-A","3FG"]:
+                        if k in stats:
+                            try:threes=float(str(stats[k]).split("-")[0])
+                            except ValueError:pass
+                            break
+                    name=athlete.get("athlete",{}).get("displayName","")
+                    for market,actual in [("Points",stat("PTS")),("Rebounds",stat("REB")),("Assists",stat("AST")),("Threes",threes)]:
+                        if actual is not None:rows.append({"Key":live_name(name)+"|"+market.lower(),"Actual":actual,"Matchup":event.get("shortName",""),"Game status":status.get("shortDetail",""),"Game state":status.get("state",""),"Player source":name})
+    return pd.DataFrame(rows),len(events)
+
+def show_live_tracker():
+    st.title("🔴 Live Prop Tracker")
+    st.caption("ESPN box-score feed · manually refreshed · approximately 2-minute cache · not guaranteed real-time")
+    from zoneinfo import ZoneInfo
+    pacific=ZoneInfo("America/Los_Angeles")
+    day=st.date_input("NBA game date (must match the workbook)",value=datetime.now(pacific).date(),key="live_date")
+    st.warning("The currently uploaded workbook may be from another date. Select the matching game date; player-name matches alone do not verify a matchup.")
+    choice=st.radio("Prop source",["Bankroll safer lines","Model reference lines"],horizontal=True)
+    sheet=bankroll if choice=="Bankroll safer lines" else allprops
+    if not sheet:
+        st.info("The selected sheet is not available in the workbook.")
+        return
+    props=sheets[sheet].copy()
+    playercol=lookup(props,"Player")
+    marketcol=lookup(props,"Market")
+    linecol=lookup(props,"Safer line") if choice=="Bankroll safer lines" else lookup(props,"Reference line")
+    sidecol=lookup(props,"Model side")
+    if not playercol or not marketcol or not linecol:
+        st.warning("Required Player, Market or target line columns are missing.")
+        return
+    if st.button("↻ Refresh NBA box scores",type="primary",key="refresh_boxscores"):
+        espn_stats.clear()
+    try:stats,games_count=espn_stats(str(day))
+    except Exception as exc:
+        st.error("ESPN stats could not be retrieved. Saved data is unchanged.")
+        st.caption(type(exc).__name__)
+        return
+    st.caption(str(games_count)+" games returned · Checked "+datetime.now(pacific).strftime("%I:%M %p PT"))
+    if stats.empty:
+        st.info("No player statistics are available from the feed for this date.")
+        return
+    props["Key"]=props[playercol].map(live_name)+"|"+props[marketcol].astype(str).str.lower().str.strip()
+    # Do not assign ambiguous duplicate player/market records.
+    duplicates=set(stats.loc[stats["Key"].duplicated(keep=False),"Key"])
+    stats=stats[~stats["Key"].isin(duplicates)].drop_duplicates("Key")
+    joined=props.merge(stats,on="Key",how="left")
+    def outcome(row):
+        actual=number(row.get("Actual"))
+        threshold=number(row.get(linecol))
+        if actual is None or threshold is None:return "Unverified"
+        final=str(row.get("Game state","")).lower()=="post"
+        if choice=="Bankroll safer lines":
+            if final:return "Hit" if actual>=threshold else "Miss"
+            return "Target reached (in progress)" if actual>=threshold else "In progress"
+        direction=str(row.get(sidecol,"")).strip().lower() if sidecol else ""
+        if direction not in ["over","under"]:return "Unverified"
+        if not final:return "In progress (not graded)"
+        if actual==threshold:return "Push"
+        return "Hit" if ((direction=="over" and actual>threshold) or (direction=="under" and actual<threshold)) else "Miss"
+    joined["Live result"]=joined.apply(outcome,axis=1)
+    cols=[playercol,marketcol,linecol,"Actual","Live result","Matchup","Game status"]
+    if choice!="Bankroll safer lines" and sidecol:cols.insert(3,sidecol)
+    st.dataframe(joined[[c for c in cols if c in joined.columns]],hide_index=True,use_container_width=True)
+    st.caption("Missing players, ambiguous names, incomplete box scores and games still in progress are not counted as final losses. Results are not automatically saved to the historical model accuracy log.")
+
 with st.sidebar:
     st.title("🏀 Huie's Degen Center")
     st.caption("Your private model dashboard")
@@ -637,6 +732,8 @@ elif section=="Bankroll Performance":
     show_bankroll_performance()
 elif section=="Model Accuracy & ROI":
     show_model_accuracy()
+elif section=="Live Prop Tracker":
+    show_live_tracker()
 elif section=="Individual Games":
     st.title("Individual Game Projections")
     if games:
