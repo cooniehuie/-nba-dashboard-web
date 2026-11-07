@@ -69,7 +69,7 @@ h1,h2,h3{letter-spacing:-.025em}
 .bk-live-progress-fill{height:100%;border-radius:9px;background:#eab308}
 .bk-live-card.hit .bk-live-progress-fill{background:#16a34a}
 .bk-live-note{font-size:.76rem;opacity:.8;margin-top:7px}
-@media(max-width:700px){
+@media(max-width:768px){
  .st-key-bankroll_live_desktop_grid,.st-key-embedded_bankroll_desktop_grid{display:none!important}
  .st-key-bankroll_live_mobile_ui,.st-key-embedded_bankroll_mobile_ui{display:block!important}
 }
