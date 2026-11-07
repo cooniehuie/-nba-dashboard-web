@@ -491,7 +491,6 @@ def show_bankroll_performance():
         ],
     }
     if chosen_date=="2026-11-06":
-        st.info("November 6: prior chat reports 14 hits, 4 misses and 2 DNPs (77.8% of 18 graded picks). The complete player-by-player actual stats were not available from that chat summary; only the explicitly documented result below is shown.")
         pending=pd.DataFrame([{"Player":p,"Market":m,"Safer line":f"{line}+ {m.lower()}","Actual":0 if p=="Grayson Allen" and m=="Threes" else "Not documented","Result":"Loss" if p=="Grayson Allen" and m=="Threes" else "Chat total only"} for p,m,line in NOV6_PICKS])
         responsive_dataframe(pending,"performance_nov6",preferred=["Safer line","Actual","Result"],hide_index=True,use_container_width=True)
         st.download_button("Download November 6 selections",pending.to_csv(index=False),file_name="bankroll_builder_nov6_picks.csv",mime="text/csv")
