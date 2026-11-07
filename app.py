@@ -553,6 +553,67 @@ def show_live_tracker():
     st.dataframe(joined[[c for c in cols if c in joined.columns]],hide_index=True,use_container_width=True)
     st.caption("Missing players, ambiguous names, incomplete box scores and games still in progress are not counted as final losses. Results are not automatically saved to the historical model accuracy log.")
 
+
+PERSONAL_BETS=[
+("3-leg B",289,32.4,[("C. Johnson","Threes",1),("J. Murray","Threes",3),("A. Nembhard","Threes",2)]),
+("3-leg A",1264,6.6,[("J. Murray","Threes",4),("A. Nembhard","Threes",3),("O. Toppin","Threes",2)]),
+("7-leg B",1117,7.6,[("J. Murray","Threes",2),("A. Nembhard","Assists",6),("A. Nembhard","Points",15),("A. Nesmith","Points",10),("O. Toppin","Points",10),("J. Murray","Rebounds",4),("O. Toppin","Rebounds",4)]),
+("7-leg A",483,39.4,[("J. Murray","Threes",2),("A. Nembhard","Threes",1),("A. Nembhard","Assists",4),("P. Siakam","Assists",2),("A. Nembhard","Points",10),("P. Siakam","Points",15),("P. Siakam","Rebounds",4)]),
+("9-leg",1113,7.8,[("A. Nembhard","Assists",6),("C. Braun","Points",10),("J. Murray","Points",20),("N. Jokic","Points",20),("A. Nesmith","Points",10),("P. Siakam","Points",15),("A. Gordon","Rebounds",4),("J. Murray","Rebounds",4),("N. Jokic","Rebounds",8)])
+]
+@st.cache_data(ttl=120,show_spinner=False)
+def saved_bet_statuses():
+    try:
+        blob=github_file("personal_bets_status.csv")
+        return pd.read_csv(__import__("io").BytesIO(blob),dtype=str).fillna("") if blob else pd.DataFrame(columns=["Bet","Status","Net P/L"])
+    except Exception:
+        return pd.DataFrame(columns=["Bet","Status","Net P/L"])
+
+def show_personal_bets():
+    st.title("💸 My Bets · Robinhood")
+    st.caption("Admin-only · November 7, 2026 · Denver vs. Indiana")
+    st.info("Positions transcribed from your screenshots. Displayed entry prices are rounded; estimated costs exclude fees. No legs have been verified or settled.")
+    saved=saved_bet_statuses()
+    byid={r["Bet"]:r for _,r in saved.iterrows()} if not saved.empty else {}
+    total=sum(q*p/100 for _,q,p,_ in PERSONAL_BETS)
+    settled=[]
+    for row in byid.values():
+        if row.get("Status") in ["Won","Lost","Closed"]:
+            try:settled.append(float(row["Net P/L"]))
+            except (TypeError,ValueError):pass
+    a,b,c,d=st.columns(4)
+    a.metric("Combos",len(PERSONAL_BETS))
+    b.metric("Legs",sum(len(legs) for _,_,_,legs in PERSONAL_BETS))
+    c.metric("Estimated entry cost","$"+format(total,",.2f"))
+    d.metric("Realized P/L","$"+format(sum(settled),",.2f") if settled else "Not recorded")
+    if storage_ready:
+        with st.expander("Record settlement (admin)"):
+            with st.form("personal_settlement"):
+                bet=st.selectbox("Combo",[x[0] for x in PERSONAL_BETS])
+                status=st.selectbox("Status",["Pending","Won","Lost","Closed","Voided"])
+                pnl=st.text_input("Realized net P/L in dollars (blank if unknown)")
+                submit=st.form_submit_button("Save")
+            if submit:
+                try:
+                    if pnl.strip():float(pnl)
+                    updated=saved[saved["Bet"]!=bet].copy()
+                    updated=pd.concat([updated,pd.DataFrame([{"Bet":bet,"Status":status,"Net P/L":pnl}])],ignore_index=True)
+                    github_file("personal_bets_status.csv",updated.to_csv(index=False).encode())
+                    saved_bet_statuses.clear()
+                    st.rerun()
+                except ValueError:st.error("Enter a valid dollar amount.")
+                except Exception as exc:st.error("Could not save: "+str(exc))
+    for name,qty,price,legs in PERSONAL_BETS:
+        cost=qty*price/100
+        status=byid.get(name,{}).get("Status","Pending")
+        with st.expander(name+" · "+str(len(legs))+" legs · "+str(qty)+" Yes @ "+str(price)+"¢ · "+status):
+            a,b,c=st.columns(3)
+            a.metric("Estimated cost","$"+format(cost,",.2f"))
+            b.metric("Max gross payout","$"+format(qty,",.2f"))
+            c.metric("Max net profit before fees","$"+format(qty-cost,",.2f"))
+            st.dataframe(pd.DataFrame([{"Player":p,"Market":m,"Target":str(t)+"+","Actual":"Not verified","Leg status":"Pending"} for p,m,t in legs]),hide_index=True,use_container_width=True)
+    st.caption("Overlapping legs are tracked separately within combos but financial totals count each combo once. Settlements are manual and never inferred from incomplete box scores.")
+
 with st.sidebar:
     st.title("🏀 Huie's Degen Center")
     st.caption("Your private model dashboard")
@@ -588,7 +649,7 @@ with st.sidebar:
         if not admin_password:
             st.warning("Admin access is not enabled yet. Add ADMIN_PASSWORD in Streamlit Secrets.")
     st.divider()
-    section=st.radio("Navigate",["Overview","Bankroll Performance","Bankroll Builder","Model's Favorite Props","All Player Props","Three-Point Projections","Individual Games"],label_visibility="visible")
+    section=st.radio("Navigate",["Overview","Bankroll Performance"]+(["💸 My Bets"] if is_admin else [])+["Bankroll Builder","Model's Favorite Props","All Player Props","Three-Point Projections","Individual Games"],label_visibility="visible")
 
 source=uploaded.getvalue() if uploaded else None
 if source is None and storage_ready:
@@ -734,6 +795,8 @@ if section=="Overview":
     if favorites:show_table(favorites,False)
 elif section=="Bankroll Performance":
     show_bankroll_performance()
+elif section=="💸 My Bets" and is_admin:
+    show_personal_bets()
 elif section=="Model Accuracy & ROI":
     show_model_accuracy()
 elif section=="Live Prop Tracker":
