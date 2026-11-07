@@ -700,6 +700,37 @@ def show_personal_bets():
                     st.rerun()
                 except ValueError:st.error("Enter a valid dollar amount.")
                 except Exception as exc:st.error("Could not save: "+str(exc))
+    st.subheader("🏀 Live Prop Tracker — Demo")
+    st.warning("ILLUSTRATIVE DATA ONLY — all player statistics and game states below are simulated. They are not live NBA scores or verified Robinhood outcomes.")
+    demo_mode=st.toggle("Show illustrative tracker",value=True,key="demo_prop_tracker")
+    if demo_mode:
+        from collections import defaultdict
+        unique_props=sorted({(p,m,int(t)) for _,_,_,legs in all_bets for p,m,t in legs})
+        # Fixed, deterministic demo values, deliberately not connected to a live feed.
+        demo_stats={}
+        for p,m,t in unique_props:
+            seed=sum((i+1)*ord(ch) for i,ch in enumerate(p+"|"+m))
+            demo_stats[(p,m)]=max(0,round(t*(0.55+((seed%65)/100))))
+        demo_rows=[]
+        for p,m,t in unique_props:
+            actual=demo_stats[(p,m)]
+            demo_rows.append({"Player":p,"Stat":m,"Target":str(t)+"+","Demo actual":actual,
+                              "Still needed":max(0,t-actual),"Demo leg": "🟢 Reached" if actual>=t else "🟡 In progress",
+                              "Progress":min(1.0,actual/t) if t else 1.0})
+        combo_demo=[]
+        for name,qty,price,legs in all_bets:
+            hit=sum(demo_stats.get((p,m),0)>=int(t) for p,m,t in legs)
+            combo_demo.append({"Combo":name,"Demo legs reached":str(hit)+"/"+str(len(legs)),
+                               "Demo progress":hit/len(legs) if legs else 0,
+                               "Demo state":"🟢 All reached" if hit==len(legs) else "🟡 In progress"})
+        tab_players,tab_combos=st.tabs(["Player prop progress","Combo progress"])
+        with tab_players:
+            st.dataframe(pd.DataFrame(demo_rows),hide_index=True,use_container_width=True,
+                column_config={"Progress":st.column_config.ProgressColumn("Progress",min_value=0,max_value=1,format="%.0f%%")})
+        with tab_combos:
+            st.dataframe(pd.DataFrame(combo_demo),hide_index=True,use_container_width=True,
+                column_config={"Demo progress":st.column_config.ProgressColumn("Demo progress",min_value=0,max_value=1,format="%.0f%%")})
+        st.caption("Demo numbers are fixed placeholders to preview the interface. No auto-refresh or live API is connected. Demo leg status does not affect settlements, bankroll, or realized P/L.")
     st.subheader("Quick bet overview")
     summary=[]
     for name,qty,price,legs in all_bets:
