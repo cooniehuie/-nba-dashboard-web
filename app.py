@@ -713,6 +713,9 @@ if section=="Overview":
     performance_graph(bankroll_history_frame())
     if st.button("View daily bankroll results",key="open_bankroll_performance"):
         st.info("Choose Bankroll Performance in the sidebar to view daily results and date filters.")
+    st.subheader("Today's games")
+    if schedule:show_table(schedule,False)
+    else:st.info("No game schedule sheet found.")
     if allprops:
         candidates=historical_summary(sheets[allprops])
         if "Recent hits" in candidates:
@@ -725,13 +728,10 @@ if section=="Overview":
                 st.dataframe(candidates[wanted].head(12),hide_index=True,use_container_width=True)
                 st.caption(f"{len(candidates)} prop rows had 3 of 3 recent games on the model side.")
             else:st.info("No props with three available recent games and a 3/3 historical match.")
-    st.subheader("Today's games")
-    if schedule:show_table(schedule,False)
-    else:st.info("No game schedule sheet found.")
-    st.subheader("Model's Favorite Props")
-    if favorites:show_table(favorites,False)
     st.subheader("Bankroll builder")
     if bankroll:show_table(bankroll,False)
+    st.subheader("Model's Favorite Props")
+    if favorites:show_table(favorites,False)
 elif section=="Bankroll Performance":
     show_bankroll_performance()
 elif section=="Model Accuracy & ROI":
