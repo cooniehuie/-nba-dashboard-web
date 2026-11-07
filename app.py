@@ -5,7 +5,11 @@ import streamlit as st
 
 st.set_page_config(page_title="NBA Model Center", page_icon="🏀", layout="wide", initial_sidebar_state="expanded")
 st.markdown("""<style>
-.block-container{padding-top:1.7rem;max-width:1500px}
+.block-container{padding-top:1.6rem;max-width:1600px}
+[data-testid="stAppViewContainer"]{background:linear-gradient(160deg,#0f172a08,transparent 32%)}
+[data-testid="stSidebar"]{background:#111827;color:#f9fafb}
+[data-testid="stSidebar"] *{color:inherit}
+[data-testid="stDataFrame"]{border-radius:12px;overflow:hidden}
 h1,h2,h3{letter-spacing:-.025em}
 [data-testid="stMetric"]{border:1px solid #37415130;border-radius:14px;padding:12px 16px;background:#8080800b}
 [data-testid="stSidebar"]{border-right:1px solid #80808030}
@@ -85,6 +89,32 @@ def paint_row(row):
             styles[i]="color:#16a34a;font-weight:700" if win else "color:#dc2626;font-weight:700"
     return styles
 
+
+def recent_hit_stats(row):
+    side_col=lookup(pd.DataFrame(columns=row.index),"Model side")
+    projection_col=lookup(pd.DataFrame(columns=row.index),"Model projection")
+    if not side_col or not projection_col:return (0,0)
+    side=str(row[side_col]).strip().lower()
+    projection=number(row[projection_col])
+    if projection is None or side not in ("over","under"):return (0,0)
+    valid=[]
+    for label in ("Last game","2 games ago","3 games ago"):
+        col=lookup(pd.DataFrame(columns=row.index),label)
+        if col:
+            val=number(row[col])
+            if val is not None:valid.append(val)
+    hits=sum((v>projection if side=="over" else v<projection) for v in valid)
+    return (hits,len(valid))
+
+def historical_summary(df):
+    if not (lookup(df,"Model side") and lookup(df,"Model projection")):return df
+    result=df.copy()
+    results=result.apply(recent_hit_stats,axis=1)
+    result["Recent hits"]=results.map(lambda x:x[0])
+    result["Games available"]=results.map(lambda x:x[1])
+    result["Last 3 hit rate"]=results.map(lambda x:f"{x[0]}/{x[1]}" if x[1] else "N/A")
+    return result
+
 with st.sidebar:
     st.title("🏀 NBA Model Center")
     st.caption("Your private model dashboard")
@@ -129,6 +159,12 @@ def show_table(name, allow_filters=True):
         st.warning("No rows found in this section.")
         return
     if allow_filters:
+        game_col=lookup(df,"Game")
+        if game_col:
+            available=sorted(df[game_col].dropna().astype(str).unique())
+            if 1<len(available)<40:
+                game_choice=st.selectbox("Matchup",["All games"]+available,key="game_"+name)
+                if game_choice!="All games":df=df[df[game_col].astype(str)==game_choice]
         c1,c2,c3=st.columns([2,1,1])
         search=c1.text_input("Search players or props",key="search_"+name)
         if search:
@@ -144,8 +180,14 @@ def show_table(name, allow_filters=True):
             opts=sorted(df[side].dropna().astype(str).unique())
             selected=c3.multiselect("Model side",opts,key="side_"+name)
             if selected:df=df[df[side].astype(str).isin(selected)]
+    if allow_filters and lookup(df,"Model side") and lookup(df,"Model projection"):
+        df=historical_summary(df)
+        hit1,hit2=st.columns([1,3])
+        only_three=hit1.checkbox("Show 3/3 recent hits",key="perfect_"+name,help="Three available games all on the model side of the projection.")
+        if only_three:df=df[(df["Recent hits"]==3)&(df["Games available"]==3)]
+        hit2.caption("Recent hit rate compares actual stats with the model projection; it is not a future win probability.")
     st.caption(f"{len(df):,} rows · {name}")
-    priority=["Player","Reference line","Model projection","Model side","Last game","2 games ago","3 games ago","Last 3 avg","Last 3 average"]
+    priority=["Player","Reference line","Model projection","Model side","Last game","2 games ago","3 games ago","Last 3 avg","Last 3 average","Last 3 hit rate"]
     if lookup(df,"Player") and lookup(df,"Model projection"):
         front=[lookup(df,k) for k in priority]
         front=[c for c in front if c is not None]
@@ -165,6 +207,8 @@ def show_table(name, allow_filters=True):
             df[c]=df[c].map(fmt)
         else:
             df[c]=df[c].map(lambda v:"N/A" if pd.isna(v) or str(v).strip().lower() in {"none","nan","n/a"} else v)
+    for internal in ("Recent hits","Games available"):
+        if internal in df.columns:df=df.drop(columns=[internal])
     config={}
     if "Player" in df.columns:config["Player"]=st.column_config.TextColumn("Player",width="medium")
     if "Game" in df.columns:config["Game"]=st.column_config.TextColumn("Game",width="large")
@@ -179,6 +223,18 @@ if section=="Overview":
     b.metric("Player props",len(sheets[allprops]) if allprops else "—")
     c.metric("Favorite props",len(sheets[favorites]) if favorites else "—")
     d.metric("Bankroll plays",len(sheets[bankroll]) if bankroll else "—")
+    if allprops:
+        candidates=historical_summary(sheets[allprops])
+        if "Recent hits" in candidates:
+            candidates=candidates[(candidates["Recent hits"]==3)&(candidates["Games available"]==3)]
+            st.subheader("🔥 3-for-3 recent performance")
+            st.caption("Historical matches to model projections, not guarantees or betting recommendations.")
+            if len(candidates):
+                wanted=[lookup(candidates,c) for c in ("Player","Game","Market","Model side","Model projection","Last 3 avg")]
+                wanted=[c for c in wanted if c]
+                st.dataframe(candidates[wanted].head(12),hide_index=True,use_container_width=True)
+                st.caption(f"{len(candidates)} prop rows had 3 of 3 recent games on the model side.")
+            else:st.info("No props with three available recent games and a 3/3 historical match.")
     st.subheader("Today's games")
     if schedule:show_table(schedule,False)
     else:st.info("No game schedule sheet found.")
