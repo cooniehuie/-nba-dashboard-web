@@ -220,7 +220,8 @@ def bankroll_history_frame():
     return frame
 
 def performance_graph(frame):
-    frame=frame[frame["Graded"]>0]\n    wins=int(frame["Wins"].sum())
+    frame=frame[frame["Graded"]>0]
+    wins=int(frame["Wins"].sum())
     losses=int(frame["Losses"].sum())
     excluded=int(frame["Excluded"].sum())
     graded=wins+losses
