@@ -279,7 +279,7 @@ def show_table(name, allow_filters=True):
         if only_three:df=df[(df["Recent hits"]==3)&(df["Games available"]==3)]
         hit2.caption("Recent hit rate compares actual stats with the model projection; it is not a future win probability.")
     st.caption(f"{len(df):,} rows · {name}")
-    priority=["Player","Reference line","Model projection","Model side","Last game","2 games ago","3 games ago","Last 3 avg","Last 3 average","Last 3 hit rate"]
+    priority=["Player","Market","Reference line","Model projection","Model side","Last game","2 games ago","3 games ago","Last 3 avg","Last 3 average","Last 3 hit rate"]
     if lookup(df,"Player") and lookup(df,"Model projection"):
         front=[lookup(df,k) for k in priority]
         front=[c for c in front if c is not None]
