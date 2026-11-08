@@ -1271,6 +1271,7 @@ ROBINHOOD_NOV7_BETS=[
 ]
 
 ROBINHOOD_NOV8_BETS=[
+("Nov 8 · Parlay 45",1298,6.4,99.95,16.88,[["D. Jenkins","Assists",4],["D. Robinson","Points",15],["A. Reaves","Points",25],["A. Thompson","Rebounds",8]],"2026-11-08","14:04"),
 ("Nov 8 · Parlay 44",960,9.0,99.94,13.54,[["C. Cunningham","Threes",2],["D. Robinson","Threes",4],["A. Reaves","Threes",3],["J. LaRavia","Threes",1]],"2026-11-08","13:30"),
 ("Nov 8 · Parlay 43",468,20.2,99.82,5.28,[["C. McCaffrey","Rush yds",60],["T. McMillan","Rec yds",60],["J. Gibbs","Rec yds",20]],"2026-11-08","10:00"),
 ("Nov 8 · Parlay 42",1104,7.7,99.98,14.97,[["A. Simons","Threes",1],["J. Brown","Assists",4],["L. James","Assists",6],["J. Brown","Points",15],["T. Maxey","Rebounds",4],["V. Edgecombe","Rebounds",6]],"2026-11-08","09:46"),
