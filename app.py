@@ -1158,6 +1158,8 @@ PERSONAL_BETS=[
 ("9-leg",1113,7.8,[("A. Nembhard","Assists",6),("C. Braun","Points",10),("J. Murray","Points",20),("N. Jokic","Points",20),("A. Nesmith","Points",10),("P. Siakam","Points",15),("A. Gordon","Rebounds",4),("J. Murray","Rebounds",4),("N. Jokic","Rebounds",8)])
 ]
 ROBINHOOD_NOV7_BETS=[
+("2-leg C",1247,6.7,99.92,16.37,[["J. Holiday","Threes",3],["T. Camara","Threes",4]]),
+("2-leg B",351,26.5,99.95,6.94,[["J. Holiday","Threes",2],["T. Camara","Threes",3]]),
 ("3-leg J",273,34.6,99.92,5.46,[["D. Booker","Points",20],["S. Curry","Points",20],["V. Wembanyama","Points",25]]),
 ("4-leg L",1187,7.9,109.97,16.2,[["J. Smith Jr.","Threes",3],["S. Curry","Threes",3],["T. Silva","Threes",3],["T. Camara","Threes",3]]),
 ("3-leg I",362,25.6,99.75,7.08,[["F. VanVleet","Threes",2],["J. Smith Jr.","Threes",2],["R. Sheppard","Threes",2]]),
@@ -1411,7 +1413,7 @@ def show_personal_bets():
                 st.caption(str(auto_losses)+" confirmed losing parlay(s) included automatically · updates every 30s")
         render_realized_pnl()
     st.caption(str(len(all_bets))+" combos · "+str(sum(len(legs) for _,_,_,legs in all_bets))+" legs · Potential profit assumes every Yes combo wins, with recorded entry fees included where available; excludes any future exit fees.")
-    st.caption("November 7: $2808.84 total paid including $265.82 in commissions and fees across 27 purchases. Additional bulk-imported bets are estimated before fees.")
+    st.caption("November 7: $3008.71 total paid including $289.13 in commissions and fees across 29 purchases. Additional bulk-imported bets are estimated before fees.")
     if storage_ready:
         with st.expander("Record settlement (admin)"):
             with st.form("personal_settlement"):
