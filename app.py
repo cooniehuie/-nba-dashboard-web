@@ -559,7 +559,23 @@ def performance_graph(frame):
     .bk-bar{width:100%;border-radius:6px 6px 0 0;background:linear-gradient(#67e8f9,#34d399)}
     .bk-bar-wrap span{font-size:10px;color:#cbd5e1;white-space:nowrap}
     .bk-bar-wrap b{font-size:10px;color:white}
-    @media(max-width:750px){.bk-grid{grid-template-columns:1fr}.bk-hero{padding:20px}.bk-chart{height:160px}}
+    /* Keep the daily bars inside the performance card on narrow phones.
+       The graph scrolls horizontally rather than enlarging the entire card. */
+    @media(max-width:750px){
+      .bk-hero{
+        width:100%;max-width:100%;min-width:0;box-sizing:border-box;
+        padding:16px;overflow:hidden}
+      .bk-grid{grid-template-columns:minmax(0,1fr);gap:12px;min-width:0;max-width:100%}
+      .bk-grid>div{min-width:0;max-width:100%;overflow:hidden}
+      .bk-track{max-width:100%}
+      .bk-chart{
+        display:flex;width:100%;max-width:100%;min-width:0;box-sizing:border-box;
+        height:160px;gap:6px;overflow-x:auto;overflow-y:hidden;
+        -webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;
+        padding-bottom:8px;scrollbar-width:thin}
+      .bk-bar-wrap{flex:0 0 36px;min-width:36px;max-width:36px}
+      .bk-bar-wrap span{font-size:9px}
+    }
     </style>""",unsafe_allow_html=True)
     st.markdown(f"""<div class="bk-hero">
       <div class="bk-kicker">🏀 BANKROLL BUILDER · SAFE LINE HISTORY</div>
