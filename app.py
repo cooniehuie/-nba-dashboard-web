@@ -1483,38 +1483,44 @@ def espn_nfl_boxscores(date_string):
     return games,players
 
 def match_espn_player(short_name,players,market=None):
+    """Match Robinhood initials to ESPN athletes without confusing same-surname players."""
     import unicodedata
     def norm(value):
-        return "".join(ch for ch in unicodedata.normalize("NFKD",str(value).lower()) if ch.isalnum() or ch.isspace()).strip()
+        value=unicodedata.normalize("NFKD",str(value).lower())
+        return " ".join("".join(ch if ch.isalnum() else " " for ch in value).split())
     parts=norm(short_name).split()
     if market:
         sport="NFL" if market in ("Pass yds","Rush yds","Rec yds","Anytime TD") else "NBA"
         players=[p for p in players if p.get("sport","NBA")==sport]
     if len(parts)<2:return None
-    initial=parts[0][0]
-    surname=" ".join(parts[1:])
+    particles={"da","de","del","van","von","di","dos","du","la","le"}
+    suffixes={"jr","sr","ii","iii","iv"}
+    aliases={"j holiday":{"jrue"},"c johnson":{"cameron","cam"},
+             "m porter jr":{"michael"},"t silva":{"tristan"}}
+    first=parts[0]
+    surname=parts[1:]
+    def strip_particles(seq):
+        return [x for x in seq if x not in particles]
+    def surname_matches(full):
+        actual=full[1:]
+        # Compare full surnames first; also permit omitted surname particles
+        # and a missing Jr./III in Robinhood, never mismatched suffixes.
+        if actual==surname or strip_particles(actual)==surname:
+            return True
+        if surname and surname[-1] not in suffixes and actual and actual[-1] in suffixes:
+            return actual[:-1]==surname or strip_particles(actual[:-1])==surname
+        return False
     matches=[]
     for player in players:
-        full=norm(player["name"]).split()
-        if len(full)<2 or not full[0].startswith(initial):
-            continue
-        full_surname=" ".join(full[1:])
-        # Robinhood abbreviates Tristan da Silva as T. Silva. Permit omission
-        # of surname particles, but never ignore Jr./III suffixes.
-        particles={"da","de","del","van","von","di","dos","du","la","le"}
-        without_particles=" ".join(part for part in full[1:] if part not in particles)
-        if surname in (full_surname,without_particles):
+        full=norm(player.get("name","")).split()
+        if len(full)>1 and full[0].startswith(first) and surname_matches(full):
             matches.append(player)
-    if len(matches)==1:
-        return matches[0]
-    # An initial alone can be ambiguous (e.g. J. Holiday). Prefer a known
-    # unambiguous NBA player identity, but never guess from multiple candidates.
-    known_first_names={"j holiday":{"jrue"},"c johnson":{"cameron","cam"}}
-    preferred=known_first_names.get(" ".join(parts))
-    if preferred and len(matches)>1:
-        exact=[p for p in matches if norm(p["name"]).split()[0] in preferred]
-        if len(exact)==1:
-            return exact[0]
+    if len(matches)==1:return matches[0]
+    preferred=aliases.get(" ".join(parts))
+    if preferred and matches:
+        exact=[p for p in matches if norm(p.get("name","")).split()[0] in preferred]
+        if len(exact)==1:return exact[0]
+    # Do not pick an arbitrary athlete when multiple players match.
     return None
 
 def automatic_parlay_result(legs,players):
@@ -1670,7 +1676,10 @@ def show_personal_bets():
                     game=player["game"] if player else None
                     state=game["state"] if game else "unknown"
                     if value is None:
-                        progress="⚪ Unavailable"
+                        progress=("⚪ DNP" if player and player.get("dnp") and state=="post"
+                                  else "⚪ Awaiting tipoff" if state=="pre"
+                                  else "⚪ Stats pending" if player
+                                  else "⚪ Unmatched / unavailable")
                     elif value>=t:
                         progress="🟢 Reached"
                     elif state=="post":
@@ -1810,7 +1819,10 @@ def show_personal_bets():
                 state=matched_player["game"]["state"] if matched_player else "unknown"
                 if actual is None:
                     needed="—"
-                    leg_progress="⚪ Unavailable"
+                    leg_progress=("⚪ DNP" if matched_player and matched_player.get("dnp") and state=="post"
+                                  else "⚪ Awaiting tipoff" if state=="pre"
+                                  else "⚪ Stats pending" if matched_player
+                                  else "⚪ Unmatched / unavailable")
                     actual_label="—"
                 else:
                     actual_label=str(actual)
