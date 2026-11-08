@@ -1786,6 +1786,14 @@ threes=find_sheet("three-point","three point","3-point")
 excluded={x for x in [schedule,bankroll,favorites,allprops,threes] if x}
 games=[n for n in names if n not in excluded]
 
+def normalized_nba_team(code):
+    aliases={"GS":"GSW","GSW":"GSW","WSH":"WAS","WAS":"WAS",
+             "NY":"NYK","NYK":"NYK","SA":"SAS","SAS":"SAS",
+             "NO":"NOP","NOP":"NOP","UTAH":"UTA","UTA":"UTA"}
+    code=str(code).strip().upper()
+    return aliases.get(code,code)
+
+
 @st.cache_data(ttl=300,show_spinner=False)
 def nba_tipoff_times(date_key):
     """Game start times from ESPN scoreboard; no player boxscore requests."""
@@ -1798,7 +1806,7 @@ def nba_tipoff_times(date_key):
     result={}
     for event in events:
         competitors=(event.get("competitions") or [{}])[0].get("competitors",[])
-        teams={str(c.get("team",{}).get("abbreviation","")).upper() for c in competitors}
+        teams={normalized_nba_team(c.get("team",{}).get("abbreviation","")) for c in competitors}
         if len(teams)!=2:continue
         try:
             tip=datetime.fromisoformat(event["date"].replace("Z","+00:00"))
@@ -1830,7 +1838,7 @@ def show_table(name, allow_filters=True, key_suffix=""):
                 tipoffs={}
             def game_sort(value):
                 teams=re.findall(r"[A-Z]{2,4}",str(value).upper())
-                record=tipoffs.get(frozenset(teams)) if len(teams)==2 else None
+                record=tipoffs.get(frozenset(normalized_nba_team(t) for t in teams)) if len(teams)==2 else None
                 return record if record else (float("inf"),"Time unavailable")
             df["_tipoff_sort"]=df[game_col].map(lambda v:game_sort(v)[0])
             df["_tipoff_label"]=df[game_col].map(lambda v:game_sort(v)[1])
