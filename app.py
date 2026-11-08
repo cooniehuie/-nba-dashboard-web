@@ -372,6 +372,49 @@ def saved_bankroll_results():
     except Exception:
         return {}
 
+def save_daily_bankroll_snapshot(frame,game_date):
+    """Keep the exact original picks; never replace an existing dated snapshot."""
+    if not st.session_state.get("admin_authenticated"):
+        return False
+    if not lookup(frame,"Player") or not lookup(frame,"Safer line"):
+        return False
+    path="bankroll_picks_"+game_date+".json"
+    if github_file(path):
+        return False
+    records=json.loads(frame.where(pd.notna(frame),None).to_json(orient="records"))
+    github_file(path,json.dumps({"date":game_date,"picks":records}).encode("utf-8"))
+    return True
+
+
+def auto_archive_yesterday_bankroll():
+    """On admin visit, grade yesterday's saved picks and archive only complete results."""
+    if not st.session_state.get("admin_authenticated"):
+        return None
+    from datetime import timedelta
+    from zoneinfo import ZoneInfo
+    yesterday=(datetime.now(ZoneInfo("America/Los_Angeles")).date()-timedelta(days=1)).isoformat()
+    saved=saved_bankroll_results()
+    if yesterday in saved:
+        return yesterday
+    raw=github_file("bankroll_picks_"+yesterday+".json")
+    if not raw:
+        return None
+    snapshot=json.loads(raw.decode("utf-8"))
+    picks=pd.DataFrame(snapshot.get("picks",[]))
+    if picks.empty:
+        return None
+    rows=grade_bankroll_sheet(picks,yesterday)
+    if len(rows)!=len(picks) or any(row["Result"] not in ("Hit","Loss","DNP") for row in rows):
+        return None
+    # Re-read before writing to preserve other dates.
+    saved=saved_bankroll_results()
+    if yesterday not in saved:
+        saved[yesterday]={"picks":rows,"saved_at":datetime.now(timezone.utc).isoformat(),"source":"automatic yesterday snapshot"}
+        github_file("bankroll_verified_results.json",json.dumps(saved).encode("utf-8"))
+        saved_bankroll_results.clear()
+    return yesterday
+
+
 def grade_bankroll_sheet(frame,game_date):
     """Grade only final games; never turn absent stats into a loss."""
     import re
@@ -585,6 +628,13 @@ def responsive_dataframe(frame,key,preferred=None,max_rows=150,desktop_frame=Non
 
 def show_bankroll_performance():
     st.title("📈 Bankroll Builder Performance")
+    if is_admin:
+        try:
+            archived=auto_archive_yesterday_bankroll()
+            if archived:
+                st.caption("Yesterday's saved Safe Line picks are checked automatically against final NBA results.")
+        except Exception:
+            st.caption("Automatic historical results check is temporarily unavailable.")
     st.caption("safe line picks · October 27–November 6, 2026 · Daily totals from prior ChatGPT tracker; not independently verified")
     st.subheader("Final box-score results")
     st.caption("The latest Bankroll Builder workbook is used as the pick list. Only completed games are graded; missing stats stay unverified.")
@@ -887,6 +937,12 @@ def show_bankroll_live_tracker(embedded=False):
     if not all([playercol,linecol]):
         st.warning("The Bankroll Builder sheet needs Player and Safer line columns for tracking.")
         return
+    # Snapshot today's selections on an admin visit, before a new daily upload replaces them.
+    if is_admin and not embedded:
+        try:
+            save_daily_bankroll_snapshot(frame,datetime.now(ZoneInfo("America/Los_Angeles")).date().isoformat())
+        except Exception:
+            st.caption("Today's Safe Line snapshot could not be saved; historical archiving may need review.")
     prefix="embedded_bankroll" if embedded else "bankroll_live"
     chosen_day=st.session_state.get(prefix+"_date",datetime.now(ZoneInfo("America/Los_Angeles")).date())
     with st.expander("📅 "+chosen_day.strftime("%b %d, %Y")+" · Change date",expanded=False):
