@@ -909,9 +909,15 @@ def show_bankroll_live_tracker(embedded=False):
             for token,market in [("assist","Assists"),("rebound","Rebounds"),("three","Threes"),("3pt","Threes"),("3-pointer","Threes"),("point","Points")]:
                 if token in v:return market
             return ""
+        def normalize_team(code):
+            aliases={"GS":"GSW","GSW":"GSW","WSH":"WAS","WAS":"WAS",
+                     "NY":"NYK","NYK":"NYK","SA":"SAS","SAS":"SAS",
+                     "NO":"NOP","NOP":"NOP","UTAH":"UTA","UTA":"UTA"}
+            code=str(code).strip().upper()
+            return aliases.get(code,code)
         def teams_from_matchup(value):
-            # Compare the two teams rather than exact ESPN display punctuation/order.
-            return set(re.findall(r"[A-Z]{2,4}",str(value).upper()))
+            # Normalize workbook abbreviations against ESPN's team codes.
+            return {normalize_team(x) for x in re.findall(r"[A-Z]{2,4}",str(value).upper())}
         game_by_id={str(g["id"]):g for g in games}
         # ESPN scoreboard competition team abbreviations are more reliable than
         # shortName punctuation; accept either home/away ordering.
@@ -923,7 +929,7 @@ def show_bankroll_live_tracker(embedded=False):
                 board=json.load(response)
             for event in board.get("events",[]):
                 competitors=(event.get("competitions") or [{}])[0].get("competitors",[])
-                team_pairs[str(event.get("id"))]={c.get("team",{}).get("abbreviation","").upper() for c in competitors}
+                team_pairs[str(event.get("id"))]={normalize_team(c.get("team",{}).get("abbreviation","")) for c in competitors}
         except Exception:
             pass
         rows=[]
@@ -961,6 +967,12 @@ def show_bankroll_live_tracker(embedded=False):
             if display_game is None and expected_teams:
                 display_game=next((g for g in games
                                    if team_pairs.get(str(g["id"]))==expected_teams),None)
+            if actual is None and display_game and display_game["state"]=="pre":
+                result="⚪ Awaiting tipoff"
+            elif actual is None and candidate and candidate.get("dnp") and display_game and display_game["state"]=="post":
+                result="⚪ DNP"
+            elif actual is None and display_game and display_game["state"]=="in":
+                result="⚪ Awaiting player stats"
             raw_model=pick[modelcol] if modelcol else None
             model_label=str(raw_model) if raw_model is not None and pd.notna(raw_model) else ""
             row={"Player":player_name,"Game":workbook_game,"Market":market,
