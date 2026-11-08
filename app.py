@@ -1341,7 +1341,6 @@ def match_espn_player(short_name,players):
 def show_personal_bets():
     st.title("💸 My Bets · Robinhood")
     st.caption("Admin-only · November 7, 2026 · NBA predictions")
-    st.info("November 7 positions imported from your Robinhood transaction text. Total cost includes actual reported fees for these 27 purchases. No legs have been verified or settled.")
     imported=imported_bet_rows()
     # The imported transaction listing is newest-first; display oldest-first.
     # Retain the original name as the settlement storage key.
