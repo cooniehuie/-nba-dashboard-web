@@ -1532,6 +1532,13 @@ def automatic_parlay_result(legs,players):
     return "Loss" if missed_final else ("Won" if all_reached else "Pending")
 
 
+ROBINHOOD_CONFIRMED_PAYOUTS=[
+    {"event_id":"7fef0b82-e731-44e0-b89c-d444bdf23091","date":"2026-11-08","time":"13:43",
+     "label":"NFL 7-leg · CIN / DAL / DEN / DET / LAR / NYG / KC",
+     "quantity":1334,"settlement_price":1.0,"payout":1334.0,
+     "realized_profit":1251.29,"implied_entry_cost":82.71}
+]
+
 def show_personal_bets():
     st.title("💸 My Bets · Robinhood")
     from datetime import date
@@ -1555,6 +1562,7 @@ def show_personal_bets():
     saved=saved_bet_statuses()
     byid={r["Bet"]:r for _,r in saved.iterrows()} if not saved.empty else {}
     total=sum(row[3] for row in dated_bets)+sum(q*p/100 for name,q,p,legs in all_bets if name not in {row[0] for row in dated_bets})
+    confirmed_payouts=[p for p in ROBINHOOD_CONFIRMED_PAYOUTS if p['date']==selected_day.isoformat()]
     settled=[]
     for row in byid.values():
         if row.get("Status") in ["Won","Lost","Closed"]:
@@ -1602,12 +1610,18 @@ def show_personal_bets():
                         auto_wins+=1
                     else:
                         auto_losses+=1
-            st.metric("Realized P/L","$"+format(realized_total,",.2f") if recorded_count or auto_losses or auto_wins else "Not recorded")
+            realized_total+=sum(p["realized_profit"] for p in confirmed_payouts)
+            st.metric("Realized P/L","$"+format(realized_total,",.2f") if recorded_count or auto_losses or auto_wins or confirmed_payouts else "Not recorded")
             if auto_losses or auto_wins:
                 st.caption(str(auto_wins)+" reached parlay(s), "+str(auto_losses)+" losing parlay(s) · ESPN-based estimate, not Robinhood settlement · refreshes every 30s")
         render_realized_pnl()
     st.caption(str(len(all_bets))+" combos · "+str(sum(len(legs) for _,_,_,legs in all_bets))+" legs · Potential profit assumes every Yes combo wins, with recorded entry fees included where available; excludes any future exit fees.")
     st.caption(selected_day.strftime("%B %-d")+": $"+format(sum(b[3] for b in dated_bets),",.2f")+" paid including $"+format(sum(b[4] for b in dated_bets),",.2f")+" fees across "+str(len(dated_bets))+" recorded purchases. Additional bulk imports are estimated before fees.")
+    if confirmed_payouts:
+        st.subheader("Confirmed Robinhood payouts")
+        for payout in confirmed_payouts:
+            st.success(payout["label"]+" · Won · +$"+format(payout["realized_profit"],",.2f")+" realized profit")
+            st.caption("Settled "+payout["time"]+" PT · "+format(payout["quantity"],",")+" contracts · $"+format(payout["payout"],",.2f")+" payout · $"+format(payout["implied_entry_cost"],",.2f")+" implied entry cost. Excluded from purchase totals.")
     if storage_ready:
         with st.expander("Record settlement (admin)"):
             with st.form("personal_settlement"):
