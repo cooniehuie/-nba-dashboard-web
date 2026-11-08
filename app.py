@@ -1166,6 +1166,7 @@ def show_bankroll_live_tracker(embedded=False):
         st.caption("Updated "+datetime.now(ZoneInfo("America/Los_Angeles")).strftime("%-I:%M %p")+" · Auto-refresh 30s · Live results provisional")
         if st.button("↻ Refresh",key=prefix+"_refresh"):
             espn_nba_boxscores.clear()
+            espn_nfl_boxscores.clear()
             st.rerun()
     render_bankroll_live()
 
@@ -1420,11 +1421,73 @@ def espn_nba_boxscores(date_string):
             game["boxscore_error"]=True
     return games,players
 
-def match_espn_player(short_name,players):
+@st.cache_data(ttl=30,show_spinner=False)
+def espn_nfl_boxscores(date_string):
+    """Read NFL rushing, receiving, passing and TD statistics without guessing missing values."""
+    from datetime import datetime as dt
+    from zoneinfo import ZoneInfo
+    def fetch(url):
+        req=urllib.request.Request(url,headers={"User-Agent":"Mozilla/5.0","Accept":"application/json"})
+        with urllib.request.urlopen(req,timeout=12) as response:return json.load(response)
+    scoreboard=fetch("https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?dates="+date_string)
+    games=[]
+    players=[]
+    for event in scoreboard.get("events",[]):
+        status=event.get("status",{}).get("type",{})
+        game={"name":event.get("shortName",event.get("name","NFL")),"start_utc":event.get("date",""),
+              "state":status.get("state","unknown"),"detail":status.get("shortDetail",status.get("detail",""))}
+        games.append(game)
+        try:
+            summary=fetch("https://site.api.espn.com/apis/site/v2/sports/football/nfl/summary?event="+str(event["id"]))
+            for team in summary.get("boxscore",{}).get("players",[]):
+                for category in team.get("statistics",[]):
+                    kind=str(category.get("name","")).lower()
+                    labels=[str(v).upper() for v in category.get("labels",[])]
+                    for athlete in category.get("athletes",[]):
+                        info=athlete.get("athlete",{})
+                        name=info.get("displayName",info.get("fullName",""))
+                        if not name:continue
+                        stats=athlete.get("stats",[])
+                        def numeric(keys):
+                            for key in keys:
+                                if key in labels:
+                                    idx=labels.index(key)
+                                    if idx<len(stats):
+                                        try:return float(str(stats[idx]).replace(",",""))
+                                        except (ValueError,TypeError):pass
+                            return None
+                        values={}
+                        if kind=="passing":
+                            values["Pass yds"]=numeric(["YDS","PASS YDS"])
+                        elif kind=="rushing":
+                            values["Rush yds"]=numeric(["YDS","RUSH YDS"])
+                        elif kind=="receiving":
+                            values["Rec yds"]=numeric(["YDS","REC YDS"])
+                        # Total touchdowns from rushing and receiving; do not double-count player rows.
+                        if kind in ("rushing","receiving"):
+                            values["_td_"+kind]=numeric(["TD","TDS"])
+                        existing=next((p for p in players if p["name"]==name and p["game"] is game),None)
+                        if existing is None:
+                            existing={"name":name,"game":game,"stats":{},"jersey":str(info.get("jersey") or ""),"sport":"NFL"}
+                            players.append(existing)
+                        existing["stats"].update({k:v for k,v in values.items() if v is not None})
+            for p in players:
+                if p["game"] is game:
+                    tds=[p["stats"].get("_td_rushing"),p["stats"].get("_td_receiving")]
+                    if any(v is not None for v in tds):
+                        p["stats"]["Anytime TD"]=sum(v or 0 for v in tds)
+        except Exception:
+            game["boxscore_error"]=True
+    return games,players
+
+def match_espn_player(short_name,players,market=None):
     import unicodedata
     def norm(value):
         return "".join(ch for ch in unicodedata.normalize("NFKD",str(value).lower()) if ch.isalnum() or ch.isspace()).strip()
     parts=norm(short_name).split()
+    if market:
+        sport="NFL" if market in ("Pass yds","Rush yds","Rec yds","Anytime TD") else "NBA"
+        players=[p for p in players if p.get("sport","NBA")==sport]
     if len(parts)<2:return None
     initial=parts[0][0]
     surname=" ".join(parts[1:])
@@ -1457,7 +1520,7 @@ def automatic_parlay_result(legs,players):
     all_reached=bool(legs)
     missed_final=False
     for name,market,target in legs:
-        player=match_espn_player(name,players)
+        player=match_espn_player(name,players,market)
         actual=player["stats"].get(market) if player else None
         if actual is None:
             all_reached=False
@@ -1508,6 +1571,8 @@ def show_personal_bets():
             selected_day=st.session_state.get("my_bets_selected_date",date(2026,11,8))
             try:
                 _,pnl_players=espn_nba_boxscores(selected_day.strftime("%Y%m%d"))
+                _,nfl_players=espn_nfl_boxscores(selected_day.strftime("%Y%m%d"))
+                pnl_players+=nfl_players
             except Exception:
                 pnl_players=[]
             realized_total=0.0
@@ -1562,14 +1627,17 @@ def show_personal_bets():
                 except Exception as exc:st.error("Could not save: "+str(exc))
     @st.fragment(run_every="30s")
     def render_live_nba_tracker():
-        st.subheader("🏀 NBA Player Prop Tracker")
-        st.caption("Free ESPN public box-score feed (unofficial). Automatically refreshes every 30 seconds while this page is open; cached for up to 30 seconds. Statistical progress is not Robinhood settlement.")
+        st.subheader("🏀🏈 Daily Player Prop Tracker")
+        st.caption("NBA and NFL ESPN box-score feeds (unofficial). Refreshes every 30 seconds while open; statistical progress is not Robinhood settlement.")
         from datetime import date
         track_date=selected_day
         if st.button("↻ Refresh NBA stats",key="refresh_nba_stats"):
             espn_nba_boxscores.clear()
         try:
             games,players=espn_nba_boxscores(track_date.strftime("%Y%m%d"))
+            nfl_games,nfl_players=espn_nfl_boxscores(track_date.strftime("%Y%m%d"))
+            games+=nfl_games
+            players+=nfl_players
             if not games:
                 st.info("No NBA games found for this date. Choose another date or retry later.")
             else:
@@ -1581,7 +1649,7 @@ def show_personal_bets():
                 actuals={}
                 rows=[]
                 for p,m,t in unique_props:
-                    player=match_espn_player(p,players)
+                    player=match_espn_player(p,players,m)
                     value=player["stats"].get(m) if player else None
                     actuals[(p,m,t)]=value
                     game=player["game"] if player else None
@@ -1623,7 +1691,7 @@ def show_personal_bets():
                     status_order={"in":0,"pre":1,"post":2}
                     stats_df["_game_priority"]=[
                         status_order.get(
-                            (match_espn_player(row["Player"].split(" #")[0],players) or {}).get("game",{}).get("state","unknown"),
+                            (match_espn_player(row["Player"].split(" #")[0],players,row["Stat"]) or {}).get("game",{}).get("state","unknown"),
                             1
                         ) for row in rows
                     ]
@@ -1649,6 +1717,8 @@ def show_personal_bets():
         selected_day=st.session_state.get("my_bets_selected_date",date(2026,11,8))
         try:
             _,overview_players=espn_nba_boxscores(selected_day.strftime("%Y%m%d"))
+            _,nfl_players=espn_nfl_boxscores(selected_day.strftime("%Y%m%d"))
+            overview_players+=nfl_players
             overview_error=False
         except Exception:
             overview_players=[]
@@ -1703,7 +1773,7 @@ def show_personal_bets():
             table_html.append('<div class="bet-legs"><div style="margin-bottom:8px">Max payout: $'+format(qty,",.2f")+'</div>'+
                               '<table><thead><tr><th>Leg</th><th>Player</th><th>Market</th><th>Target</th><th>Actual</th><th>Needed</th><th>Leg progress</th></tr></thead><tbody>')
             for i,(p,m,t) in enumerate(legs,1):
-                matched_player=match_espn_player(p,overview_players)
+                matched_player=match_espn_player(p,overview_players,m)
                 actual=matched_player["stats"].get(m) if matched_player else None
                 state=matched_player["game"]["state"] if matched_player else "unknown"
                 if actual is None:
