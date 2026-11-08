@@ -1355,6 +1355,22 @@ def match_espn_player(short_name,players):
             return exact[0]
     return None
 
+def automatic_parlay_result(legs,players):
+    """Infer live results for cumulative Yes NBA prop legs."""
+    all_reached=bool(legs)
+    missed_final=False
+    for name,market,target in legs:
+        player=match_espn_player(name,players)
+        actual=player["stats"].get(market) if player else None
+        if actual is None:
+            all_reached=False
+        elif actual<int(target):
+            all_reached=False
+            if player["game"]["state"]=="post":
+                missed_final=True
+    return "Loss" if missed_final else ("Won" if all_reached else "Pending")
+
+
 def show_personal_bets():
     st.title("💸 My Bets · Robinhood")
     st.caption("Admin-only · November 7, 2026 · NBA predictions")
@@ -1391,6 +1407,7 @@ def show_personal_bets():
             realized_total=0.0
             recorded_count=0
             auto_losses=0
+            auto_wins=0
             for name,qty,price,legs in all_bets:
                 recorded=byid.get(name,{})
                 recorded_status=recorded.get("Status","Pending")
@@ -1405,22 +1422,18 @@ def show_personal_bets():
                     continue
                 if recorded_status=="Voided":
                     continue
-                missed=any(
-                    player is not None
-                    and player["game"]["state"]=="post"
-                    and player["stats"].get(m) is not None
-                    and player["stats"][m]<int(t)
-                    for p,m,t in legs
-                    for player in [match_espn_player(p,pnl_players)]
-                )
-                if missed:
+                inferred=automatic_parlay_result(legs,pnl_players)
+                if inferred in ("Won","Loss"):
                     original=next((b for b in ROBINHOOD_NOV7_BETS if b[0]==name and b[1]==qty and b[2]==price),None)
                     cost=original[3] if original else qty*price/100
-                    realized_total-=cost
-                    auto_losses+=1
-            st.metric("Realized P/L","$"+format(realized_total,",.2f") if recorded_count or auto_losses else "Not recorded")
-            if auto_losses:
-                st.caption(str(auto_losses)+" confirmed losing parlay(s) included automatically · updates every 30s")
+                    realized_total+=(qty-cost) if inferred=="Won" else -cost
+                    if inferred=="Won":
+                        auto_wins+=1
+                    else:
+                        auto_losses+=1
+            st.metric("Realized P/L","$"+format(realized_total,",.2f") if recorded_count or auto_losses or auto_wins else "Not recorded")
+            if auto_losses or auto_wins:
+                st.caption(str(auto_wins)+" reached parlay(s), "+str(auto_losses)+" losing parlay(s) · ESPN-based estimate, not Robinhood settlement · refreshes every 30s")
         render_realized_pnl()
     st.caption(str(len(all_bets))+" combos · "+str(sum(len(legs) for _,_,_,legs in all_bets))+" legs · Potential profit assumes every Yes combo wins, with recorded entry fees included where available; excludes any future exit fees.")
     st.caption("November 7: $3008.71 total paid including $289.13 in commissions and fees across 29 purchases. Additional bulk-imported bets are estimated before fees.")
@@ -1563,26 +1576,18 @@ def show_personal_bets():
         }
         </style><div class="bet-table">
         <div class="bet-cols bet-head"><span>Combo</span><span>Legs</span><span>Wager</span><span>Potential profit</span><span>Status</span></div>''']
-        # A confirmed final missed leg makes the entire Yes parlay a loss.
-        # This is a live display status only; do not overwrite manual settlements.
         overview_bets=[]
         for original_index,(name,qty,price,legs) in enumerate(all_bets):
             recorded_status=byid.get(name,{}).get("Status","Pending")
-            missed_final=any(
-                player is not None
-                and player["game"]["state"]=="post"
-                and player["stats"].get(m) is not None
-                and player["stats"][m]<int(t)
-                for p,m,t in legs
-                for player in [match_espn_player(p,overview_players)]
-            )
-            status="Loss" if missed_final else recorded_status
-            overview_bets.append((missed_final,original_index,name,qty,price,legs,status))
+            inferred=automatic_parlay_result(legs,overview_players)
+            status=recorded_status if recorded_status in ("Won","Lost","Closed","Voided") else inferred
+            is_loss=status in ("Loss","Lost")
+            overview_bets.append((is_loss,original_index,name,qty,price,legs,status))
         overview_bets.sort(key=lambda item:(item[0],item[1]))
         for missed_final,_,name,qty,price,legs,status in overview_bets:
             matched=next((r for r in ROBINHOOD_NOV7_BETS if r[0]==name and r[1]==qty and r[2]==price),None)
             cost=matched[3] if matched else qty*price/100
-            status_style=' style="color:#dc2626;font-weight:700"' if missed_final else ""
+            status_style=(' style="color:#dc2626;font-weight:700"' if missed_final else (' style="color:#16a34a;font-weight:700"' if status=="Won" else ""))
             table_html.append('<details class="bet-entry"><summary class="bet-cols">'+
                               '<span>'+esc(labels.get(name,name))+'</span>'+
                               '<span class="bet-number">'+str(len(legs))+'</span>'+
