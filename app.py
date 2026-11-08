@@ -1343,7 +1343,17 @@ def match_espn_player(short_name,players):
         without_particles=" ".join(part for part in full[1:] if part not in particles)
         if surname in (full_surname,without_particles):
             matches.append(player)
-    return matches[0] if len(matches)==1 else None
+    if len(matches)==1:
+        return matches[0]
+    # An initial alone can be ambiguous (e.g. J. Holiday). Prefer a known
+    # unambiguous NBA player identity, but never guess from multiple candidates.
+    known_first_names={"j holiday":"jrue"}
+    preferred=known_first_names.get(" ".join(parts))
+    if preferred and len(matches)>1:
+        exact=[p for p in matches if norm(p["name"]).split()[0]==preferred]
+        if len(exact)==1:
+            return exact[0]
+    return None
 
 def show_personal_bets():
     st.title("💸 My Bets · Robinhood")
