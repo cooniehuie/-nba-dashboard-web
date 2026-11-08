@@ -1341,7 +1341,49 @@ def show_personal_bets():
     a,b,c=st.columns(3)
     a.metric("Total entry cost","$"+format(total,",.2f"))
     b.metric("Total potential profit","$"+format(potential_profit,",.2f"))
-    c.metric("Realized P/L","$"+format(sum(settled),",.2f") if settled else "Not recorded")
+    with c:
+        @st.fragment(run_every="30s")
+        def render_realized_pnl():
+            from datetime import date
+            selected_day=st.session_state.get("nba_live_date",date(2026,11,7))
+            try:
+                _,pnl_players=espn_nba_boxscores(selected_day.strftime("%Y%m%d"))
+            except Exception:
+                pnl_players=[]
+            realized_total=0.0
+            recorded_count=0
+            auto_losses=0
+            for name,qty,price,legs in all_bets:
+                recorded=byid.get(name,{})
+                recorded_status=recorded.get("Status","Pending")
+                recorded_pnl=recorded.get("Net P/L","")
+                # Recorded settlement always takes precedence; never double-count.
+                if recorded_status in ("Won","Lost","Closed"):
+                    try:
+                        realized_total+=float(recorded_pnl)
+                        recorded_count+=1
+                    except (TypeError,ValueError):
+                        pass
+                    continue
+                if recorded_status=="Voided":
+                    continue
+                missed=any(
+                    player is not None
+                    and player["game"]["state"]=="post"
+                    and player["stats"].get(m) is not None
+                    and player["stats"][m]<int(t)
+                    for p,m,t in legs
+                    for player in [match_espn_player(p,pnl_players)]
+                )
+                if missed:
+                    original=next((b for b in ROBINHOOD_NOV7_BETS if b[0]==name and b[1]==qty and b[2]==price),None)
+                    cost=original[3] if original else qty*price/100
+                    realized_total-=cost
+                    auto_losses+=1
+            st.metric("Realized P/L","$"+format(realized_total,",.2f") if recorded_count or auto_losses else "Not recorded")
+            if auto_losses:
+                st.caption(str(auto_losses)+" confirmed losing parlay(s) included automatically · updates every 30s")
+        render_realized_pnl()
     st.caption(str(len(all_bets))+" combos · "+str(sum(len(legs) for _,_,_,legs in all_bets))+" legs · Potential profit assumes every Yes combo wins, with recorded entry fees included where available; excludes any future exit fees.")
     st.caption("November 7: $1,999.92 total paid including $195.82 in commissions and fees across 19 purchases. Additional bulk-imported bets are estimated before fees.")
     if storage_ready:
