@@ -1527,11 +1527,30 @@ def match_espn_player(short_name,players,market=None):
         full=norm(player.get("name","")).split()
         if len(full)>1 and full[0].startswith(first) and surname_matches(full):
             matches.append(player)
+    # Known NFL initials must be checked before accepting a unique but wrong
+    # surname match (e.g. Jameson Williams instead of Javonte Williams).
+    if market in ("Pass yds","Rush yds","Rec yds","Anytime TD"):
+        nfl_first={"j williams":{"javonte"},"k williams":{"kyren"},
+                   "j mccarthy":{"jj","jonathan"}}
+        preferred_first=nfl_first.get(" ".join(parts))
+        if preferred_first:
+            exact=[p for p in matches if norm(p.get("name","")).split()[0] in preferred_first]
+            if len(exact)==1:return exact[0]
+            # ESPN may spell JJ McCarthy without spaces, so also inspect
+            # known aliases when the initial J does not match ESPN's JJ token.
+            candidates=[p for p in players if norm(p.get("name","")).split()[-1:]==surname
+                        and norm(p.get("name","")).split()[0] in preferred_first]
+            if len(candidates)==1:return candidates[0]
+            return None
     if len(matches)==1:return matches[0]
     # NFL player-specific disambiguation: Kyren Williams versus other K. Williams.
     # Keep J. Williams unresolved if multiple players share the abbreviation.
     if market in ("Pass yds","Rush yds","Rec yds","Anytime TD"):
-        nfl_aliases={"k williams":{"kyren"}}
+        nfl_aliases={
+            "k williams":{"kyren"},
+            "j williams":{"javonte"},
+            "j mccarthy":{"jj","jonathan"}
+        }
         nfl_preferred=nfl_aliases.get(" ".join(parts))
         if nfl_preferred:
             exact=[p for p in matches if norm(p.get("name","")).split()[0] in nfl_preferred]
