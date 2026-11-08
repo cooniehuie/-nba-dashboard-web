@@ -1146,6 +1146,7 @@ PERSONAL_BETS=[
 ("9-leg",1113,7.8,[("A. Nembhard","Assists",6),("C. Braun","Points",10),("J. Murray","Points",20),("N. Jokic","Points",20),("A. Nesmith","Points",10),("P. Siakam","Points",15),("A. Gordon","Rebounds",4),("J. Murray","Rebounds",4),("N. Jokic","Rebounds",8)])
 ]
 ROBINHOOD_NOV7_BETS=[
+("4-leg D",309,30.3,99.81,6.18,[["N. Alexander-Walker","Threes",3],["C. McCollum","Assists",2],["D. Daniels","Assists",4],["O. Okongwu","Rebounds",6]]),
 ("9-leg",1113,7.8,101.96,15.15,[["A. Nembhard","Assists",6],["C. Braun","Points",10],["J. Murray","Points",20],["N. Jokić","Points",20],["A. Nesmith","Points",10],["P. Siakam","Points",15],["A. Gordon","Rebounds",4],["J. Murray","Rebounds",4],["N. Jokić","Rebounds",8]]),
 ("5-leg",1281,6.5,99.98,16.72,[["N. Alexander-Walker","Threes",3],["J. Murray","Threes",3],["J. Smith Jr.","Threes",2],["T. Silva","Threes",3],["T. Camara","Threes",3]]),
 ("7-leg A",483,39.4,199.97,9.67,[["J. Murray","Threes",2],["A. Nembhard","Threes",1],["A. Nembhard","Assists",4],["P. Siakam","Assists",2],["A. Nembhard","Points",10],["P. Siakam","Points",15],["P. Siakam","Rebounds",4]]),
@@ -1161,8 +1162,7 @@ ROBINHOOD_NOV7_BETS=[
 ("6-leg",835,10.5,99.96,12.29,[["N. Alexander-Walker","Threes",3],["J. Smith Jr.","Threes",2],["E. Mobley","Threes",1],["T. Silva","Threes",2],["T. Camara","Threes",2],["S. Gilgeous-Alexander","Threes",2]]),
 ("3-leg F",1851,4.2,99.99,22.25,[["A. Sengun","Assists",8],["D. Green","Assists",8],["D. Avdija","Assists",8]]),
 ("3-leg G",385,24,99.77,7.37,[["A. Sengun","Assists",6],["D. Green","Assists",6],["D. Avdija","Assists",6]]),
-("3-leg H",286,32.9,99.82,5.73,[["O. Toppin","Points",10],["J. Smith Jr.","Points",10],["T. Silva","Points",10]]),
-("4-leg D",309,30.3,99.81,6.18,[["N. Alexander-Walker","Threes",3],["C. McCollum","Assists",2],["D. Daniels","Assists",4],["O. Okongwu","Rebounds",6]])
+("3-leg H",286,32.9,99.82,5.73,[["O. Toppin","Points",10],["J. Smith Jr.","Points",10],["T. Silva","Points",10]])
 ]
 
 @st.cache_data(ttl=120,show_spinner=False)
