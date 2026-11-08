@@ -1500,6 +1500,8 @@ def show_personal_bets():
             table_html.append('</tbody></table></div></details>')
         table_html.append('</div>')
         st.html("".join(table_html))
+    if st.button("▸ Collapse all",key="my_bets_collapse_all",help="Close all expanded parlays in Quick bet overview"):
+        st.rerun()
     render_bet_overview()
     from collections import Counter
     exposure=Counter((p,m,t) for _,_,_,legs in all_bets for p,m,t in legs)
