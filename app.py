@@ -1418,7 +1418,20 @@ def show_personal_bets():
                                    "Unavailable legs":unknown,"Progress":hit/len(legs) if legs else 0})
                 t1,t2=st.tabs(["Player statistics","Combo progress"])
                 with t1:
-                    stats_df=pd.DataFrame(rows).sort_values(["_sort_time","Game","Player","Stat","Target"],kind="stable").drop(columns=["_sort_time"])
+                    stats_df=pd.DataFrame(rows)
+                    # Active games first, upcoming games second, completed games last.
+                    # Keep the original tipoff ordering within each group.
+                    status_order={"in":0,"pre":1,"post":2}
+                    stats_df["_game_priority"]=[
+                        status_order.get(
+                            (match_espn_player(row["Player"].split(" #")[0],players) or {}).get("game",{}).get("state","unknown"),
+                            1
+                        ) for row in rows
+                    ]
+                    stats_df=stats_df.sort_values(
+                        ["_game_priority","_sort_time","Game","Player","Stat","Target"],
+                        kind="stable"
+                    ).drop(columns=["_game_priority","_sort_time"])
                     responsive_dataframe(stats_df,"mybets_live_stats",preferred=["Stat","Target","Actual","Needed"],hide_index=True,use_container_width=True)
                 with t2:
                     responsive_dataframe(pd.DataFrame(combos),"mybets_combo_progress",preferred=["Reached","Progress","Unavailable legs"],hide_index=True,use_container_width=True,
