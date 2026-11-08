@@ -1161,7 +1161,8 @@ ROBINHOOD_NOV7_BETS=[
 ("6-leg",835,10.5,99.96,12.29,[["N. Alexander-Walker","Threes",3],["J. Smith Jr.","Threes",2],["E. Mobley","Threes",1],["T. Silva","Threes",2],["T. Camara","Threes",2],["S. Gilgeous-Alexander","Threes",2]]),
 ("3-leg F",1851,4.2,99.99,22.25,[["A. Sengun","Assists",8],["D. Green","Assists",8],["D. Avdija","Assists",8]]),
 ("3-leg G",385,24,99.77,7.37,[["A. Sengun","Assists",6],["D. Green","Assists",6],["D. Avdija","Assists",6]]),
-("3-leg H",286,32.9,99.82,5.73,[["O. Toppin","Points",10],["J. Smith Jr.","Points",10],["T. Silva","Points",10]])
+("3-leg H",286,32.9,99.82,5.73,[["O. Toppin","Points",10],["J. Smith Jr.","Points",10],["T. Silva","Points",10]]),
+("4-leg D",309,30.3,99.81,6.18,[["N. Alexander-Walker","Threes",3],["C. McCollum","Assists",2],["D. Daniels","Assists",4],["O. Okongwu","Rebounds",6]])
 ]
 
 @st.cache_data(ttl=120,show_spinner=False)
@@ -1315,7 +1316,7 @@ def match_espn_player(short_name,players):
 def show_personal_bets():
     st.title("💸 My Bets · Robinhood")
     st.caption("Admin-only · November 7, 2026 · NBA predictions")
-    st.info("November 7 positions imported from your Robinhood transaction text. Total cost includes actual reported fees for these 16 purchases. No legs have been verified or settled.")
+    st.info("November 7 positions imported from your Robinhood transaction text. Total cost includes actual reported fees for these 17 purchases. No legs have been verified or settled.")
     imported=imported_bet_rows()
     # The imported transaction listing is newest-first; display oldest-first.
     # Retain the original name as the settlement storage key.
@@ -1339,7 +1340,7 @@ def show_personal_bets():
     b.metric("Total potential profit","$"+format(potential_profit,",.2f"))
     c.metric("Realized P/L","$"+format(sum(settled),",.2f") if settled else "Not recorded")
     st.caption(str(len(all_bets))+" combos · "+str(sum(len(legs) for _,_,_,legs in all_bets))+" legs · Potential profit assumes every Yes combo wins, with recorded entry fees included where available; excludes any future exit fees.")
-    st.caption("November 7: $1,700.25 total paid including $166.78 in commissions and fees across 16 purchases. Additional bulk-imported bets are estimated before fees.")
+    st.caption("November 7: $1,800.06 total paid including $172.96 in commissions and fees across 17 purchases. Additional bulk-imported bets are estimated before fees.")
     if storage_ready:
         with st.expander("Record settlement (admin)"):
             with st.form("personal_settlement"):
