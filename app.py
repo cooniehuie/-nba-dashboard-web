@@ -1271,6 +1271,13 @@ ROBINHOOD_NOV7_BETS=[
 ]
 
 ROBINHOOD_NOV8_BETS=[
+("Nov 8 · Parlay 57",333,28,99.9,6.66,[["P. Washington","Points",10],["J. Jaquez Jr.","Points",10],["K. Thompson","Points",10],["S. Bey","Points",10]],"2026-11-08","15:24"),
+("Nov 8 · Parlay 56",2242,3.3,99.99,26,[["P. Washington","Points",15],["J. Jaquez Jr.","Points",15],["D. Mitchell","Points",15],["S. Bey","Points",15]],"2026-11-08","15:23"),
+("Nov 8 · Parlay 55",348,26.7,99.81,6.89,[["K. Thompson","Points",10],["D. Acuff Jr.","Points",20],["D. Hunter","Points",10],["D. Sabonis","Points",10]],"2026-11-08","15:19"),
+("Nov 8 · Parlay 54",326,28.6,99.76,6.52,[["D. Garland","Assists",6],["B. Lopez","Points",10],["S. Bey","Points",10],["Z. Williamson","Points",15]],"2026-11-08","15:18"),
+("Nov 8 · Parlay 53",374,24.8,99.99,7.24,[["J. Tatum","Assists",6],["J. Jaquez Jr.","Points",10],["P. George","Rebounds",4],["K. Kuzma","Rebounds",4]],"2026-11-08","15:16"),
+("Nov 8 · Parlay 52",410,22.5,99.93,7.68,[["M. Porter Jr.","Points",20],["P. Washington","Points",10],["D. Sharpe","Rebounds",6],["J. Randle","Rebounds",6]],"2026-11-08","15:13"),
+("Nov 8 · Parlay 51",330,28.3,99.99,6.6,[["L. Markkanen","Threes",2],["D. Peterson","Assists",2],["A. Dosunmu","Points",15],["J. McDaniels","Points",15],["R. Gobert","Rebounds",10]],"2026-11-08","15:10"),
 ("Nov 8 · Parlay 50",340,28.0,99.97,4.77,[["W. Marks","Anytime TD",1]],"2026-11-08","14:37"),
 ("Nov 8 · Parlay 49",1252,7.5,99.99,6.09,[["C. Williams","Anytime TD",1],["C. Williams","Pass yds",275]],"2026-11-08","14:34"),
 ("Nov 8 · Parlay 48",427,22.2,99.96,5.17,[["B. Irving","Anytime TD",1],["C. Williams","Pass TDs",2],["C. Williams","Pass yds",200]],"2026-11-08","14:33"),
