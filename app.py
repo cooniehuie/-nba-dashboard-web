@@ -426,15 +426,19 @@ def grade_bankroll_sheet(frame,game_date):
     if not playercol or not linecol:return []
     games,players=espn_nba_boxscores(game_date.replace("-",""))
     if not games:return []
+    def normalize_team(code):
+        aliases={"GS":"GSW","WSH":"WAS","NY":"NYK","SA":"SAS","NO":"NOP","UTAH":"UTA"}
+        code=str(code).strip().upper()
+        return aliases.get(code,code)
     def norm_team(value):
-        return set(re.findall(r"[A-Z]{2,4}",str(value).upper()))
+        return {normalize_team(code) for code in re.findall(r"[A-Z]{2,4}",str(value).upper())}
     team_pairs={}
     try:
         req=urllib.request.Request("https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard?dates="+game_date.replace("-",""),headers={"User-Agent":"Mozilla/5.0"})
         with urllib.request.urlopen(req,timeout=12) as response:
             for event in json.load(response).get("events",[]):
                 comps=(event.get("competitions") or [{}])[0].get("competitors",[])
-                team_pairs[str(event.get("id"))]={c.get("team",{}).get("abbreviation","").upper() for c in comps}
+                team_pairs[str(event.get("id"))]={normalize_team(c.get("team",{}).get("abbreviation","")) for c in comps}
     except Exception:pass
     rows=[]
     for idx,pick in frame.iterrows():
@@ -447,9 +451,10 @@ def grade_bankroll_sheet(frame,game_date):
         target_match=re.search(r"\d+(?:\.\d+)?",line)
         target=float(target_match.group()) if target_match else None
         expected=norm_team(pick[gamecol]) if gamecol else set()
-        candidate=match_espn_player(player_name,players)
-        if candidate and expected and team_pairs.get(str(candidate["game"]["id"])) not in (None,expected):
-            candidate=None
+        # Resolve a player within the intended matchup, not across the entire slate.
+        # ESPN and the workbook use different abbreviations for some teams.
+        eligible=[p for p in players if not expected or team_pairs.get(str(p["game"]["id"])) in (None,expected)]
+        candidate=match_espn_player(player_name,eligible)
         game=candidate["game"] if candidate else next((g for g in games if expected and team_pairs.get(str(g["id"]))==expected),None)
         actual=candidate["stats"].get(market) if candidate else None
         result="Pending"
