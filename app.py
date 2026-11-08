@@ -1800,7 +1800,13 @@ def show_personal_bets():
             team_legs=[[team,"Winner",1] for team in payout["label"].split(" · ")[-1].split(" / ")]
             overview_bets.append((False,len(overview_bets),payout_key,payout["quantity"],0.0,team_legs,"Won"))
             labels[payout_key]="NFL 7-Leg · Won · Settled 1:43 PM"
-        overview_bets.sort(key=lambda item:(item[0],item[1]))
+        # Keep pending parlays first, losing parlays next, and won parlays last.
+        # Within the won group, order by number of legs (fewest first).
+        overview_bets.sort(key=lambda item:(
+            2 if item[6]=="Won" else (1 if item[6] in ("Loss","Lost") else 0),
+            len(item[5]) if item[6]=="Won" else item[1],
+            item[1]
+        ))
         for missed_final,_,name,qty,price,legs,status in overview_bets:
             matched=next((r for r in dated_bets if r[0]==name and r[1]==qty and r[2]==price),None)
             payout=next((p for p in confirmed_payouts if name=="confirmed-payout:"+p["event_id"]),None)
