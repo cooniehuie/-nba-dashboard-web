@@ -1483,16 +1483,32 @@ def show_personal_bets():
         }
         </style><div class="bet-table">
         <div class="bet-cols bet-head"><span>Combo</span><span>Legs</span><span>Wager</span><span>Potential profit</span><span>Status</span></div>''']
-        for name,qty,price,legs in all_bets:
+        # A confirmed final missed leg makes the entire Yes parlay a loss.
+        # This is a live display status only; do not overwrite manual settlements.
+        overview_bets=[]
+        for original_index,(name,qty,price,legs) in enumerate(all_bets):
+            recorded_status=byid.get(name,{}).get("Status","Pending")
+            missed_final=any(
+                player is not None
+                and player["game"]["state"]=="post"
+                and player["stats"].get(m) is not None
+                and player["stats"][m]<int(t)
+                for p,m,t in legs
+                for player in [match_espn_player(p,overview_players)]
+            )
+            status="Loss" if missed_final else recorded_status
+            overview_bets.append((missed_final,original_index,name,qty,price,legs,status))
+        overview_bets.sort(key=lambda item:(item[0],item[1]))
+        for missed_final,_,name,qty,price,legs,status in overview_bets:
             matched=next((r for r in ROBINHOOD_NOV7_BETS if r[0]==name and r[1]==qty and r[2]==price),None)
             cost=matched[3] if matched else qty*price/100
-            status=byid.get(name,{}).get("Status","Pending")
+            status_style=' style="color:#dc2626;font-weight:700"' if missed_final else ""
             table_html.append('<details class="bet-entry"><summary class="bet-cols">'+
                               '<span>'+esc(labels.get(name,name))+'</span>'+
                               '<span class="bet-number">'+str(len(legs))+'</span>'+
                               '<span class="bet-number">$'+format(cost,",.2f")+'</span>'+
                               '<span class="bet-number">$'+format(qty-cost,",.2f")+'</span>'+
-                              '<span>'+esc(status)+'</span></summary>')
+                              '<span'+status_style+'>'+esc(status)+'</span></summary>')
             table_html.append('<div class="bet-legs"><div style="margin-bottom:8px">Max payout: $'+format(qty,",.2f")+'</div>'+
                               '<table><thead><tr><th>Leg</th><th>Player</th><th>Market</th><th>Target</th><th>Actual</th><th>Needed</th><th>Leg progress</th></tr></thead><tbody>')
             for i,(p,m,t) in enumerate(legs,1):
