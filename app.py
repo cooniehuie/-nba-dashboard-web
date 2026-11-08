@@ -1146,6 +1146,8 @@ PERSONAL_BETS=[
 ("9-leg",1113,7.8,[("A. Nembhard","Assists",6),("C. Braun","Points",10),("J. Murray","Points",20),("N. Jokic","Points",20),("A. Nesmith","Points",10),("P. Siakam","Points",15),("A. Gordon","Rebounds",4),("J. Murray","Rebounds",4),("N. Jokic","Rebounds",8)])
 ]
 ROBINHOOD_NOV7_BETS=[
+("5-leg B2",1201,7.0,99.99,15.92,[["D. Mitchell","Threes",3],["J. Harden","Threes",3],["J. Brunson","Threes",3],["D. Mitchell","Assists",4],["J. Harden","Assists",4]]),
+("4-leg E",352,26.4,99.87,6.94,[["D. Mitchell","Threes",2],["E. Mobley","Threes",1],["J. Harden","Threes",2],["J. Brunson","Threes",2]]),
 ("4-leg D",309,30.3,99.81,6.18,[["N. Alexander-Walker","Threes",3],["C. McCollum","Assists",2],["D. Daniels","Assists",4],["O. Okongwu","Rebounds",6]]),
 ("9-leg",1113,7.8,101.96,15.15,[["A. Nembhard","Assists",6],["C. Braun","Points",10],["J. Murray","Points",20],["N. Jokić","Points",20],["A. Nesmith","Points",10],["P. Siakam","Points",15],["A. Gordon","Rebounds",4],["J. Murray","Rebounds",4],["N. Jokić","Rebounds",8]]),
 ("5-leg",1281,6.5,99.98,16.72,[["N. Alexander-Walker","Threes",3],["J. Murray","Threes",3],["J. Smith Jr.","Threes",2],["T. Silva","Threes",3],["T. Camara","Threes",3]]),
@@ -1317,7 +1319,7 @@ def match_espn_player(short_name,players):
 def show_personal_bets():
     st.title("💸 My Bets · Robinhood")
     st.caption("Admin-only · November 7, 2026 · NBA predictions")
-    st.info("November 7 positions imported from your Robinhood transaction text. Total cost includes actual reported fees for these 17 purchases. No legs have been verified or settled.")
+    st.info("November 7 positions imported from your Robinhood transaction text. Total cost includes actual reported fees for these 19 purchases. No legs have been verified or settled.")
     imported=imported_bet_rows()
     # The imported transaction listing is newest-first; display oldest-first.
     # Retain the original name as the settlement storage key.
@@ -1341,7 +1343,7 @@ def show_personal_bets():
     b.metric("Total potential profit","$"+format(potential_profit,",.2f"))
     c.metric("Realized P/L","$"+format(sum(settled),",.2f") if settled else "Not recorded")
     st.caption(str(len(all_bets))+" combos · "+str(sum(len(legs) for _,_,_,legs in all_bets))+" legs · Potential profit assumes every Yes combo wins, with recorded entry fees included where available; excludes any future exit fees.")
-    st.caption("November 7: $1,800.06 total paid including $172.96 in commissions and fees across 17 purchases. Additional bulk-imported bets are estimated before fees.")
+    st.caption("November 7: $1,999.92 total paid including $195.82 in commissions and fees across 19 purchases. Additional bulk-imported bets are estimated before fees.")
     if storage_ready:
         with st.expander("Record settlement (admin)"):
             with st.form("personal_settlement"):
