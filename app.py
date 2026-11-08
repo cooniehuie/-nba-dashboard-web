@@ -1636,11 +1636,6 @@ def show_personal_bets():
         render_realized_pnl()
     st.caption(str(len(all_bets)+len(confirmed_payouts))+" parlays shown (including "+str(len(confirmed_payouts))+" payout-only settlement) · "+str(sum(len(legs) for _,_,_,legs in all_bets)+7*len(confirmed_payouts))+" legs · Purchase totals exclude payout-only records; potential profit assumes all open Yes combos win.")
     st.caption(selected_day.strftime("%B %-d")+": $"+format(sum(b[3] for b in dated_bets),",.2f")+" paid including $"+format(sum(b[4] for b in dated_bets),",.2f")+" fees across "+str(len(dated_bets))+" recorded purchases. Additional bulk imports are estimated before fees.")
-    if confirmed_payouts:
-        st.subheader("Confirmed Robinhood payouts")
-        for payout in confirmed_payouts:
-            st.success(payout["label"]+" · Won · +$"+format(payout["realized_profit"],",.2f")+" realized profit")
-            st.caption("Settled "+payout["time"]+" PT · "+format(payout["quantity"],",")+" contracts · $"+format(payout["payout"],",.2f")+" payout · $"+format(payout["implied_entry_cost"],",.2f")+" implied entry cost. Excluded from purchase totals.")
     if storage_ready:
         with st.expander("Record settlement (admin)"):
             with st.form("personal_settlement"):
