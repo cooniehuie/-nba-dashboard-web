@@ -2164,45 +2164,6 @@ with st.container(key="mobile_bottom_nav"):
                           type="primary" if section==destination else "secondary",
                           on_click=navigate_phone,args=(destination,))
             st.caption("Uploads, sign-out and admin settings remain in the sidebar.")
-+format(payout['payout'],',.2f')+' · Realized profit: +
-                              '<table><thead><tr><th>Leg</th><th>Player</th><th>Market</th><th>Target</th><th>Actual</th><th>Needed</th><th>Leg progress</th></tr></thead><tbody>')
-            for i,(p,m,t) in enumerate(legs,1):
-                matched_player=match_espn_player(p,overview_players,m)
-                actual=matched_player["stats"].get(m) if matched_player else None
-                state=matched_player["game"]["state"] if matched_player else "unknown"
-                if actual is None:
-                    needed="—"
-                    leg_progress="⚪ Unavailable"
-                    actual_label="—"
-                else:
-                    actual_label=str(actual)
-                    needed=str(max(0,int(t)-actual))
-                    if actual>=int(t):
-                        leg_progress="🟢 Reached"
-                    elif state=="post":
-                        leg_progress="🔴 Missed (final)"
-                    elif state=="in":
-                        leg_progress="🟡 In progress"
-                    else:
-                        leg_progress="⚪ Awaiting game"
-                jersey=matched_player.get('jersey','') if matched_player else ''
-                player_label=p+(' #'+jersey if jersey else '')
-                table_html.append('<tr><td>'+str(i)+'</td><td>'+esc(player_label)+'</td><td>'+esc(m)+'</td><td>'+esc(t)+'+</td><td>'+esc(actual_label)+'</td><td>'+esc(needed)+'</td><td>'+esc(leg_progress)+'</td></tr>')
-            table_html.append('</tbody></table></div></details>')
-        table_html.append('</div>')
-        st.html("".join(table_html))
-    if st.button("▸ Collapse all",key="my_bets_collapse_all",help="Close all expanded parlays in Quick bet overview"):
-        st.rerun()
-    render_bet_overview()
-    from collections import Counter
-    exposure=Counter((p,m,t) for _,_,_,legs in all_bets for p,m,t in legs)
-    st.subheader("Repeated player props")
-    st.caption("Shows which individual outcomes affect multiple combos. Counts are appearances, not independent bets.")
-    repeated=[{"Player":p,"Prop":str(t)+"+ "+m,"Combos depending on it":n} for (p,m,t),n in exposure.most_common() if n>1]
-    if repeated:responsive_dataframe(pd.DataFrame(repeated),"mybets_repeated",preferred=["Prop","Combos depending on it"],hide_index=True,use_container_width=True)
-    else:st.caption("No repeated props.")
-    st.caption("Overlapping legs are tracked separately within combos but financial totals count each combo once. Settlements are manual and never inferred from incomplete box scores.")
-
 with st.sidebar:
     st.title("🏀 Huie's Degen Center")
     st.caption("Public NBA projections & live player tracking")
