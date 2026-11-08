@@ -1320,7 +1320,9 @@ def match_espn_player(short_name,players):
     matches=[]
     for player in players:
         full=norm(player["name"]).split()
-        if len(full)>1 and full[0].startswith(initial) and (" ".join(full[1:])==surname or full[-1]==parts[-1]):
+        # Compare complete surnames, including Jr./III suffixes. Matching only
+        # the final token ("jr") incorrectly groups unrelated players.
+        if len(full)>1 and full[0].startswith(initial) and " ".join(full[1:])==surname:
             matches.append(player)
     return matches[0] if len(matches)==1 else None
 
