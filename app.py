@@ -1470,19 +1470,28 @@ def automatic_parlay_result(legs,players):
 
 def show_personal_bets():
     st.title("💸 My Bets · Robinhood")
-    st.caption("Admin-only · November 7, 2026 · NBA predictions")
+    from datetime import date
+    available_days=[date(2026,11,8),date(2026,11,7)]
+    selected_day=st.selectbox("Bet date",available_days,format_func=lambda d:d.strftime("%B %-d, %Y"),key="my_bets_selected_date")
+    st.caption("Daily bet tracking · Historical bets and settlement records are retained separately.")
     imported=imported_bet_rows()
-    # The imported transaction listing is newest-first; display oldest-first.
-    # Retain the original name as the settlement storage key.
-    original_bets=list(reversed(ROBINHOOD_NOV7_BETS))
-    all_bets=[(name,qty,price,legs) for name,qty,price,cost,fees,legs in original_bets]
+    # Keep original November 7 settlement IDs intact; date selection never overwrites records.
+    historical=list(reversed(ROBINHOOD_NOV7_BETS))
+    current=list(reversed(ROBINHOOD_NOV8_BETS))
+    dated_bets=historical if selected_day==date(2026,11,7) else current
+    all_bets=[(name,qty,price,legs) for name,qty,price,cost,fees,legs,*_ in dated_bets]
     for i,item in enumerate(imported,1):
-        all_bets.append((str(item.get("date",""))+" · Import "+str(i),int(item["qty"]),float(item["cents"]),item["legs"]))
-    # Display labels are separate from persisted settlement IDs.
-    labels={name:f"Parlay {i} - {len(legs)} Legs" for i,(name,qty,price,legs) in enumerate(all_bets,1)}
+        if str(item.get("date",""))==selected_day.isoformat():
+            all_bets.append((str(item.get("date",""))+" · Import "+str(i),int(item["qty"]),float(item["cents"]),item["legs"]))
+    labels={}
+    for i,(name,qty,price,legs) in enumerate(all_bets,1):
+        if selected_day==date(2026,11,7):
+            labels[name]=f"Parlay {i} - {len(legs)} Legs"
+        else:
+            labels[name]=f"Parlay {29+i} - {len(legs)} Legs"
     saved=saved_bet_statuses()
     byid={r["Bet"]:r for _,r in saved.iterrows()} if not saved.empty else {}
-    total=sum(cost for _,_,_,cost,_,_ in ROBINHOOD_NOV7_BETS)+sum(q*p/100 for _,q,p,_ in all_bets[len(ROBINHOOD_NOV7_BETS):])
+    total=sum(row[3] for row in dated_bets)+sum(q*p/100 for name,q,p,legs in all_bets if name not in {row[0] for row in dated_bets})
     settled=[]
     for row in byid.values():
         if row.get("Status") in ["Won","Lost","Closed"]:
@@ -1496,7 +1505,7 @@ def show_personal_bets():
         @st.fragment(run_every="30s")
         def render_realized_pnl():
             from datetime import date
-            selected_day=st.session_state.get("nba_live_date",date(2026,11,7))
+            selected_day=st.session_state.get("my_bets_selected_date",date(2026,11,8))
             try:
                 _,pnl_players=espn_nba_boxscores(selected_day.strftime("%Y%m%d"))
             except Exception:
@@ -1521,7 +1530,7 @@ def show_personal_bets():
                     continue
                 inferred=automatic_parlay_result(legs,pnl_players)
                 if inferred in ("Won","Loss"):
-                    original=next((b for b in ROBINHOOD_NOV7_BETS if b[0]==name and b[1]==qty and b[2]==price),None)
+                    original=next((b for b in dated_bets if b[0]==name and b[1]==qty and b[2]==price),None)
                     cost=original[3] if original else qty*price/100
                     realized_total+=(qty-cost) if inferred=="Won" else -cost
                     if inferred=="Won":
@@ -1533,7 +1542,7 @@ def show_personal_bets():
                 st.caption(str(auto_wins)+" reached parlay(s), "+str(auto_losses)+" losing parlay(s) · ESPN-based estimate, not Robinhood settlement · refreshes every 30s")
         render_realized_pnl()
     st.caption(str(len(all_bets))+" combos · "+str(sum(len(legs) for _,_,_,legs in all_bets))+" legs · Potential profit assumes every Yes combo wins, with recorded entry fees included where available; excludes any future exit fees.")
-    st.caption("November 7: $3008.71 total paid including $289.13 in commissions and fees across 29 purchases. Additional bulk-imported bets are estimated before fees.")
+    st.caption(selected_day.strftime("%B %-d")+": $"+format(sum(b[3] for b in dated_bets),",.2f")+" paid including $"+format(sum(b[4] for b in dated_bets),",.2f")+" fees across "+str(len(dated_bets))+" recorded purchases. Additional bulk imports are estimated before fees.")
     if storage_ready:
         with st.expander("Record settlement (admin)"):
             with st.form("personal_settlement"):
@@ -1556,7 +1565,7 @@ def show_personal_bets():
         st.subheader("🏀 NBA Player Prop Tracker")
         st.caption("Free ESPN public box-score feed (unofficial). Automatically refreshes every 30 seconds while this page is open; cached for up to 30 seconds. Statistical progress is not Robinhood settlement.")
         from datetime import date
-        track_date=st.date_input("Game date",value=date(2026,11,7),key="nba_live_date")
+        track_date=selected_day
         if st.button("↻ Refresh NBA stats",key="refresh_nba_stats"):
             espn_nba_boxscores.clear()
         try:
@@ -1637,7 +1646,7 @@ def show_personal_bets():
         st.subheader("Quick bet overview")
         st.caption("Tap a parlay to see live Actual, Needed, and Leg progress. Uses the game date selected above.")
         from datetime import date
-        selected_day=st.session_state.get("nba_live_date",date(2026,11,7))
+        selected_day=st.session_state.get("my_bets_selected_date",date(2026,11,8))
         try:
             _,overview_players=espn_nba_boxscores(selected_day.strftime("%Y%m%d"))
             overview_error=False
@@ -1682,7 +1691,7 @@ def show_personal_bets():
             overview_bets.append((is_loss,original_index,name,qty,price,legs,status))
         overview_bets.sort(key=lambda item:(item[0],item[1]))
         for missed_final,_,name,qty,price,legs,status in overview_bets:
-            matched=next((r for r in ROBINHOOD_NOV7_BETS if r[0]==name and r[1]==qty and r[2]==price),None)
+            matched=next((r for r in dated_bets if r[0]==name and r[1]==qty and r[2]==price),None)
             cost=matched[3] if matched else qty*price/100
             status_style=(' style="color:#dc2626;font-weight:700"' if missed_final else (' style="color:#16a34a;font-weight:700"' if status=="Won" else ""))
             table_html.append('<details class="bet-entry"><summary class="bet-cols">'+
