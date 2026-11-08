@@ -1962,18 +1962,6 @@ if section=="Overview":
         st.subheader("Today's games")
         if schedule:show_table(schedule,False)
         else:st.info("No game schedule sheet found.")
-        if allprops:
-            candidates=historical_summary(sheets[allprops])
-            if "Recent hits" in candidates:
-                candidates=candidates[(candidates["Recent hits"]==3)&(candidates["Games available"]==3)]
-                st.subheader("🔥 3-for-3 recent performance")
-                st.caption("Historical matches to model projections, not guarantees or betting recommendations.")
-                if len(candidates):
-                    wanted=[lookup(candidates,c) for c in ("Player","Game","Market","Model side","Model projection","Last 3 avg")]
-                    wanted=[c for c in wanted if c]
-                    responsive_dataframe(candidates[wanted].head(12),"overview_three_hits",preferred=["Market","Model side","Model projection","Last 3 avg"],hide_index=True,use_container_width=True)
-                    st.caption(f"{len(candidates)} prop rows had 3 of 3 recent games on the model side.")
-                else:st.info("No props with three available recent games and a 3/3 historical match.")
         st.subheader("Bankroll Builder")
         if bankroll:show_table(bankroll,False)
 
@@ -1993,20 +1981,6 @@ if section=="Overview":
         with st.expander("🏀 Today's Games",expanded=False):
             if schedule:show_table(schedule,False,key_suffix="_mobile_home")
             else:st.info("No game schedule sheet found.")
-        if allprops:
-            candidates=historical_summary(sheets[allprops])
-            if "Recent hits" in candidates:
-                candidates=candidates[(candidates["Recent hits"]==3)&(candidates["Games available"]==3)]
-                with st.expander("🔥 3-for-3 Recent Performance",expanded=False):
-                    st.caption("Historical matches to model projections, not guarantees.")
-                    if len(candidates):
-                        wanted=[lookup(candidates,c) for c in ("Player","Game","Market","Model side","Model projection","Last 3 avg")]
-                        wanted=[c for c in wanted if c]
-                        responsive_dataframe(candidates[wanted].head(12),"overview_three_hits_mobile",
-                                             preferred=["Market","Model side","Model projection","Last 3 avg"],
-                                             hide_index=True,use_container_width=True)
-                        st.caption(f"{len(candidates)} props had 3 of 3 recent games on the model side.")
-                    else:st.info("No recent 3-for-3 props.")
         with st.expander("💰 Bankroll Builder",expanded=False):
             if bankroll:show_table(bankroll,False,key_suffix="_mobile_home")
             else:st.info("No Bankroll Builder sheet found.")
