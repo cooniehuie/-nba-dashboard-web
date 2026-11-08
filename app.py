@@ -1399,7 +1399,9 @@ def show_personal_bets():
                         tipoff=datetime.fromisoformat(start_time.replace("Z","+00:00")).astimezone(ZoneInfo("America/Los_Angeles")).strftime("%-I:%M %p PT")
                     except (ValueError,TypeError):
                         tipoff="Unknown"
-                    rows.append({"Player":p,"Stat":m,"Target":str(t)+"+","Actual":value,
+                    jersey=player.get("jersey","") if player else ""
+                    display_player=p+(" #"+jersey if jersey else "")
+                    rows.append({"Player":display_player,"Stat":m,"Target":str(t)+"+","Actual":value,
                                  "Game time":tipoff,"_sort_time":start_time or "9999",
                                  "Needed":max(0,t-value) if value is not None else None,
                                  "Game":game["name"] if game else "Unmatched",
