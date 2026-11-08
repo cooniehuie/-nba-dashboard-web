@@ -530,7 +530,10 @@ def bankroll_history_frame():
     return frame
 
 def performance_graph(frame):
-    frame=frame[frame["Graded"]>0]
+    # Display newest date first (leftmost), then older dates as you scroll right.
+    frame=frame[frame["Graded"]>0].copy()
+    frame=frame.assign(_sort_date=pd.to_datetime(frame["Date"],errors="coerce"))
+    frame=frame.sort_values("_sort_date",ascending=False,kind="stable").drop(columns="_sort_date")
     wins=int(frame["Wins"].sum())
     losses=int(frame["Losses"].sum())
     excluded=int(frame["Excluded"].sum())
