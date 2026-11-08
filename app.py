@@ -1547,12 +1547,11 @@ def show_personal_bets():
     for i,item in enumerate(imported,1):
         if str(item.get("date",""))==selected_day.isoformat():
             all_bets.append((str(item.get("date",""))+" · Import "+str(i),int(item["qty"]),float(item["cents"]),item["legs"]))
+    # Parlay numbering is display-only and restarts at #1 for each selected date.
+    # Stable internal bet identifiers and settlement records are unchanged.
     labels={}
     for i,(name,qty,price,legs) in enumerate(all_bets,1):
-        if selected_day==date(2026,11,7):
-            labels[name]=f"Parlay {i} - {len(legs)} Legs"
-        else:
-            labels[name]=f"Parlay {29+i} - {len(legs)} Legs"
+        labels[name]=f"Parlay {i} - {len(legs)} Legs"
     saved=saved_bet_statuses()
     byid={r["Bet"]:r for _,r in saved.iterrows()} if not saved.empty else {}
     total=sum(row[3] for row in dated_bets)+sum(q*p/100 for name,q,p,legs in all_bets if name not in {row[0] for row in dated_bets})
