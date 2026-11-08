@@ -1293,7 +1293,8 @@ def espn_nba_boxscores(date_string):
                         athlete_info=athlete.get("athlete",{})
                         players.append({"name":athlete_info.get("displayName",athlete_info.get("fullName","")),
                                         "team":team.get("team",{}).get("abbreviation",""),
-                                        "game":game, "stats":values, "dnp":is_dnp})
+                                        "game":game, "stats":values, "dnp":is_dnp,
+                                        "jersey":str(athlete_info.get("jersey") or athlete.get("jersey") or "").strip()})
         except Exception:
             game["boxscore_error"]=True
     return games,players
@@ -1496,7 +1497,9 @@ def show_personal_bets():
                         leg_progress="🟡 In progress"
                     else:
                         leg_progress="⚪ Awaiting game"
-                table_html.append('<tr><td>'+str(i)+'</td><td>'+esc(p)+'</td><td>'+esc(m)+'</td><td>'+esc(t)+'+</td><td>'+esc(actual_label)+'</td><td>'+esc(needed)+'</td><td>'+esc(leg_progress)+'</td></tr>')
+                jersey=matched_player.get('jersey','') if matched_player else ''
+                player_label=p+(' #'+jersey if jersey else '')
+                table_html.append('<tr><td>'+str(i)+'</td><td>'+esc(player_label)+'</td><td>'+esc(m)+'</td><td>'+esc(t)+'+</td><td>'+esc(actual_label)+'</td><td>'+esc(needed)+'</td><td>'+esc(leg_progress)+'</td></tr>')
             table_html.append('</tbody></table></div></details>')
         table_html.append('</div>')
         st.html("".join(table_html))
