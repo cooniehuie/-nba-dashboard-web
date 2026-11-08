@@ -1793,7 +1793,8 @@ def show_personal_bets():
                               '<span class="bet-number">$'+format(cost,",.2f")+'</span>'+
                               '<span class="bet-number">$'+format(qty-cost,",.2f")+'</span>'+
                               '<span'+status_style+'>'+esc(status)+'</span></summary>')
-            table_html.append('<div class="bet-legs"><div style="margin-bottom:8px">'+('Confirmed payout: 
+            detail=("Confirmed payout: $"+format(payout["payout"],",.2f")+" · Realized profit: +$"+format(payout["realized_profit"],",.2f")+" · Entry cost inferred from payout") if payout else ("Max payout: $"+format(qty,",.2f"))
+            table_html.append('<div class="bet-legs"><div style="margin-bottom:8px">'+esc(detail)+'</div>'+
                               '<table><thead><tr><th>Leg</th><th>Player</th><th>Market</th><th>Target</th><th>Actual</th><th>Needed</th><th>Leg progress</th></tr></thead><tbody>')
             for i,(p,m,t) in enumerate(legs,1):
                 if payout:
