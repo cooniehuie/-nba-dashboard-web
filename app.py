@@ -1347,10 +1347,10 @@ def match_espn_player(short_name,players):
         return matches[0]
     # An initial alone can be ambiguous (e.g. J. Holiday). Prefer a known
     # unambiguous NBA player identity, but never guess from multiple candidates.
-    known_first_names={"j holiday":"jrue"}
+    known_first_names={"j holiday":{"jrue"},"c johnson":{"cameron","cam"}}
     preferred=known_first_names.get(" ".join(parts))
     if preferred and len(matches)>1:
-        exact=[p for p in matches if norm(p["name"]).split()[0]==preferred]
+        exact=[p for p in matches if norm(p["name"]).split()[0] in preferred]
         if len(exact)==1:
             return exact[0]
     return None
