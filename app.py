@@ -1332,9 +1332,14 @@ def match_espn_player(short_name,players):
     matches=[]
     for player in players:
         full=norm(player["name"]).split()
-        # Compare complete surnames, including Jr./III suffixes. Matching only
-        # the final token ("jr") incorrectly groups unrelated players.
-        if len(full)>1 and full[0].startswith(initial) and " ".join(full[1:])==surname:
+        if len(full)<2 or not full[0].startswith(initial):
+            continue
+        full_surname=" ".join(full[1:])
+        # Robinhood abbreviates Tristan da Silva as T. Silva. Permit omission
+        # of surname particles, but never ignore Jr./III suffixes.
+        particles={"da","de","del","van","von","di","dos","du","la","le"}
+        without_particles=" ".join(part for part in full[1:] if part not in particles)
+        if surname in (full_surname,without_particles):
             matches.append(player)
     return matches[0] if len(matches)==1 else None
 
