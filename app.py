@@ -1269,6 +1269,23 @@ ROBINHOOD_NOV7_BETS=[
 ("3-leg H",286,32.9,99.82,5.73,[["O. Toppin","Points",10],["J. Smith Jr.","Points",10],["T. Silva","Points",10]])
 ]
 
+ROBINHOOD_NOV8_BETS=[
+("Nov 8 · Parlay 43",468,20.2,99.82,5.28,[["C. McCaffrey","Rush yds",60],["T. McMillan","Rec yds",60],["J. Gibbs","Rec yds",20]],"2026-11-08","10:00"),
+("Nov 8 · Parlay 42",1104,7.7,99.98,14.97,[["A. Simons","Threes",1],["J. Brown","Assists",4],["L. James","Assists",6],["J. Brown","Points",15],["T. Maxey","Rebounds",4],["V. Edgecombe","Rebounds",6]],"2026-11-08","09:46"),
+("Nov 8 · Parlay 41",1393,5.9,99.99,17.8,[["A. Simons","Threes",2],["J. Brown","Threes",2],["T. Maxey","Threes",3],["V. Edgecombe","Threes",2]],"2026-11-08","09:41"),
+("Nov 8 · Parlay 40",233,40.8,99.73,4.67,[["A. Simons","Threes",1],["J. Brown","Threes",1],["T. Maxey","Threes",2],["V. Edgecombe","Threes",1]],"2026-11-08","09:40"),
+("Nov 8 · Parlay 39",528,17.2,99.86,9.04,[["D. Sharpe","Assists",4],["T. Herro","Assists",4],["D. Peterson","Assists",4]],"2026-11-08","09:31"),
+("Nov 8 · Parlay 38",274,35,99.89,3.99,[["C. Douglas","Rec yds",25],["A. Williams","Rec yds",25],["D. Robinson","Rec yds",25]],"2026-11-08","09:25"),
+("Nov 8 · Parlay 37",334,27.9,99.87,6.68,[["P. Pritchard","Points",10],["P. Larsson","Points",10],["M. Strus","Points",10]],"2026-11-08","09:22"),
+("Nov 8 · Parlay 36",219,43.6,99.87,4.39,[["J. Randle","Assists",2],["N. Marshall","Assists",2],["D. Mitchell","Assists",4],["D. Acuff Jr.","Assists",4],["D. Sabonis","Assists",4],["J. Fears","Assists",2]],"2026-11-08","09:20"),
+("Nov 8 · Parlay 35",257,36.8,99.72,5.14,[["P. Washington","Threes",1],["J. Jaquez Jr.","Threes",1],["D. Robinson","Threes",3]],"2026-11-08","09:17"),
+("Nov 8 · Parlay 34",274,34.4,99.74,5.48,[["B. Portis","Rebounds",4],["P. Achiuwa","Rebounds",4],["J. Embiid","Rebounds",6],["R. Gobert","Rebounds",10]],"2026-11-08","09:16"),
+("Nov 8 · Parlay 33",360,26.4,99.94,4.9,[["J. Gibbs","Anytime TD",1],["J. Williams","Anytime TD",1],["K. Williams","Anytime TD",1]],"2026-11-08","09:13"),
+("Nov 8 · Parlay 32",316,30.2,99.92,4.49,[["G. Smith","Pass yds",175],["J. Goff","Pass yds",200],["J. McCarthy","Pass yds",175],["T. Shough","Pass yds",175]],"2026-11-08","08:45"),
+("Nov 8 · Parlay 31",1489,6.3,99.96,6.15,[["K. Walker","Anytime TD",1],["J. Gibbs","Anytime TD",1],["C. Hubbard","Anytime TD",1],["P. Nacua","Anytime TD",1],["C. Lamb","Anytime TD",1]],"2026-11-08","07:07"),
+("Nov 8 · Parlay 30",1252,7.5,99.99,6.09,[["M. Gesicki","Anytime TD",1],["I. Likely","Anytime TD",1]],"2026-11-08","07:04")
+]
+
 @st.cache_data(ttl=120,show_spinner=False)
 def saved_bet_statuses():
     try:
