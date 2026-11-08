@@ -1531,7 +1531,8 @@ def match_espn_player(short_name,players,market=None):
     # surname match (e.g. Jameson Williams instead of Javonte Williams).
     if market in ("Pass yds","Rush yds","Rec yds","Anytime TD"):
         nfl_first={"j williams":{"javonte"},"k williams":{"kyren"},
-                   "j mccarthy":{"jj","jonathan"}}
+                   "j mccarthy":{"jj","jonathan"},
+                   "d robinson":{"demarcus","demarcus"}}
         preferred_first=nfl_first.get(" ".join(parts))
         if preferred_first:
             exact=[p for p in matches if norm(p.get("name","")).split()[0] in preferred_first]
