@@ -1518,6 +1518,14 @@ def match_espn_player(short_name,players,market=None):
         if len(full)>1 and full[0].startswith(first) and surname_matches(full):
             matches.append(player)
     if len(matches)==1:return matches[0]
+    # NFL player-specific disambiguation: Kyren Williams versus other K. Williams.
+    # Keep J. Williams unresolved if multiple players share the abbreviation.
+    if market in ("Pass yds","Rush yds","Rec yds","Anytime TD"):
+        nfl_aliases={"k williams":{"kyren"}}
+        nfl_preferred=nfl_aliases.get(" ".join(parts))
+        if nfl_preferred:
+            exact=[p for p in matches if norm(p.get("name","")).split()[0] in nfl_preferred]
+            if len(exact)==1:return exact[0]
     preferred=aliases.get(" ".join(parts))
     if preferred and matches:
         exact=[p for p in matches if norm(p.get("name","")).split()[0] in preferred]
