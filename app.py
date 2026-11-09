@@ -1456,6 +1456,15 @@ def espn_nfl_boxscores(date_string):
         game={"name":event.get("shortName",event.get("name","NFL")),"start_utc":event.get("date",""),
               "state":status.get("state","unknown"),"detail":status.get("shortDetail",status.get("detail",""))}
         games.append(game)
+        # Preserve a live-game association for known bet players even before
+        # ESPN includes them in a statistical box-score category. Never infer
+        # participation or a zero from these placeholders.
+        competitors=event.get("competitions",[{}])[0].get("competitors",[])
+        team_codes={str(c.get("team",{}).get("abbreviation","")).upper() for c in competitors}
+        if "TB" in team_codes or "TAM" in team_codes:
+            for full_name in ("Emeka Egbuka","Bucky Irving","Chris Godwin Jr."):
+                players.append({"name":full_name,"game":game,"stats":{},
+                                "jersey":"","sport":"NFL","game_only":True})
         try:
             summary=fetch("https://site.api.espn.com/apis/site/v2/sports/football/nfl/summary?event="+str(event["id"]))
             for team in summary.get("boxscore",{}).get("players",[]):
@@ -1487,10 +1496,16 @@ def espn_nfl_boxscores(date_string):
                         # Total touchdowns from rushing and receiving; do not double-count player rows.
                         if kind in ("rushing","receiving"):
                             values["_td_"+kind]=numeric(["TD","TDS"])
-                        existing=next((p for p in players if p["name"]==name and p["game"] is game),None)
+                        def athlete_key(value):
+                            return " ".join(str(value).lower().replace(".","").split()).removesuffix(" jr")
+                        existing=next((p for p in players if p["game"] is game
+                                       and athlete_key(p["name"])==athlete_key(name)),None)
                         if existing is None:
                             existing={"name":name,"game":game,"stats":{},"jersey":str(info.get("jersey") or ""),"sport":"NFL"}
                             players.append(existing)
+                        existing["name"]=name
+                        existing["jersey"]=str(info.get("jersey") or existing.get("jersey",""))
+                        existing["game_only"]=False
                         existing["stats"].update({k:v for k,v in values.items() if v is not None})
             for p in players:
                 if p["game"] is game:
@@ -1724,6 +1739,7 @@ def show_personal_bets():
                     if value is None:
                         progress=("⚪ DNP" if player and player.get("dnp") and state=="post"
                                   else "⚪ Awaiting tipoff" if state=="pre"
+                                  else "🟡 Game live · stats pending" if player and state=="in"
                                   else "⚪ Stats pending" if player
                                   else "⚪ Unmatched / unavailable")
                     elif value>=t:
