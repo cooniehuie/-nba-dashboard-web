@@ -1271,6 +1271,7 @@ ROBINHOOD_NOV7_BETS=[
 ]
 
 ROBINHOOD_NOV8_BETS=[
+("Nov 8 · Parlay 68",1177,12.0,149.95,8.71,[["Tampa Bay","Game winner",1]],"2026-11-08","20:13"),
 ("Nov 8 · Parlay 67",1128,10.0,119.91,7.11,[["Tampa Bay","Game winner",1]],"2026-11-08","19:59"),
 ("Nov 8 · Parlay 66",408,47.5,199.91,6.11,[["D. Swift","Rush+Rec yds",-70],["D. Swift","Receptions",-2]],"2026-11-08","19:25"),
 ("Nov 8 · Parlay 65",419,22.6,99.83,5.14,[["C. Williams","Pass TDs",4],["C. Williams","Pass yds",300]],"2026-11-08","18:06"),
