@@ -1840,8 +1840,20 @@ def show_personal_bets():
             payout=next((p for p in confirmed_payouts if name=="confirmed-payout:"+p["event_id"]),None)
             cost=payout["implied_entry_cost"] if payout else (matched[3] if matched else qty*price/100)
             status_style=(' style="color:#dc2626;font-weight:700"' if missed_final else (' style="color:#16a34a;font-weight:700"' if status=="Won" else ""))
+            # Highlight a parlay in the collapsed overview whenever at least
+            # one of its player games is currently live and its leg is unresolved.
+            has_live_leg=False
+            if not payout and status=="Pending":
+                for player_name,market,target in legs:
+                    live_player=match_espn_player(player_name,overview_players,market)
+                    if live_player and live_player["game"]["state"]=="in":
+                        live_actual=live_player["stats"].get(market)
+                        if live_actual is None or live_actual<int(target):
+                            has_live_leg=True
+                            break
+            live_indicator=' <span title="At least one leg is in progress" style="color:#b77900;font-weight:700">🟡 Live</span>' if has_live_leg else ""
             table_html.append('<details class="bet-entry"><summary class="bet-cols">'+
-                              '<span>'+esc(labels.get(name,name))+'</span>'+
+                              '<span>'+esc(labels.get(name,name))+live_indicator+'</span>'+
                               '<span class="bet-number">'+str(len(legs))+'</span>'+
                               '<span class="bet-number">$'+format(cost,",.2f")+'</span>'+
                               '<span class="bet-number">$'+format(qty-cost,",.2f")+'</span>'+
