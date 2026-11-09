@@ -1574,7 +1574,7 @@ def match_espn_player(short_name,players,market=None):
     # Known NFL initials must be checked before accepting a unique but wrong
     # surname match (e.g. Jameson Williams instead of Javonte Williams).
     if market in ("Pass yds","Pass TDs","Rush yds","Rec yds","Rush+Rec yds","Anytime TD","Receptions"):
-        nfl_first={"j williams":{"javonte"},"k williams":{"kyren"},
+        nfl_first={"g smith":{"geno"},"j williams":{"javonte"},"k williams":{"kyren"},
                    "j mccarthy":{"jj","jonathan"},
                    "d robinson":{"demarcus","demarcus"}}
         preferred_first=nfl_first.get(" ".join(parts))
@@ -1592,6 +1592,7 @@ def match_espn_player(short_name,players,market=None):
     # Keep J. Williams unresolved if multiple players share the abbreviation.
     if market in ("Pass yds","Pass TDs","Rush yds","Rec yds","Rush+Rec yds","Anytime TD","Receptions"):
         nfl_aliases={
+            "g smith":{"geno"},
             "k williams":{"kyren"},
             "j williams":{"javonte"},
             "j mccarthy":{"jj","jonathan"}
