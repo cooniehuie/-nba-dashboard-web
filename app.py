@@ -1533,7 +1533,7 @@ def match_espn_player(short_name,players,market=None):
         value=value.replace("\u2019","").replace("\u0027","").replace("\u02bc","")
         # ESPN may use P.J. / J.J. as a single first name. Preserve those initials
         # as PJ / JJ rather than treating J as part of the surname.
-        value=re.sub(r"\\b([a-z])\\.\\s*([a-z])\\.",r"\\1\\2",value)
+        value=re.sub(r"\b([a-z])\.\s*([a-z])\.",r"\1\2",value)
         return " ".join("".join(ch if ch.isalnum() else " " for ch in value).split())
     parts=norm(short_name).split()
     if market:
@@ -1546,6 +1546,15 @@ def match_espn_player(short_name,players,market=None):
              "m porter jr":{"michael"},"t silva":{"tristan"}}
     first=parts[0]
     surname=parts[1:]
+    # Robinhood P. Washington refers to ESPN's PJ Washington (Jr.).
+    if market not in ("Pass yds","Pass TDs","Rush yds","Rec yds","Rush+Rec yds","Anytime TD","Receptions") and parts==["p","washington"]:
+        candidates=[]
+        for athlete in players:
+            full=norm(athlete.get("name","")).split()
+            if len(full)>1 and full[0]=="pj" and full[1]=="washington" and (len(full)==2 or full[2:]==["jr"]):
+                candidates.append(athlete)
+        if len(candidates)==1:
+            return candidates[0]
     def strip_particles(seq):
         return [x for x in seq if x not in particles]
     def surname_matches(full):
