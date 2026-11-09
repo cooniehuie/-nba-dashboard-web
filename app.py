@@ -1271,6 +1271,7 @@ ROBINHOOD_NOV7_BETS=[
 ]
 
 ROBINHOOD_NOV8_BETS=[
+("Nov 8 · Parlay 66",408,47.5,199.91,6.11,[["D. Swift","Rush+Rec yds",-70],["D. Swift","Receptions",-2]],"2026-11-08","19:25"),
 ("Nov 8 · Parlay 65",419,22.6,99.83,5.14,[["C. Williams","Pass TDs",4],["C. Williams","Pass yds",300]],"2026-11-08","18:06"),
 ("Nov 8 · Parlay 64",255,37.2,99.96,5.1,[["D. Acuff Jr.","Assists",6],["P. Achiuwa","Points",10],["P. Achiuwa","Rebounds",6]],"2026-11-08","17:52"),
 ("Nov 8 · Parlay 63",1113,7.8,101.96,15.15,[["D. Acuff Jr.","Assists",10],["P. Achiuwa","Rebounds",10]],"2026-11-08","17:52"),
@@ -1617,6 +1618,12 @@ def automatic_parlay_result(legs,players):
         actual=player["stats"].get(market) if player else None
         if actual is None:
             all_reached=False
+        elif int(target)<0:
+            if actual>=abs(int(target)):
+                missed_final=True
+                all_reached=False
+            elif player["game"]["state"]!="post":
+                all_reached=False
         elif actual<int(target):
             all_reached=False
             if player["game"]["state"]=="post":
@@ -1761,6 +1768,8 @@ def show_personal_bets():
                                   else "🟡 Game live · stats pending" if player and state=="in"
                                   else "⚪ Stats pending" if player
                                   else "⚪ Unmatched / unavailable")
+                    elif t<0:
+                        progress=("🔴 No lost" if value>=abs(t) else "🟢 No won (final)" if state=="post" else "🟡 No still possible")
                     elif value>=t:
                         progress="🟢 Reached"
                     elif state=="post":
@@ -1775,16 +1784,16 @@ def show_personal_bets():
                         tipoff="Unknown"
                     jersey=player.get("jersey","") if player else ""
                     display_player=p+(" #"+jersey if jersey else "")
-                    rows.append({"Player":display_player,"Stat":m,"Target":str(t)+"+","Actual":value,
+                    rows.append({"Player":display_player,"Stat":m,"Target":("No "+str(abs(t))+"+" if t<0 else str(t)+"+"),"Actual":value,
                                  "Game time":tipoff,"_sort_time":start_time or "9999",
-                                 "Needed":max(0,t-value) if value is not None else None,
+                                 "Needed":(max(0,abs(t)-value) if t<0 else max(0,t-value)) if value is not None else None,
                                  "Game":game["name"] if game else "Unmatched",
                                  "Clock / Status":game["detail"] if game else "Unavailable",
                                  "Leg progress":progress})
                 combos=[]
                 for name,qty,price,legs in all_bets:
                     values=[actuals.get((p,m,int(t))) for p,m,t in legs]
-                    hit=sum(v is not None and v>=int(t) for v,(_,_,t) in zip(values,legs))
+                    hit=sum(v is not None and ((v<abs(int(t)) and (match_espn_player(p,players,m) or {}).get("game",{}).get("state")=="post") if t<0 else v>=int(t)) for v,(p,m,t) in zip(values,legs))
                     unknown=sum(v is None for v in values)
                     combos.append({"Combo":labels.get(name,name),"Reached":str(hit)+"/"+str(len(legs)),
                                    "Unavailable legs":unknown,"Progress":hit/len(legs) if legs else 0})
@@ -1891,7 +1900,7 @@ def show_personal_bets():
                     live_player=match_espn_player(player_name,overview_players,market)
                     if live_player and live_player["game"]["state"]=="in":
                         live_actual=live_player["stats"].get(market)
-                        if live_actual is None or live_actual<int(target):
+                        if live_actual is None or (live_actual<abs(int(target)) if int(target)<0 else live_actual<int(target)):
                             has_live_leg=True
                             break
             live_indicator=' <span title="At least one leg is in progress" style="color:#b77900;font-weight:700">🟡 Live</span>' if has_live_leg else ""
@@ -1925,8 +1934,10 @@ def show_personal_bets():
                     actual_label="—"
                 else:
                     actual_label=str(actual)
-                    needed=str(max(0,int(t)-actual))
-                    if actual>=int(t):
+                    needed=str(max(0,abs(int(t))-actual)) if int(t)<0 else str(max(0,int(t)-actual))
+                    if int(t)<0:
+                        leg_progress=("🔴 No lost" if actual>=abs(int(t)) else "🟢 No won (final)" if state=="post" else "🟡 No still possible")
+                    elif actual>=int(t):
                         leg_progress="🟢 Reached"
                     elif state=="post":
                         leg_progress="🔴 Missed (final)"
@@ -1936,7 +1947,7 @@ def show_personal_bets():
                         leg_progress="⚪ Awaiting game"
                 jersey=matched_player.get('jersey','') if matched_player else ''
                 player_label=p+(' #'+jersey if jersey else '')
-                table_html.append('<tr><td>'+str(i)+'</td><td>'+esc(player_label)+'</td><td>'+esc(m)+'</td><td>'+esc(t)+'+</td><td>'+esc(actual_label)+'</td><td>'+esc(needed)+'</td><td>'+esc(leg_progress)+'</td></tr>')
+                table_html.append('<tr><td>'+str(i)+'</td><td>'+esc(player_label)+'</td><td>'+esc(m)+'</td><td>'+esc(('No '+str(abs(int(t)))+'+') if int(t)<0 else str(t)+'+')+'</td><td>'+esc(actual_label)+'</td><td>'+esc(needed)+'</td><td>'+esc(leg_progress)+'</td></tr>')
             table_html.append('</tbody></table></div></details>')
         table_html.append('</div>')
         st.html("".join(table_html))
@@ -1947,7 +1958,7 @@ def show_personal_bets():
     exposure=Counter((p,m,t) for _,_,_,legs in all_bets for p,m,t in legs)
     st.subheader("Repeated player props")
     st.caption("Shows which individual outcomes affect multiple combos. Counts are appearances, not independent bets.")
-    repeated=[{"Player":p,"Prop":str(t)+"+ "+m,"Combos depending on it":n} for (p,m,t),n in exposure.most_common() if n>1]
+    repeated=[{"Player":p,"Prop":("No "+str(abs(t))+"+" if t<0 else str(t)+"+")+" "+m,"Combos depending on it":n} for (p,m,t),n in exposure.most_common() if n>1]
     if repeated:responsive_dataframe(pd.DataFrame(repeated),"mybets_repeated",preferred=["Prop","Combos depending on it"],hide_index=True,use_container_width=True)
     else:st.caption("No repeated props.")
     st.caption("Overlapping legs are tracked separately within combos but financial totals count each combo once. Settlements are manual and never inferred from incomplete box scores.")
