@@ -1528,6 +1528,8 @@ def match_espn_player(short_name,players,market=None):
     import unicodedata
     def norm(value):
         value=unicodedata.normalize("NFKD",str(value).lower())
+        # Apostrophes inside first names are not word separators: D\u2019Andre -> dandre.
+        value=value.replace("\u2019","").replace("\u0027","").replace("\u02bc","")
         return " ".join("".join(ch if ch.isalnum() else " " for ch in value).split())
     parts=norm(short_name).split()
     if market:
