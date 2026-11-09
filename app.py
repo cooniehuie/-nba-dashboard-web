@@ -1524,6 +1524,7 @@ def espn_nfl_boxscores(date_string):
     return games,players
 
 def match_espn_player(short_name,players,market=None):
+    import re
     """Match Robinhood initials to ESPN athletes without confusing same-surname players."""
     import unicodedata
     def norm(value):
