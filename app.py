@@ -1478,10 +1478,12 @@ def espn_nfl_boxscores(date_string):
                         values={}
                         if kind=="passing":
                             values["Pass yds"]=numeric(["YDS","PASS YDS"])
+                            values["Pass TDs"]=numeric(["TD","TDS","PASS TD"])
                         elif kind=="rushing":
                             values["Rush yds"]=numeric(["YDS","RUSH YDS"])
                         elif kind=="receiving":
                             values["Rec yds"]=numeric(["YDS","REC YDS"])
+                            values["Receptions"]=numeric(["REC","RECEPTIONS"])
                         # Total touchdowns from rushing and receiving; do not double-count player rows.
                         if kind in ("rushing","receiving"):
                             values["_td_"+kind]=numeric(["TD","TDS"])
@@ -1495,6 +1497,10 @@ def espn_nfl_boxscores(date_string):
                     tds=[p["stats"].get("_td_rushing"),p["stats"].get("_td_receiving")]
                     if any(v is not None for v in tds):
                         p["stats"]["Anytime TD"]=sum(v or 0 for v in tds)
+                    rush=p["stats"].get("Rush yds")
+                    rec=p["stats"].get("Rec yds")
+                    if rush is not None or rec is not None:
+                        p["stats"]["Rush+Rec yds"]=(rush or 0)+(rec or 0)
         except Exception:
             game["boxscore_error"]=True
     return games,players
@@ -1507,7 +1513,7 @@ def match_espn_player(short_name,players,market=None):
         return " ".join("".join(ch if ch.isalnum() else " " for ch in value).split())
     parts=norm(short_name).split()
     if market:
-        sport="NFL" if market in ("Pass yds","Rush yds","Rec yds","Anytime TD") else "NBA"
+        sport="NFL" if market in ("Pass yds","Pass TDs","Rush yds","Rec yds","Rush+Rec yds","Anytime TD","Receptions") else "NBA"
         players=[p for p in players if p.get("sport","NBA")==sport]
     if len(parts)<2:return None
     particles={"da","de","del","van","von","di","dos","du","la","le"}
@@ -1534,7 +1540,7 @@ def match_espn_player(short_name,players,market=None):
             matches.append(player)
     # Known NFL initials must be checked before accepting a unique but wrong
     # surname match (e.g. Jameson Williams instead of Javonte Williams).
-    if market in ("Pass yds","Rush yds","Rec yds","Anytime TD"):
+    if market in ("Pass yds","Pass TDs","Rush yds","Rec yds","Rush+Rec yds","Anytime TD","Receptions"):
         nfl_first={"j williams":{"javonte"},"k williams":{"kyren"},
                    "j mccarthy":{"jj","jonathan"},
                    "d robinson":{"demarcus","demarcus"}}
@@ -1551,7 +1557,7 @@ def match_espn_player(short_name,players,market=None):
     if len(matches)==1:return matches[0]
     # NFL player-specific disambiguation: Kyren Williams versus other K. Williams.
     # Keep J. Williams unresolved if multiple players share the abbreviation.
-    if market in ("Pass yds","Rush yds","Rec yds","Anytime TD"):
+    if market in ("Pass yds","Pass TDs","Rush yds","Rec yds","Rush+Rec yds","Anytime TD","Receptions"):
         nfl_aliases={
             "k williams":{"kyren"},
             "j williams":{"javonte"},
