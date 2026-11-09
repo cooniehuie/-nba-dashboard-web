@@ -1639,6 +1639,10 @@ def automatic_parlay_result(legs,players):
 
 
 ROBINHOOD_CONFIRMED_BET_SETTLEMENTS={
+    "Nov 8 · Parlay 55":{"date":"2026-11-08","time":"20:57","status":"Won",
+        "settlement_price":0.80,"quantity":348,"payout":278.40,
+        "realized_profit":185.48,"event_id":"8fd533eb-6ceb-4384-be6a-49cb393b9bf5",
+        "note":"Robinhood-confirmed settlement; realized profit overrides inferred ESPN leg outcomes."},
     "Nov 8 · Parlay 36":{"date":"2026-11-08","time":"20:58","status":"Won",
         "settlement_price":0.83,"quantity":219,"payout":181.77,
         "realized_profit":86.29,"event_id":"9d9614a4-83dd-49ef-ac99-615b0c952015",
