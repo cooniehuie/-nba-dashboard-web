@@ -1945,7 +1945,18 @@ def show_personal_bets():
                               '<span'+status_style+'>'+esc(status)+'</span></summary>')
             confirmed_bet=ROBINHOOD_CONFIRMED_BET_SETTLEMENTS.get(name)
             if confirmed_bet:
-                detail=f"Robinhood settled {confirmed_bet['time']} at ${confirmed_bet['settlement_price']:.2f} · Payout: ${confirmed_bet['payout']:,.2f} · Realized profit: +${confirmed_bet['realized_profit']:,.2f} · Robinhood settlement confirmed"
+                if all(key in confirmed_bet for key in ("time","settlement_price","payout")):
+                    realized=float(confirmed_bet.get("realized_profit",0))
+                    pnl_text=("-" if realized<0 else "+")+"$"+format(abs(realized),",.2f")
+                    detail=(f"Robinhood settled {confirmed_bet['time']} at ${confirmed_bet['settlement_price']:.2f}"
+                            +f" · Payout: ${confirmed_bet['payout']:,.2f} · Realized P/L: {pnl_text}"
+                            +" · Robinhood settlement confirmed")
+                else:
+                    realized=float(confirmed_bet.get("realized_profit",0))
+                    pnl_text=("-" if realized<0 else "+")+"$"+format(abs(realized),",.2f")
+                    detail=("Game result: "+str(confirmed_bet.get("status","Pending"))
+                            +" · Estimated P/L: "+pnl_text
+                            +" · Robinhood settlement not yet confirmed")
             elif payout:
                 payout_amount=float(payout["payout"])
                 profit_amount=float(payout["realized_profit"])
