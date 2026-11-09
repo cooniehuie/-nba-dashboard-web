@@ -1420,7 +1420,12 @@ def espn_nba_boxscores(date_string):
                     labels=[str(x).upper() for x in group.get("labels",[])]
                     keys=[str(x).lower() for x in group.get("keys",[])]
                     for athlete in group.get("athletes",[]):
+                        # Only mark DNP when ESPN explicitly reports non-participation.
+                        # Missing/unmatched stats alone do not establish a DNP.
                         is_dnp=bool(athlete.get("didNotPlay") or athlete.get("inactive"))
+                        reason=str(athlete.get("reason") or athlete.get("status") or "").lower()
+                        if reason in ("dnp","did not play","inactive"):
+                            is_dnp=True
                         stats=athlete.get("stats",[])
                         def stat(names):
                             for key in names:
@@ -1440,7 +1445,7 @@ def espn_nba_boxscores(date_string):
                         athlete_info=athlete.get("athlete",{})
                         players.append({"name":athlete_info.get("displayName",athlete_info.get("fullName","")),
                                         "team":team.get("team",{}).get("abbreviation",""),
-                                        "game":game, "stats":values, "dnp":is_dnp,
+                                        "game":game, "stats":({k:None for k in values} if is_dnp else values), "dnp":is_dnp,
                                         "jersey":str(athlete_info.get("jersey") or athlete.get("jersey") or "").strip()})
         except Exception:
             game["boxscore_error"]=True
@@ -1777,7 +1782,7 @@ def show_personal_bets():
                     game=player["game"] if player else None
                     state=game["state"] if game else "unknown"
                     if value is None:
-                        progress=("⚪ DNP" if player and player.get("dnp") and state=="post"
+                        progress=("⚪ DNP (final)" if player and player.get("dnp") and state=="post"
                                   else "⚪ Awaiting tipoff" if state=="pre"
                                   else "🟡 Game live · stats pending" if player and state=="in"
                                   else "⚪ Stats pending" if player
@@ -1948,7 +1953,7 @@ def show_personal_bets():
                 state=matched_player["game"]["state"] if matched_player else "unknown"
                 if actual is None:
                     needed="—"
-                    leg_progress=("⚪ DNP" if matched_player and matched_player.get("dnp") and state=="post"
+                    leg_progress=("⚪ DNP (final)" if matched_player and matched_player.get("dnp") and state=="post"
                                   else "⚪ Awaiting tipoff" if state=="pre"
                                   else "⚪ Stats pending" if matched_player
                                   else "⚪ Unmatched / unavailable")
