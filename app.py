@@ -96,6 +96,9 @@ h1,h2,h3{letter-spacing:-.025em}
 .mobile-data-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
 .mobile-data-title{font-size:1.05rem;line-height:1.3;font-weight:800;min-width:0}
 .mobile-data-badge{font-size:.7rem;font-weight:700;border:1px solid #94a3b866;border-radius:30px;padding:4px 8px;max-width:48%;text-align:right}
+.mobile-data-badge.status-hit{background:#dcfce7!important;border-color:#16a34a!important;color:#166534!important}
+.mobile-data-badge.status-miss{background:#fee2e2!important;border-color:#dc2626!important;color:#991b1b!important}
+.mobile-data-badge.status-unverified{background:#e5e7eb!important;border-color:#9ca3af!important;color:#374151!important}
 .mobile-data-context{font-size:.78rem;opacity:.76;margin:6px 0}
 .mobile-data-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin:11px 0 7px}
 .mobile-data-field{background:#94a3b81b;padding:9px 10px;border-radius:9px;min-width:0}
@@ -618,7 +621,12 @@ def mobile_cards(frame,preferred=None,max_rows=150):
         ctx=" · ".join(safe(row[c]) for c in context if safe(row[c])!="—")
         badge=safe(row[status]) if status else ""
         pieces.append('<article class="mobile-data-card"><div class="mobile-data-top"><div class="mobile-data-title">'+safe(row[title_col])+'</div>')
-        if badge and badge!="—":pieces.append('<span class="mobile-data-badge">'+badge+'</span>')
+        if badge and badge!="—":
+            status_text=html.unescape(badge).lower()
+            status_class=("status-hit" if status_text in ("hit","🟢 hit") else
+                          "status-miss" if status_text in ("loss","miss","🔴 miss") else
+                          "status-unverified" if status_text in ("unverified","pending","dnp","⚪ unverified") else "")
+            pieces.append('<span class="mobile-data-badge '+status_class+'">'+badge+'</span>')
         pieces.append('</div>')
         if ctx:pieces.append('<div class="mobile-data-context">'+ctx+'</div>')
         fields=priorities[:4] or [c for c in cols if c not in [title_col,status]+context][:4]
