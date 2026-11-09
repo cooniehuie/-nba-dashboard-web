@@ -1639,6 +1639,11 @@ def automatic_parlay_result(legs,players):
 
 
 ROBINHOOD_CONFIRMED_BET_SETTLEMENTS={
+    # Game-result losses reported by user; Robinhood contract settlement not yet supplied.
+    "Nov 8 · Parlay 68":{"date":"2026-11-08","status":"Loss",
+        "realized_profit":-149.95,"note":"Tampa Bay lost; estimated full entry-cost loss pending Robinhood settlement."},
+    "Nov 8 · Parlay 67":{"date":"2026-11-08","status":"Loss",
+        "realized_profit":-119.91,"note":"Tampa Bay lost; estimated full entry-cost loss pending Robinhood settlement."},
     "Nov 8 · Parlay 55":{"date":"2026-11-08","time":"20:57","status":"Won",
         "settlement_price":0.80,"quantity":348,"payout":278.40,
         "realized_profit":185.48,"event_id":"8fd533eb-6ceb-4384-be6a-49cb393b9bf5",
