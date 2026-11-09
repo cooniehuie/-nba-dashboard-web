@@ -1271,6 +1271,7 @@ ROBINHOOD_NOV7_BETS=[
 ]
 
 ROBINHOOD_NOV8_BETS=[
+("Nov 8 · Parlay 65",419,22.6,99.83,5.14,[["C. Williams","Pass TDs",4],["C. Williams","Pass yds",300]],"2026-11-08","18:06"),
 ("Nov 8 · Parlay 64",255,37.2,99.96,5.1,[["D. Acuff Jr.","Assists",6],["P. Achiuwa","Points",10],["P. Achiuwa","Rebounds",6]],"2026-11-08","17:52"),
 ("Nov 8 · Parlay 63",1113,7.8,101.96,15.15,[["D. Acuff Jr.","Assists",10],["P. Achiuwa","Rebounds",10]],"2026-11-08","17:52"),
 ("Nov 8 · Parlay 62",1286,7.3,99.98,6.10,[["D. Swift","Rush yds",50],["E. Egbuka","Rec yds",40],["C. Loveland","Rec yds",40],["L. Burden III","Rec yds",40],["R. Odunze","Rec yds",40],["D. Swift","Rush+Rec yds",70],["C. Godwin Jr.","Rec yds",15]],"2026-11-08","16:28"),
