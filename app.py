@@ -1633,6 +1633,13 @@ def automatic_parlay_result(legs,players):
     return "Loss" if missed_final else ("Won" if all_reached else "Pending")
 
 
+ROBINHOOD_CONFIRMED_BET_SETTLEMENTS={
+    "Nov 8 · Parlay 51":{"date":"2026-11-08","time":"19:06","status":"Won",
+        "settlement_price":0.82,"quantity":330,"payout":270.60,
+        "realized_profit":177.21,"event_id":"0d3d62e9-41fb-49d4-bffc-dcb9b36ae9a2",
+        "note":"Robinhood settled at $0.82 despite DNP; recorded realized profit takes precedence over box scores."}
+}
+
 ROBINHOOD_CONFIRMED_PAYOUTS=[
     {"event_id":"7fef0b82-e731-44e0-b89c-d444bdf23091","date":"2026-11-08","time":"13:43",
      "label":"NFL 7-leg · CIN / DAL / DEN / DET / LAR / NYG / KC",
@@ -1690,6 +1697,11 @@ def show_personal_bets():
             auto_wins=0
             for name,qty,price,legs in all_bets:
                 recorded=byid.get(name,{})
+                confirmed=ROBINHOOD_CONFIRMED_BET_SETTLEMENTS.get(name)
+                if confirmed and confirmed["date"]==selected_day.isoformat():
+                    realized_total+=confirmed["realized_profit"]
+                    recorded_count+=1
+                    continue
                 recorded_status=recorded.get("Status","Pending")
                 recorded_pnl=recorded.get("Net P/L","")
                 # Recorded settlement always takes precedence; never double-count.
@@ -1872,7 +1884,8 @@ def show_personal_bets():
         for original_index,(name,qty,price,legs) in enumerate(all_bets):
             recorded_status=byid.get(name,{}).get("Status","Pending")
             inferred=automatic_parlay_result(legs,overview_players)
-            status=recorded_status if recorded_status in ("Won","Lost","Closed","Voided") else inferred
+            confirmed=ROBINHOOD_CONFIRMED_BET_SETTLEMENTS.get(name)
+            status=confirmed["status"] if confirmed and confirmed["date"]==selected_day.isoformat() else (recorded_status if recorded_status in ("Won","Lost","Closed","Voided") else inferred)
             is_loss=status in ("Loss","Lost")
             overview_bets.append((is_loss,original_index,name,qty,price,legs,status))
         # Display confirmed payout-only parlays in the same expandable overview.
@@ -1912,7 +1925,10 @@ def show_personal_bets():
                               '<span class="bet-number">$'+format(cost,",.2f")+'</span>'+
                               '<span class="bet-number">$'+format(qty-cost,",.2f")+'</span>'+
                               '<span'+status_style+'>'+esc(status)+'</span></summary>')
-            if payout:
+            confirmed_bet=ROBINHOOD_CONFIRMED_BET_SETTLEMENTS.get(name)
+            if confirmed_bet:
+                detail=f"Robinhood settled {confirmed_bet['time']} at ${confirmed_bet['settlement_price']:.2f} · Payout: ${confirmed_bet['payout']:,.2f} · Realized profit: +${confirmed_bet['realized_profit']:,.2f} · DNP settlement confirmed"
+            elif payout:
                 payout_amount=float(payout["payout"])
                 profit_amount=float(payout["realized_profit"])
                 detail=f"Confirmed payout: ${payout_amount:,.2f} · Realized profit: +${profit_amount:,.2f} · Entry cost inferred from payout"
@@ -1923,6 +1939,9 @@ def show_personal_bets():
             for i,(p,m,t) in enumerate(legs,1):
                 if payout:
                     table_html.append('<tr><td>'+str(i)+'</td><td>'+esc(p)+'</td><td>Game winner</td><td>Yes</td><td>Settled</td><td>0</td><td>🟢 Won</td></tr>')
+                    continue
+                if confirmed_bet:
+                    table_html.append('<tr><td>'+str(i)+'</td><td>'+esc(p)+'</td><td>'+esc(m)+'</td><td>'+esc(t)+'+</td><td>—</td><td>—</td><td>🟢 Settled by Robinhood</td></tr>')
                     continue
                 matched_player=match_espn_player(p,overview_players,m)
                 actual=matched_player["stats"].get(m) if matched_player else None
