@@ -1639,6 +1639,10 @@ def automatic_parlay_result(legs,players):
 
 
 ROBINHOOD_CONFIRMED_BET_SETTLEMENTS={
+    "Nov 8 · Parlay 36":{"date":"2026-11-08","time":"20:58","status":"Won",
+        "settlement_price":0.83,"quantity":219,"payout":181.77,
+        "realized_profit":86.29,"event_id":"9d9614a4-83dd-49ef-ac99-615b0c952015",
+        "note":"Robinhood-confirmed settlement; recorded profit takes precedence over individual ESPN leg statuses."},
     "Nov 8 · Parlay 51":{"date":"2026-11-08","time":"19:06","status":"Won",
         "settlement_price":0.82,"quantity":330,"payout":270.60,
         "realized_profit":177.21,"event_id":"0d3d62e9-41fb-49d4-bffc-dcb9b36ae9a2",
@@ -1932,7 +1936,7 @@ def show_personal_bets():
                               '<span'+status_style+'>'+esc(status)+'</span></summary>')
             confirmed_bet=ROBINHOOD_CONFIRMED_BET_SETTLEMENTS.get(name)
             if confirmed_bet:
-                detail=f"Robinhood settled {confirmed_bet['time']} at ${confirmed_bet['settlement_price']:.2f} · Payout: ${confirmed_bet['payout']:,.2f} · Realized profit: +${confirmed_bet['realized_profit']:,.2f} · DNP settlement confirmed"
+                detail=f"Robinhood settled {confirmed_bet['time']} at ${confirmed_bet['settlement_price']:.2f} · Payout: ${confirmed_bet['payout']:,.2f} · Realized profit: +${confirmed_bet['realized_profit']:,.2f} · Robinhood settlement confirmed"
             elif payout:
                 payout_amount=float(payout["payout"])
                 profit_amount=float(payout["realized_profit"])
