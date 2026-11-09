@@ -1530,6 +1530,9 @@ def match_espn_player(short_name,players,market=None):
         value=unicodedata.normalize("NFKD",str(value).lower())
         # Apostrophes inside first names are not word separators: D\u2019Andre -> dandre.
         value=value.replace("\u2019","").replace("\u0027","").replace("\u02bc","")
+        # ESPN may use P.J. / J.J. as a single first name. Preserve those initials
+        # as PJ / JJ rather than treating J as part of the surname.
+        value=re.sub(r"\\b([a-z])\\.\\s*([a-z])\\.",r"\\1\\2",value)
         return " ".join("".join(ch if ch.isalnum() else " " for ch in value).split())
     parts=norm(short_name).split()
     if market:
