@@ -1,7 +1,7 @@
 import unittest
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone, timedelta, date
 from parlay_context import (parse_injuries, injury_status, parse_game,
-                            starters_from_summary, game_metrics, matchup_adjustment)
+                            starters_from_summary, nba_confirmed_starters, starter_match, game_metrics, matchup_adjustment)
 from parlay_quotes import validate_quotes, match_quote
 from parlay_calibration import train, predict, examples
 from parlay_joint import correlated_joint
@@ -23,6 +23,23 @@ class ContextTests(unittest.TestCase):
                 {"starter":False,"athlete":{"displayName":"Bench Guy"}}]}]}]}}
         self.assertIn(("BOS","jayson tatum"),starters_from_summary(data))
         self.assertNotIn(("BOS","bench guy"),starters_from_summary(data))
+
+    def test_nba_official_five_starters(self):
+        schedule={"scoreboard":{"games":[{"gameId":"0022600190",
+            "gameTimeUTC":"2026-11-10T03:00:00Z",
+            "awayTeam":{"teamTricode":"LAL"},"homeTeam":{"teamTricode":"GSW"}}]}}
+        def fake(url):
+            def team(abbr,prefix):
+                return {"teamTricode":abbr,"players":[{"starter":"1",
+                    "firstName":prefix,"familyName":str(i)} for i in range(5)]}
+            return {"game":{"awayTeam":team("LAL","Away"),"homeTeam":team("GSW","Home")}}
+        found=nba_confirmed_starters(schedule,date(2026,11,9),fetch=fake)
+        self.assertEqual(len(found),1)
+        self.assertEqual(len(next(iter(found.values()))["players"]),10)
+        names=next(iter(found.values()))["players"]
+        self.assertTrue(starter_match("A. 0","LAL",names))
+        self.assertIsNone(starter_match("B. Bench","",names))
+        self.assertEqual(nba_confirmed_starters(schedule,date(2026,11,8),fetch=fake),{})
 
     def test_final_boxscore_pace(self):
         def team(abbrev,pts):
