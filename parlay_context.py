@@ -165,12 +165,13 @@ def game_day_context(day=None, fetch=None):
         try: info["starters"][game["id"]]=starters_from_summary(fetch(BASE+"/summary?event="+game["id"]))
         except Exception: continue
     return info
-def _value(stat, *names, attempts=False):
+def _value(stat, *names, attempts=False, made=False):
     mapping={re.sub("[^a-z]","",str(s.get("name","")).lower()):str(s.get("displayValue",s.get("value",""))) for s in stat}
     for name in names:
         item=mapping.get(re.sub("[^a-z]","",name.lower()))
         if item:
-            if attempts and "-" in item: item=item.split("-",1)[1]
+            if "-" in item and (attempts or made):
+                item=item.split("-",1)[1 if attempts else 0]
             try: return float(item.replace(",",""))
             except (ValueError,TypeError): pass
     return None
@@ -182,11 +183,17 @@ def game_metrics(summary):
         fga=_value(stats,"fieldGoalsMade-fieldGoalsAttempted",attempts=True)
         fta=_value(stats,"freeThrowsMade-freeThrowsAttempted",attempts=True)
         oreb=_value(stats,"offensiveRebounds")
-        tov=_value(stats,"turnovers","totalTurnovers")
+        tov=_value(stats,"totalTurnovers","turnovers")
         pts=_value(stats,"points","totalPoints")
         if pts is None:
-            try: pts=float(item.get("score"))
-            except (ValueError,TypeError): pass
+            try:pts=float(item.get("score"))
+            except (ValueError,TypeError):pass
+        if pts is None:
+            fgm=_value(stats,"fieldGoalsMade-fieldGoalsAttempted",made=True)
+            tpm=_value(stats,"threePointFieldGoalsMade-threePointFieldGoalsAttempted",made=True)
+            ftm=_value(stats,"freeThrowsMade-freeThrowsAttempted",made=True)
+            if all(x is not None for x in (fgm,tpm,ftm)):
+                pts=2*fgm+tpm+ftm
         if team and all(x is not None for x in (fga,fta,oreb,tov,pts)):
             poss=fga+.44*fta-oreb+tov
             if 60<=poss<=150: rows.append((team,poss,pts))
