@@ -17,6 +17,21 @@ class ParlayLabTests(unittest.TestCase):
         data=pd.DataFrame({"Player":["A"]})
         self.assertTrue(dual_model_eligible(data).empty)
 
+    def test_daily_workbook_headers(self):
+        df=pd.DataFrame([{"Player":"Sample Player","Market":"Points","Safer line":"15+",
+                          "Model projection":19.1,"Last game":18,"2 games":20,"3 games":17,
+                          "Game":"BOS at NYK"}])
+        picks=_candidates(df)
+        self.assertEqual(len(picks),1)
+        self.assertEqual(picks.iloc[0]["Recent hits"],3)
+        self.assertAlmostEqual(picks.iloc[0]["Huie baseline"],55/3)
+
+    def test_missing_recent_game_not_imputed(self):
+        df=pd.DataFrame([{"Player":"Sample Player","Market":"Points","Safer line":"15+",
+                          "Model projection":19.1,"Last game":18,"2 games":20,
+                          "Game":"BOS at NYK"}])
+        self.assertTrue(_candidates(df).empty)
+
     def test_candidate_stat_values(self):
         df=pd.DataFrame([{"Player":"Sample Player","Market":"Rebounds","Safer line":"6+",
                           "Model projection":8.1,"Last game":8,"2 games ago":7,"3 games ago":9,"Game":"A at B"}])
