@@ -261,16 +261,20 @@ def _recent_opponent_context(opponents):
 def _configured_contract_quotes(url,token):
     return fetch_quote_feed(url,token)
 
-def render(df):
+def render(df, all_props=None):
     st.title("🧪 Smart Parlay Builder & Huie's Model Lab")
     st.caption("Research-only combinations using today's saved workbook. No bets are placed, and model accuracy or profitability is not guaranteed.")
     if df is None or df.empty:
         st.info("Upload today's workbook with safe lines and recent game stats to use this feature.")
         return
     data=_candidates(df)
+    if data.empty and all_props is not None and not all_props.empty:
+        data=_candidates(all_props)
     if data.empty:
         st.warning("No eligible picks could be parsed from the saved Bankroll Builder sheet. The builder needs a player, identifiable market, numeric safe line, and three recent game results.")
-        st.caption("Detected workbook columns: "+", ".join(map(str,df.columns)))
+        st.caption("Bankroll Builder columns: "+", ".join(map(str,df.columns)))
+        if all_props is not None:
+            st.caption("All Player Props columns: "+", ".join(map(str,all_props.columns)))
         st.caption("Recognized recent-game headers include Last game, 2 games, 3 games, 2 games ago, and 3 games ago. No missing player stats are invented.")
         return
     st.subheader("Huie's Model Lab · independent recent-games baseline")
