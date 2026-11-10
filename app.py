@@ -2339,7 +2339,7 @@ if section=="Overview":
             else:st.info("No Bankroll Builder sheet found.")
 elif section=="🧪 Smart Parlay Builder & Model Lab":
     from parlay_lab import render as render_parlay_lab
-    render_parlay_lab(sheets[bankroll] if bankroll else None)
+    render_parlay_lab(sheets[bankroll] if bankroll else None, sheets[allprops] if allprops else None)
 elif section=="Bankroll Builder Performance":
     show_bankroll_performance()
 elif section=="🔴 Bankroll Builder Live Tracking":
