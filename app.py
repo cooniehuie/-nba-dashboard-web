@@ -1028,15 +1028,16 @@ def show_bankroll_live_tracker(embedded=False):
                 market=safer_market(pick[linecol])
             workbook_game=str(pick[gamecol]) if gamecol else ""
             expected_teams=teams_from_matchup(workbook_game)
-            candidate=match_espn_player(player_name,players)
+            # Match within the workbook matchup first: A. Thompson can refer
+            # to Ausar (DET) or Amen (HOU), so global initials are ambiguous.
+            eligible_players=[
+                athlete for athlete in players
+                if not expected_teams
+                or team_pairs.get(str(athlete["game"]["id"])) in (None,expected_teams)
+            ]
+            candidate=match_espn_player(player_name,eligible_players,market)
             game=candidate["game"] if candidate else None
             actual=candidate["stats"].get(market) if candidate else None
-            if candidate and expected_teams:
-                live_teams=team_pairs.get(str(game["id"]),set())
-                if live_teams and live_teams!=expected_teams:
-                    candidate=None
-                    game=None
-                    actual=None
             target_match=re.search(r"\d+(?:\.\d+)?",str(pick[linecol]))
             target=float(target_match.group()) if target_match else None
             under="under" in str(pick[linecol]).lower()
