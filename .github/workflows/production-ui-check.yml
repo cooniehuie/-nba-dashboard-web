@@ -9,6 +9,9 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+concurrency:
+  group: streamlit-production-browser-check
+  cancel-in-progress: true
 jobs:
   public-ui:
     runs-on: ubuntu-latest
