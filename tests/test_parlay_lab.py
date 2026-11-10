@@ -1,6 +1,6 @@
 import unittest
 import pandas as pd
-from parlay_lab import _candidates, dual_model_eligible
+from parlay_lab import _candidates, dual_model_eligible, _join_bankroll_safe_lines, _market_label
 
 class ParlayLabTests(unittest.TestCase):
     def test_dual_model_strict_agreement(self):
@@ -31,6 +31,45 @@ class ParlayLabTests(unittest.TestCase):
                           "Model projection":19.1,"Last game":18,"2 games":20,
                           "Game":"BOS at NYK"}])
         self.assertTrue(_candidates(df).empty)
+
+    def test_join_across_game_label_and_player_abbreviation(self):
+        bankroll=pd.DataFrame([{"Player":"S. Curry","Game":"GSW @ LAL",
+                                 "Our play":"Over 3 threes","Safer line":"3+ Threes"}])
+        props=pd.DataFrame([{"Player":"Stephen Curry","Game":"GSW at LAL","Market":"3PM",
+                             "Model projection":4.8,"Last game":5,"2 games ago":4,
+                             "3 games ago":4}])
+        diagnostics={}
+        joined=_join_bankroll_safe_lines(bankroll,props,diagnostics)
+        self.assertEqual(diagnostics["matched_rows"],1)
+        picks=_candidates(joined)
+        self.assertEqual(len(picks),1)
+        self.assertEqual(picks.iloc[0]["Market"],"Threes")
+        self.assertEqual(picks.iloc[0]["Safe line"],3)
+        self.assertEqual(picks.iloc[0]["Sam projection"],4.8)
+
+    def test_unique_market_allows_different_game_labels(self):
+        bankroll=pd.DataFrame([{"Player":"Aaron Gordon","Game":"DEN at HOU",
+                                 "Our play":"over rebounds","Safer line":"5+"}])
+        props=pd.DataFrame([{"Player":"A. Gordon","Game":"Denver Nuggets vs Houston Rockets",
+                             "Market":"Rebounds","Model projection":7,
+                             "Last game":6,"2 games ago":8,"3 games ago":7}])
+        diag={}
+        joined=_join_bankroll_safe_lines(bankroll,props,diag)
+        self.assertEqual(len(joined),1)
+        self.assertEqual(diag["game_label_fallbacks"],1)
+
+    def test_ambiguous_player_market_rejected(self):
+        bankroll=pd.DataFrame([{"Player":"A. Thompson","Game":"Unknown",
+                                 "Our play":"Points","Safer line":"12+"}])
+        props=pd.DataFrame([{"Player":n,"Game":"Unknown","Market":"Points",
+                             "Model projection":15,"Last game":12,"2 games ago":13,
+                             "3 games ago":14} for n in ("Amen Thompson","Ausar Thompson")])
+        self.assertTrue(_join_bankroll_safe_lines(bankroll,props).empty)
+
+    def test_market_classifier_does_not_confuse_3point_with_points(self):
+        self.assertEqual(_market_label("3-point field goals"),"Threes")
+        self.assertEqual(_market_label("over 2.5 3PM"),"Threes")
+        self.assertIsNone(_market_label("Points + Rebounds"))
 
     def test_candidate_stat_values(self):
         df=pd.DataFrame([{"Player":"Sample Player","Market":"Rebounds","Safer line":"6+",
