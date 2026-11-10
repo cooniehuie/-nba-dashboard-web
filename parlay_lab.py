@@ -237,6 +237,14 @@ def dual_model_eligible(data, minimum_recent_hits=2):
         & (data["Sam projection"]>data["Safe line"])
     ].copy()
 
+@st.cache_data(ttl=900,show_spinner=False)
+def _live_nba_context():
+    return game_day_context()
+
+@st.cache_data(ttl=21600,show_spinner=False)
+def _recent_opponent_context(opponents):
+    return team_context(opponents,days=21,max_per_team=6)
+
 def render(df):
     st.title("🧪 Smart Parlay Builder & Huie's Model Lab")
     st.caption("Research-only combinations using today's saved workbook. No bets are placed, and model accuracy or profitability is not guaranteed.")
@@ -249,7 +257,7 @@ def render(df):
         return
     st.subheader("Huie's Model Lab · independent recent-games baseline")
     st.write("Huie's baseline is the average of the last three recorded games, compared with Sam's projection. It does not use Sam's projected value to calculate its own baseline.")
-    st.caption("Recent hit rates are descriptive, not calibrated future probabilities. Matchup, minutes and injury adjustments are not yet validated.")
+    st.caption("Recent 3-game hit rates are descriptive. External injury, lineup and matchup data are shown only when verified. Calibrated probabilities require a held-out historical check.")
     show=data.sort_values(["Recent hits","Baseline margin"],ascending=False).copy()
     show["Recent hit rate"]=show["Recent hit rate"].map(lambda x:f"{x:.0%}")
     st.dataframe(show,use_container_width=True,hide_index=True)
@@ -285,6 +293,73 @@ def render(df):
     excluded_text=st.text_area("Exclude players (one per line; injury, minutes limit, or uncertain role)",
                                value="",key="lab_excluded_players",height=80)
     exclusions={x.strip().casefold() for x in excluded_text.splitlines() if x.strip()}
+    st.subheader("ESPN injury reports and verified starters")
+    st.caption("ESPN injury listings are not a medical clearance. Lineups are labeled confirmed only when an in-progress or completed boxscore explicitly marks the player as a starter.")
+    use_live=st.checkbox("Load ESPN game-day injury and confirmed-starter checks",value=True,key="lab_live_context")
+    live=None
+    if use_live:
+        with st.spinner("Checking injury report and game-day information..."):
+            live=_live_nba_context()
+        if live["injury_error"]:
+            st.warning("ESPN injury report unavailable ("+live["injury_error"]+"). Player availability remains unverified.")
+        else:
+            st.caption("ESPN injury list retrieved at "+live["checked_at"]+" · Players not listed are not automatically cleared.")
+        if live["schedule_error"]:
+            st.caption("ESPN game schedule unavailable; starters cannot be verified.")
+    for idx,pick in data.iterrows():
+        status="Feed not checked";flag="unknown";starting="Unconfirmed"
+        side=parse_game(pick.get("Game",""))
+        team=str(pick.get("ESPN team","")) if pd.notna(pick.get("ESPN team")) else ""
+        if live is not None:
+            if live["injuries"] is not None:
+                flag,status=injury_status(pick["Player"],team,live["injuries"])
+            if side:
+                game=next((g for g in live["games"] if {g["away"],g["home"]}==set(side)),None)
+                if game:
+                    if game["state"]=="pre":
+                        starting="Unconfirmed (pregame)"
+                    elif game["state"] in ("in","post"):
+                        known=live["starters"].get(game["id"],set())
+                        if known and team and team_key(team) in side:
+                            if (team_key(team),name_key(pick["Player"])) in known:
+                                starting="Confirmed ESPN starter"
+                            else:
+                                starting="Not confirmed as starter"
+                        else:
+                            starting="Unverified (boxscore unavailable or team unmatched)"
+        data.at[idx,"ESPN injury flag"]=flag
+        data.at[idx,"ESPN injury status"]=status
+        data.at[idx,"Starter verification"]=starting
+    st.dataframe(data[["Player","Market","ESPN injury status","Starter verification"]],
+                 hide_index=True,use_container_width=True)
+    exclude_uncertain=st.checkbox("Exclude ESPN-listed questionable/probable/uncertain players",value=True)
+    st.subheader("Opponent defense and pace")
+    st.caption("Optional exploratory adjustments from completed ESPN team boxscores. Uses at least five verified opponent games and compares with the observed game subset, not a full-league average.")
+    use_matchup=st.checkbox("Apply verified recent pace/defense adjustments where available",value=True,key="lab_matchup_context")
+    opponent_for={}
+    for idx,pick in data.iterrows():
+        teams=parse_game(pick.get("Game",""))
+        team=team_key(pick.get("ESPN team","")) if pd.notna(pick.get("ESPN team")) else ""
+        if teams and team in teams:
+            opponent_for[idx]=teams[0] if teams[1]==team else teams[1]
+    if use_matchup and opponent_for:
+        with st.spinner("Checking recent completed opponent boxscores..."):
+            context=_recent_opponent_context(tuple(sorted(set(opponent_for.values()))))
+        for idx,opponent in opponent_for.items():
+            row=data.loc[idx]
+            adjustment=matchup_adjustment(context["rows"],opponent,row["Market"])
+            if adjustment is None or pd.isna(row.get("External games")):
+                continue
+            data.at[idx,"Huie baseline"]=round(float(row["Huie baseline"])*adjustment["factor"],2)
+            data.at[idx,"Baseline margin"]=round(float(data.at[idx,"Huie baseline"])-float(row["Safe line"]),2)
+            data.at[idx,"Matchup context"]=f'{opponent} · {adjustment["games"]} games · x{adjustment["factor"]:.3f}'
+        if "Matchup context" in data:
+            st.dataframe(data[["Player","Market","Matchup context"]].dropna(subset=["Matchup context"]),
+                         hide_index=True,use_container_width=True)
+        if context["failures"]:
+            st.caption(f'{context["failures"]} ESPN game requests were unavailable; incomplete samples were not imputed.')
+    elif use_matchup:
+        st.caption("Opponent matchup adjustments require unambiguous ESPN player-team matches from External Historical Results; no unidentified team is guessed.")
     st.subheader("Smart Parlay Builder")
     st.info("Only OVER legs where BOTH Sam's projection and Huie's independent baseline are strictly above the safe line can qualify. Missing projections are excluded.")
     leg_count=st.select_slider("Number of legs",options=[2,3,4],value=2)
@@ -301,6 +376,10 @@ def render(df):
         eligible=eligible[~eligible["Player"].astype(str).str.casefold().isin(exclusions)]
     if require_history:
         eligible=eligible[eligible.get("External games",pd.Series(0,index=eligible.index)).fillna(0)>=5]
+    if "ESPN injury flag" in eligible:
+        eligible=eligible[eligible["ESPN injury flag"]!="block"]
+        if exclude_uncertain:
+            eligible=eligible[eligible["ESPN injury flag"]!="review"]
     eligible["Consensus margin"] = eligible[["Baseline margin","Sam margin"]].min(axis=1)
     st.caption(f"{len(eligible)} candidates pass the dual-model rule and current availability/history filters.")
     # Laplace-smoothed historical hit frequency is descriptive, not a
