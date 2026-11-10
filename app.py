@@ -1654,6 +1654,7 @@ def automatic_parlay_result(legs,players):
 
 
 ROBINHOOD_NOV9_BETS=[
+("Nov 9 · Parlay 26",100,99.0,99.07,0.07,[["New York I","Game winner",1]],"2026-11-09","21:51"),
 ("Nov 9 · Parlay 25",1252,7.43,99.06,6.03,[["J. Fears","Points",20],["S. Curry","Points",30],["D. Queen","Rebounds",8],["D. Green","Assists",4]],"2026-11-09","18:40"),
 ("Nov 9 · Parlay 24",352,27,99.9,4.86,[["F. VanVleet","Points",10],["F. VanVleet","Assists",4],["T. Eason","Rebounds",4],["J. Murray","Threes",2]],"2026-11-09","17:37"),
 ("Nov 9 · Parlay 23",1769,5.3,99.97,6.21,[["J. Champagnie","Threes",3],["F. VanVleet","Threes",3],["J. Murray","Threes",3],["J. Smith Jr.","Threes",3]],"2026-11-09","17:35"),
