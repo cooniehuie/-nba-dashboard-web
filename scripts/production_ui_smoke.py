@@ -13,14 +13,14 @@ def run():
         page=browser.new_page(viewport={"width":1365,"height":900})
         page.goto(URL,wait_until="domcontentloaded",timeout=120000)
         try:
-            page.get_by_text("Smart Parlay Builder & Model Lab",exact=False).first.wait_for(timeout=180000)
+            page.get_by_text("Smart Parlay",exact=False).first.wait_for(timeout=180000)
             page.screenshot(path=str(OUT/"desktop_home.png"),full_page=True)
             # Explicit public access check: app should render the navigation
             # without requiring an administrator password.
-            nav=page.get_by_text("Smart Parlay Builder & Model Lab",exact=False).first
+            nav=page.get_by_text("Smart Parlay",exact=False).first
             nav.wait_for(timeout=30000)
             nav.click(timeout=20000)
-            page.get_by_text("Smart Parlay Builder & Huie's Model Lab",exact=False).first.wait_for(timeout=120000)
+            page.locator("h1").filter(has_text="Smart Parlay").first.wait_for(timeout=120000)
             page.screenshot(path=str(OUT/"desktop_parlay_builder.png"),full_page=True)
             errors=page.locator('[data-testid="stException"]')
             if errors.count():raise AssertionError("A Streamlit exception appeared in production")
