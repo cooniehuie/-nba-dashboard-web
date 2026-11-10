@@ -27,15 +27,26 @@ def _num(value):
         return None
 
 def _market_label(value):
-    text=str(value).casefold()
-    if re.search(r"\b(assists?|ast)\b",text):return "Assists"
-    if re.search(r"\b(rebounds?|reb)\b",text):return "Rebounds"
-    if re.search(r"\b(threes?|3pm|3pt|3-pointers?|3 pointers?)\b",text):return "Threes"
-    if re.search(r"\b(points?|pts)\b",text):return "Points"
-    return None
+    """Recognize a single NBA stat market; reject combined or unclear props."""
+    text=str(value or "").casefold().replace("_"," ")
+    detected=set()
+    if re.search(r"\b(assists?|ast)\b",text):detected.add("Assists")
+    if re.search(r"\b(rebounds?|reb)\b",text):detected.add("Rebounds")
+    if re.search(r"\b(3pm|3ptm?|fg3m|threes?|three[- ]?pointers?|three[- ]?points?|3[- ]?pointers?|3[- ]?points?|3s)\b",text):
+        detected.add("Threes")
+    if re.search(r"\b(points?|pts)\b",text):
+        if "Threes" not in detected or re.search(r"\b(points?|pts)\s*(?:[+&/]|and)\s*",text):
+            detected.add("Points")
+    return next(iter(detected)) if len(detected)==1 else None
 
-def _join_bankroll_safe_lines(bankroll, props):
-    """Only join explicit, unique player/game/market safe lines; no fabricated lines."""
+def _join_bankroll_safe_lines(bankroll, props, diagnostics=None):
+    """Join verified safe lines to props; avoid guesses on duplicate players/markets."""
+    info=diagnostics if diagnostics is not None else {}
+    info.update({"bankroll_rows":len(bankroll) if bankroll is not None else 0,
+                 "props_rows":len(props) if props is not None else 0,
+                 "numeric_safe_lines":0,"player_matches":0,"market_matches":0,
+                 "matched_rows":0,"game_label_fallbacks":0,
+                 "ambiguous_rows":0,"unmatched_markets":0})
     if bankroll is None or props is None or bankroll.empty or props.empty:
         return pd.DataFrame()
     bp=_col(bankroll,"Player")
@@ -45,28 +56,69 @@ def _join_bankroll_safe_lines(bankroll, props):
     pp=_col(props,"Player")
     pg=_col(props,"Game")
     pm=_col(props,"Market")
-    if any(x is None for x in (bp,bg,bl,bm,pp,pg,pm)):
+    if any(x is None for x in (bp,bl,pp,pm)):
+        info["error"]="Missing player, safe-line or market columns"
         return pd.DataFrame()
-    def key(value):
-        return re.sub(r"\s+"," ",str(value).strip()).casefold()
-    index={}
-    ambiguous=set()
-    for _,row in bankroll.iterrows():
-        market=_market_label(str(row[bm])+" "+str(row[bl]))
-        line=_num(row[bl])
-        if market is None or line is None:continue
-        k=(key(row[bp]),key(row[bg]),market)
-        if k in index:ambiguous.add(k)
-        else:index[k]=line
-    matched=[]
-    for _,row in props.iterrows():
+    def game_key(value):
+        pair=parse_game(str(value))
+        if pair:return frozenset(pair)
+        return re.sub(r"[^a-z0-9]","",str(value).casefold())
+    def player_match(a,b):
+        aa=name_key(a).split()
+        bb=name_key(b).split()
+        if len(aa)<2 or len(bb)<2:return False
+        return aa==bb or (aa[0][0]==bb[0][0] and aa[1:]==bb[1:])
+    ready=[]
+    for i,row in props.iterrows():
         market=_market_label(row[pm])
         if market is None:continue
-        k=(key(row[pp]),key(row[pg]),market)
-        if k not in index or k in ambiguous:continue
-        record=row.to_dict()
-        record["Safer line"]=index[k]
+        ready.append({"index":i,"market":market,"player":row[pp],
+                      "game":row[pg] if pg is not None else None,"row":row})
+    chosen={}
+    invalid=set()
+    for _,row in bankroll.iterrows():
+        safe=_num(row[bl])
+        if safe is None:continue
+        info["numeric_safe_lines"]+=1
+        play=str(row[bm]) if bm is not None else ""
+        if re.search(r"\b(under|unders)\b",play.casefold()):
+            continue
+        candidates=[p for p in ready if player_match(row[bp],p["player"])]
+        if not candidates:continue
+        info["player_matches"]+=1
+        market=_market_label(play+" "+str(row[bl]))
+        if market:
+            candidates=[p for p in candidates if p["market"]==market]
+        if not candidates:
+            info["unmatched_markets"]+=1
+            continue
+        info["market_matches"]+=1
+        # Games often use different labels (e.g. BKN @ DAL vs Brooklyn at Dallas).
+        # Only relax a game mismatch if player + market is already unique.
+        if bg is not None and pg is not None and pd.notna(row[bg]):
+            same_game=[p for p in candidates if game_key(row[bg])==game_key(p["game"])]
+            if same_game:
+                candidates=same_game
+            elif len(candidates)==1:
+                info["game_label_fallbacks"]+=1
+        if len(candidates)!=1:
+            info["ambiguous_rows"]+=1
+            continue
+        match=candidates[0]
+        idx=match["index"]
+        if idx in chosen and chosen[idx]!=safe:
+            invalid.add(idx)
+            info["ambiguous_rows"]+=1
+        else:
+            chosen[idx]=safe
+    matched=[]
+    for item in ready:
+        idx=item["index"]
+        if idx not in chosen or idx in invalid:continue
+        record=item["row"].to_dict()
+        record["Safer line"]=chosen[idx]
         matched.append(record)
+    info["matched_rows"]=len(matched)
     return pd.DataFrame(matched)
 
 def _candidates(df):
@@ -311,14 +363,22 @@ def render(df, all_props=None):
         st.info("Upload today's workbook with safe lines and recent game stats to use this feature.")
         return
     data=_candidates(df)
+    join_info={}
     if data.empty and all_props is not None and not all_props.empty:
-        data=_candidates(_join_bankroll_safe_lines(df,all_props))
+        joined=_join_bankroll_safe_lines(df,all_props,join_info)
+        data=_candidates(joined)
     if data.empty:
         st.warning("No eligible picks could be parsed from the saved Bankroll Builder sheet. The builder needs a player, identifiable market, numeric safe line, and three recent game results.")
         st.caption("Bankroll Builder columns: "+", ".join(map(str,df.columns)))
         if all_props is not None:
             st.caption("All Player Props columns: "+", ".join(map(str,all_props.columns)))
-        st.caption("Safe lines are joined from Bankroll Builder to All Player Props only when player, game, and market match uniquely. Missing or ambiguous matches are excluded.")
+        st.caption("Safe lines are matched by player and market, with game labels checked when comparable. Ambiguous matches are excluded.")
+        if join_info:
+            st.dataframe(pd.DataFrame([{"Check":k.replace("_"," ").capitalize(),"Rows":v} for k,v in join_info.items() if isinstance(v,int)]),hide_index=True,use_container_width=True)
+            if "Our play" in df.columns:
+                st.caption("Examples of Our play labels: "+", ".join(repr(x) for x in df["Our play"].dropna().astype(str).unique()[:5]))
+            if "Safer line" in df.columns:
+                st.caption("Examples of safer lines: "+", ".join(repr(x) for x in df["Safer line"].dropna().astype(str).unique()[:5]))
         return
     st.subheader("Huie's Model Lab · independent recent-games baseline")
     st.write("Huie's baseline is the average of the last three recorded games, compared with Sam's projection. It does not use Sam's projected value to calculate its own baseline.")
