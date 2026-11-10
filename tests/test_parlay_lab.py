@@ -111,6 +111,22 @@ class ParlayLabTests(unittest.TestCase):
         self.assertTrue(pd.isna(picks.iloc[0]["Recent hits"]))
         self.assertTrue(dual_model_eligible(picks).empty)
 
+    def test_november_9_workbook_model_projection_with_na_history(self):
+        # The Nov 9 exported workbook has real Sam projections but n/a game history.
+        bankroll=pd.DataFrame([{"Player":"Evan Mobley","Game":"CLE@CHA",
+                                 "Our play":"OVER 1.5 threes fg3m","Safer line":"1+ threes fg3m"}])
+        props=pd.DataFrame([{"Player":"Evan Mobley","Game":"Cleveland Cavaliers @ Charlotte Hornets",
+                             "Market":"Threes","Reference line":1.5,"Model projection":2.5,
+                             "Last game":"n/a","2 games ago":"n/a","3 games ago":"n/a",
+                             "Last 3 avg":None}])
+        joined=_join_bankroll_safe_lines(bankroll,props)
+        picks=_candidates(joined)
+        self.assertEqual(len(picks),1)
+        self.assertEqual(picks.iloc[0]["Sam projection"],2.5)
+        self.assertTrue(pd.isna(picks.iloc[0]["Huie baseline"]))
+        self.assertTrue(pd.isna(picks.iloc[0]["Recent hits"]))
+        self.assertTrue(dual_model_eligible(picks).empty)
+
     def test_candidate_stat_values(self):
         df=pd.DataFrame([{"Player":"Sample Player","Market":"Rebounds","Safer line":"6+",
                           "Model projection":8.1,"Last game":8,"2 games ago":7,"3 games ago":9,"Game":"A at B"}])
