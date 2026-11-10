@@ -204,6 +204,8 @@ def render(df):
     require_history=st.checkbox("Require at least 5 verified external games",value=False)
     different_games=st.checkbox("Prefer different matchups",value=True)
     max_parlays=st.slider("Combinations to show",1,15,5)
+    st.caption("These filters avoid repeating the same player within one parlay; they do not estimate correlation or odds.")
+    overlap_limit=st.slider("Maximum appearances of a player across displayed parlays",1,5,2)
     # Both models MUST project strictly above the safe line. Missing Sam
     # projections are ineligible, rather than silently treated as agreement.
     eligible=data[
@@ -215,20 +217,36 @@ def render(df):
     if require_history:
         eligible=eligible[eligible.get("External games",pd.Series(0,index=eligible.index)).fillna(0)>=5]
     eligible["Consensus margin"] = eligible[["Baseline margin","Sam margin"]].min(axis=1)
-    eligible=eligible.sort_values(["Recent hits","Consensus margin"],ascending=False).head(24)
+    # Laplace-smoothed historical hit frequency is descriptive, not a
+    # calibrated future probability; use only as a ranking tie-breaker.
+    eligible["Observed hit rate"] = eligible.apply(
+        lambda x:(x["External hits"]+1)/(x["External games"]+2)
+        if pd.notna(x.get("External games")) and x.get("External games",0)>=5
+        else (x["Recent hits"]+1)/(x["Games"]+2),axis=1)
+    eligible=eligible.sort_values(["Observed hit rate","Consensus margin"],ascending=False).head(24)
     # Cap candidate pool for predictable compute, avoid duplicate players in one parlay.
     combos=[]
     for group in itertools.combinations(eligible.to_dict("records"),leg_count):
         if len({x["Player"] for x in group})!=leg_count:continue
         if different_games and len({x["Game"] for x in group})!=leg_count:continue
-        score=sum(x["Recent hits"] for x in group)*10+sum(min(x["Consensus margin"],10) for x in group)
+        score=sum(x["Observed hit rate"] for x in group)*10+sum(min(x["Consensus margin"],10) for x in group)
         combos.append((score,group))
     combos.sort(key=lambda item:item[0],reverse=True)
     if not combos:
         st.info("No combinations satisfy the current filters. Try allowing 2/3 recent hits or shared matchups; both projections must still exceed the safe line.")
         return
-    for idx,(_,group) in enumerate(combos[:max_parlays],1):
+    selected=[]
+    player_exposure={}
+    for _,group in combos:
+        if any(player_exposure.get(x["Player"],0)>=overlap_limit for x in group):continue
+        selected.append(group)
+        for x in group:player_exposure[x["Player"]]=player_exposure.get(x["Player"],0)+1
+        if len(selected)>=max_parlays:break
+    if not selected:
+        st.warning("No combinations meet the cross-parlay player exposure limit.")
+        return
+    for idx,group in enumerate(selected,1):
         with st.expander(f"Candidate parlay {idx} · {leg_count} legs",expanded=idx==1):
             for leg in group:
                 st.write(f"**{leg['Player']} — {leg['Market']} {leg['Safe line']:g}+** · {leg['Recent hits']}/3 recent hits · baseline {leg['Huie baseline']:g} · Sam {leg['Sam projection'] if leg['Sam projection'] is not None else 'N/A'} · {leg['Game']}")
-    st.caption("Ranked by recent observed hits and the weaker of the two model margins.  These are NOT expected-value rankings: without contract prices, calibrated probabilities and correlation estimates, no parlay can be called favorable or profitable.")
+    st.caption("Ranked by smoothed observed hit frequency and the weaker of the two model margins. These are NOT expected-value rankings: without contract prices, calibrated probabilities and correlation estimates, no parlay can be called favorable or profitable.")
