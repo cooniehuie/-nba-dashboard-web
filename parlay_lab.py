@@ -74,25 +74,34 @@ def render(df):
     show["Recent hit rate"]=show["Recent hit rate"].map(lambda x:f"{x:.0%}")
     st.dataframe(show,use_container_width=True,hide_index=True)
     st.subheader("Smart Parlay Builder")
+    st.info("Only OVER legs where BOTH Sam's projection and Huie's independent baseline are strictly above the safe line can qualify. Missing projections are excluded.")
     leg_count=st.select_slider("Number of legs",options=[2,3,4],value=2)
     require_three=st.checkbox("Require 3 of last 3 games to hit",value=True)
     different_games=st.checkbox("Prefer different matchups",value=True)
     max_parlays=st.slider("Combinations to show",1,15,5)
-    eligible=data[(data["Recent hits"]>= (3 if require_three else 2)) & (data["Baseline margin"]>=0)].copy()
-    eligible=eligible.sort_values(["Recent hits","Baseline margin"],ascending=False).head(24)
+    # Both models MUST project strictly above the safe line. Missing Sam
+    # projections are ineligible, rather than silently treated as agreement.
+    eligible=data[
+        (data["Recent hits"] >= (3 if require_three else 2))
+        & (data["Huie baseline"] > data["Safe line"])
+        & data["Sam projection"].notna()
+        & (data["Sam projection"] > data["Safe line"])
+    ].copy()
+    eligible["Consensus margin"] = eligible[["Baseline margin","Sam margin"]].min(axis=1)
+    eligible=eligible.sort_values(["Recent hits","Consensus margin"],ascending=False).head(24)
     # Cap candidate pool for predictable compute, avoid duplicate players in one parlay.
     combos=[]
     for group in itertools.combinations(eligible.to_dict("records"),leg_count):
         if len({x["Player"] for x in group})!=leg_count:continue
         if different_games and len({x["Game"] for x in group})!=leg_count:continue
-        score=sum(x["Recent hits"] for x in group)*10+sum(min(x["Baseline margin"],10) for x in group)
+        score=sum(x["Recent hits"] for x in group)*10+sum(min(x["Consensus margin"],10) for x in group)
         combos.append((score,group))
     combos.sort(key=lambda item:item[0],reverse=True)
     if not combos:
-        st.info("No combinations satisfy the current filters. Try allowing 2/3 recent hits or shared matchups.")
+        st.info("No combinations satisfy the current filters. Try allowing 2/3 recent hits or shared matchups; both projections must still exceed the safe line.")
         return
     for idx,(_,group) in enumerate(combos[:max_parlays],1):
         with st.expander(f"Candidate parlay {idx} · {leg_count} legs",expanded=idx==1):
             for leg in group:
                 st.write(f"**{leg['Player']} — {leg['Market']} {leg['Safe line']:g}+** · {leg['Recent hits']}/3 recent hits · baseline {leg['Huie baseline']:g} · Sam {leg['Sam projection'] if leg['Sam projection'] is not None else 'N/A'} · {leg['Game']}")
-    st.caption("Ranked by recent observed hits and baseline margin only. These are NOT expected-value rankings: without contract prices, calibrated probabilities and correlation estimates, no parlay can be called favorable or profitable.")
+    st.caption("Ranked by recent observed hits and the weaker of the two model margins.  These are NOT expected-value rankings: without contract prices, calibrated probabilities and correlation estimates, no parlay can be called favorable or profitable.")
