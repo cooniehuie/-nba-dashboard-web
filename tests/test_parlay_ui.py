@@ -1,6 +1,7 @@
 """Streamlit AppTest smoke check for the actual Smart Parlay UI (no network)."""
 import unittest
 from streamlit.testing.v1 import AppTest
+import pandas as pd
 
 APP = '''
 import streamlit as st
