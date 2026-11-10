@@ -81,6 +81,32 @@ class ParlayLabTests(unittest.TestCase):
         self.assertEqual(_market_label("over 2.5 3PM"),"Threes")
         self.assertIsNone(_market_label("Points + Rebounds"))
 
+    def test_matched_picks_with_missing_last_games_remain_visible(self):
+        bankroll=pd.DataFrame([{"Player":"S. Curry","Game":"GSW @ LAL",
+                                 "Our play":"OVER 1.5 threes fg3m","Safer line":"1+ threes fg3m"}])
+        props=pd.DataFrame([{"Player":"Stephen Curry","Game":"GSW at LAL",
+                             "Market":"3-point field goals","Model projection":4.1,
+                             "Last game":"—","2 games ago":"—","3 games ago":"—",
+                             "Last 3 avg":3.8}])
+        joined=_join_bankroll_safe_lines(bankroll,props)
+        self.assertEqual(len(joined),1)
+        picks=_candidates(joined)
+        self.assertEqual(len(picks),1)
+        self.assertAlmostEqual(picks.iloc[0]["Huie baseline"],3.8)
+        self.assertEqual(picks.iloc[0]["Baseline source"],"Workbook last-3 average")
+        self.assertTrue(pd.isna(picks.iloc[0]["Recent hits"]))
+        self.assertTrue(dual_model_eligible(picks).empty)
+
+    def test_no_history_and_no_average_does_not_create_baseline(self):
+        df=pd.DataFrame([{"Player":"Sample Player","Market":"Assists","Safer line":"4+",
+                         "Model projection":6,"Last game":"—",
+                         "2 games ago":"—","3 games ago":"—"}])
+        picks=_candidates(df)
+        self.assertEqual(len(picks),1)
+        self.assertTrue(pd.isna(picks.iloc[0]["Huie baseline"]))
+        self.assertTrue(pd.isna(picks.iloc[0]["Recent hits"]))
+        self.assertTrue(dual_model_eligible(picks).empty)
+
     def test_candidate_stat_values(self):
         df=pd.DataFrame([{"Player":"Sample Player","Market":"Rebounds","Safer line":"6+",
                           "Model projection":8.1,"Last game":8,"2 games ago":7,"3 games ago":9,"Game":"A at B"}])
