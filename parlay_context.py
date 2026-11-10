@@ -79,15 +79,72 @@ def starters_from_summary(summary):
                     name=(p.get("athlete") or {}).get("displayName")
                     if name: result.add((team,name_key(name)))
     return result
+def nba_live_json(url):
+    """Fetch official NBA CDN live JSON; never treat failed requests as confirmations."""
+    import re
+    host="https://cdn.nba.com/static/json/liveData/"
+    if not url.startswith(host) or not re.match(
+            r"^https://cdn\.nba\.com/static/json/liveData/(scoreboard/todaysScoreboard_00\.json|boxscore/boxscore_\d{10}\.json)$",url):
+        raise ValueError("Unapproved NBA live-data URL")
+    with urlopen(Request(url,headers={"User-Agent":"Mozilla/5.0"}),timeout=8) as response:
+        raw=response.read(3_000_001)
+    if len(raw)>3_000_000:raise ValueError("Oversize NBA response")
+    obj=json.loads(raw)
+    if not isinstance(obj,dict):raise ValueError("Invalid NBA live-data response")
+    return obj
+
+def nba_confirmed_starters(scoreboard_payload,game_date,fetch=None):
+    """Only accept complete five-per-team named starter lists from official NBA boxscores."""
+    fetch=fetch or nba_live_json
+    confirmed={}
+    for game in (scoreboard_payload.get("scoreboard") or {}).get("games",[]):
+        game_id=str(game.get("gameId",""))
+        if not (game_id.isdigit() and len(game_id)==10):continue
+        try:
+            instant=datetime.fromisoformat(str(game["gameTimeUTC"]).replace("Z","+00:00"))
+            if instant.astimezone(PACIFIC).date()!=game_date:continue
+        except (KeyError,ValueError,TypeError):continue
+        away=team_key((game.get("awayTeam") or {}).get("teamTricode"))
+        home=team_key((game.get("homeTeam") or {}).get("teamTricode"))
+        if not away or not home:continue
+        try:
+            payload=fetch("https://cdn.nba.com/static/json/liveData/boxscore/boxscore_"+game_id+".json")
+        except Exception:continue
+        event=payload.get("game") or {}
+        starters={}
+        for side in ("awayTeam","homeTeam"):
+            team=event.get(side) or {}
+            abbr=team_key(team.get("teamTricode"))
+            listed=[]
+            for player in team.get("players",[]):
+                marker=player.get("starter")
+                if marker is True or str(marker).strip().lower() in ("1","true"):
+                    name=player.get("name") or (str(player.get("firstName",""))+" "+str(player.get("familyName",""))).strip()
+                    if name:listed.append((abbr,name_key(name)))
+            if len(set(listed))==5:starters[abbr]=set(listed)
+        # Partial provider output cannot be called a confirmed full lineup.
+        if len(starters)==2 and all(len(v)==5 for v in starters.values()):
+            confirmed[frozenset((away,home))]={
+                "players":starters[away]|starters[home],
+                "source":"NBA official live boxscore","game_id":game_id}
+    return confirmed
+
 def game_day_context(day=None, fetch=None):
     fetch=fetch or fetch_json
     day=day or datetime.now(PACIFIC).date()
     info={"checked_at":datetime.now(PACIFIC).isoformat(),"injuries":None,
-          "injury_error":None,"games":[],"schedule_error":None,"starters":{}}
+          "injury_error":None,"games":[],"schedule_error":None,"starters":{},
+          "official_starters":{}}
     try: info["injuries"]=parse_injuries(fetch(BASE+"/injuries"))
     except Exception as exc: info["injury_error"]=type(exc).__name__
     try: info["games"]=scoreboard(fetch(BASE+"/scoreboard?dates="+day.strftime("%Y%m%d")))
     except Exception as exc: info["schedule_error"]=type(exc).__name__
+    try:
+        source=nba_live_json("https://cdn.nba.com/static/json/liveData/scoreboard/todaysScoreboard_00.json")
+        info["official_starters"]=nba_confirmed_starters(source,day)
+    except Exception:
+        # NBA official feed may be blocked or unavailable; keep statuses unconfirmed.
+        pass
     for game in info["games"]:
         # A pregame roster is not a verified starting lineup.
         if game["state"] not in ("in","post") or not game["id"].isdigit(): continue
