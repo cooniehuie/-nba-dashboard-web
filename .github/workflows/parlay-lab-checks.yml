@@ -3,8 +3,9 @@ on:
   push:
     paths:
       - 'app.py'
-      - 'parlay_lab.py'
-      - 'tests/test_parlay_lab.py'
+      - 'parlay_*.py'
+      - 'tests/test_*.py'
+      - 'requirements.txt'
       - '.github/workflows/parlay-lab-checks.yml'
   workflow_dispatch:
 permissions:
@@ -12,6 +13,7 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -19,7 +21,7 @@ jobs:
           python-version: '3.11'
       - name: Install dependencies
         run: pip install -r requirements.txt
-      - name: Compile Python
-        run: python -m py_compile app.py parlay_lab.py
-      - name: Run parlay builder tests
-        run: python -m unittest discover -s tests -p 'test_parlay_lab.py' -v
+      - name: Compile dashboard and every model module
+        run: python -m py_compile app.py parlay_*.py
+      - name: Run all parlay regression tests
+        run: python -m unittest discover -s tests -p 'test_*.py' -v
