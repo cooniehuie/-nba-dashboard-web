@@ -57,6 +57,18 @@ def injury_status(player, team, report):
     value=text.casefold()
     if any(w in value for w in ("out","doubtful","inactive","suspended")): return ("block",text)
     return ("review",text)
+def starter_match(player, team, named_starters):
+    """Return True/False/None for uniquely matched confirmed lineup membership."""
+    team=team_key(team)
+    tokens=name_key(player).split()
+    if not team or len(tokens)<2 or not named_starters:return None
+    known=[key.split() for abbr,key in named_starters if team_key(abbr)==team]
+    if len(known)<5:return None
+    matches=[p for p in known if p==tokens or (p[0].startswith(tokens[0]) and p[1:]==tokens[1:])]
+    if len(matches)==1:return True
+    if len(matches)>1:return None
+    return False
+
 def parse_game(label):
     m=re.search(r"\b([A-Za-z]{2,4})\s+(?:at|@|vs\.?|v)\s+([A-Za-z]{2,4})\b",str(label),re.I)
     return (team_key(m[1]),team_key(m[2])) if m else None
