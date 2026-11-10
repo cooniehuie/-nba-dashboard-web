@@ -1,0 +1,23 @@
+name: NBA live data source checks
+on:
+  push:
+    paths:
+      - 'parlay_context.py'
+      - 'scripts/live_source_smoke.py'
+      - '.github/workflows/live-data-check.yml'
+  schedule:
+    - cron: '30 18 * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  providers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Validate live public NBA sources
+        run: python -m scripts.live_source_smoke
