@@ -406,11 +406,23 @@ def render(df, all_props=None):
     st.subheader("Huie's Model Lab · independent recent-games baseline")
     st.write("Huie's baseline uses three recorded player results, or the workbook's recorded last-three average when individual games are incomplete. Missing values remain unavailable and never count as hits.")
     st.caption("Recent 3-game hit rates are descriptive. External injury, lineup and matchup data are shown only when verified. Calibrated probabilities require a held-out historical check.")
-    show=data.sort_values(["Recent hits","Baseline margin"],ascending=False).copy()
-    show["Recent hit rate"]=show["Recent hit rate"].map(lambda x:f"{x:.0%}" if pd.notna(x) else "Unverified")
-    st.dataframe(show,use_container_width=True,hide_index=True)
-    if data["Games"].lt(3).any():
-        st.info("Some picks have fewer than three recorded game results. Click 'Load external historical results' below to retrieve verified ESPN results before those picks can qualify.")
+    missing_sam=data["Sam projection"].notna().sum()==0
+    missing_history=data["Games"].lt(3).any()
+    with st.expander("Workbook data coverage · diagnose missing projections",expanded=bool(missing_sam)):
+        coverage=[]
+        if all_props is not None and not all_props.empty:
+            for key,value in _candidate_diagnostics(all_props).items():
+                coverage.append({"Source":"All Player Props","Check":key,"Count":value})
+        if "joined" in locals() and not joined.empty:
+            for key,value in _candidate_diagnostics(joined).items():
+                coverage.append({"Source":"Matched bankroll picks","Check":key,"Count":value})
+        if coverage:
+            st.dataframe(pd.DataFrame(coverage),use_container_width=True,hide_index=True)
+        st.caption("Only numeric records count. Historical n/a entries are not player results, and sportsbook reference lines are not Sam projections.")
+    if missing_sam:
+        st.warning("The saved workbook currently provides no numeric Sam model projections for the matched picks. No dual-model parlay can qualify until the All Player Props source has real projections. Ask the administrator to re-upload a complete daily workbook.")
+    if missing_history:
+        st.info("Individual recent-game statistics are missing for some matched picks. Use 'Load external historical results' below to retrieve verified ESPN results. No missing games are treated as wins.")
     _history_view(data)
     historical=st.session_state.get("lab_history_results")
     if st.session_state.get("lab_history_enabled") and isinstance(historical,pd.DataFrame) and not historical.empty:
@@ -447,6 +459,13 @@ def render(df, all_props=None):
             data.at[idx,"External hits"]=int(rec["Hits"])
             data.at[idx,"Historical SD"]=rec.get("Historical SD")
             data.at[idx,"ESPN team"]=rec.get("ESPN team")
+    st.subheader("Model comparison · available verified information")
+    show=data.sort_values(["Recent hits","Baseline margin"],ascending=False,na_position="last").copy()
+    show["Recent hit rate"]=show["Recent hit rate"].map(
+        lambda x:f"{x:.0%}" if pd.notna(x) else "Unverified")
+    st.dataframe(show,use_container_width=True,hide_index=True)
+    st.caption("The model comparison refreshes after external historical results load. Entries missing either model's estimate do not qualify for the dual-model parlay list.")
+
     st.subheader("Game-day availability and risk checks")
     st.caption("Manual injury/role review is required: this is not a live injury feed. Excluded players are never used in generated parlays.")
     excluded_text=st.text_area("Exclude players (one per line; injury, minutes limit, or uncertain role)",
