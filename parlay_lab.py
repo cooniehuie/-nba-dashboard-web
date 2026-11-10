@@ -380,7 +380,19 @@ def render(df):
         eligible=eligible[eligible["ESPN injury flag"]!="block"]
         if exclude_uncertain:
             eligible=eligible[eligible["ESPN injury flag"]!="review"]
+    calibration=st.session_state.get("lab_calibration",{})
+    eligible["Calibrated probability"]=eligible.apply(
+        lambda r:calibrated_predict(r["Huie baseline"],r["Safe line"],
+                                    r.get("Historical SD"),calibration.get(r["Market"])),axis=1)
     eligible["Consensus margin"] = eligible[["Baseline margin","Sam margin"]].min(axis=1)
+    if eligible["Calibrated probability"].notna().any():
+        st.subheader("Validated single-leg probability forecasts")
+        probability_view=eligible[["Player","Market","Safe line","Calibrated probability"]].copy()
+        probability_view["Calibrated probability"]=probability_view["Calibrated probability"].map(
+            lambda p:f"{p:.1%}" if pd.notna(p) else "Not validated")
+        st.dataframe(probability_view,hide_index=True,use_container_width=True)
+    else:
+        st.caption("No eligible market has passed the held-out calibration check. Numerical win probabilities and EV are withheld.")
     st.caption(f"{len(eligible)} candidates pass the dual-model rule and current availability/history filters.")
     # Laplace-smoothed historical hit frequency is descriptive, not a
     # calibrated future probability; use only as a ranking tie-breaker.
@@ -418,35 +430,49 @@ def render(df):
             key=(leg["Player"],leg["Market"],leg["Safe line"])
             unique_legs[key]=leg
     price_rows=[{"Player":v["Player"],"Market":v["Market"],"Safe line":v["Safe line"],
-                 "YES price ($)":None,"Observed hit frequency":round(v["Observed hit rate"],3)}
+                 "YES price ($)":None,"Fee / contract ($)":None,
+                 "Observed hit frequency":round(v["Observed hit rate"],3)}
                 for v in unique_legs.values()]
     price_input=st.data_editor(pd.DataFrame(price_rows),hide_index=True,
                                disabled=["Player","Market","Safe line","Observed hit frequency"],
                                column_config={"YES price ($)":st.column_config.NumberColumn(
-                                   "YES price ($)",min_value=0.01,max_value=0.99,step=0.01)},
+                                   "YES price ($)",min_value=0.01,max_value=0.99,step=0.01),
+                                   "Fee / contract ($)":st.column_config.NumberColumn(
+                                   "Fee / contract ($)",min_value=0.0,max_value=0.99,step=0.01)},
                                use_container_width=True,key="lab_contract_prices")
     entered={}
     for _,row in price_input.iterrows():
         value=row["YES price ($)"]
         if pd.notna(value) and 0<float(value)<1:
-            entered[(row["Player"],row["Market"],row["Safe line"])]=float(value)
+            raw_fee=row["Fee / contract ($)"]
+            fee=float(raw_fee) if pd.notna(raw_fee) and 0<=float(raw_fee)<1 else None
+            entered[(row["Player"],row["Market"],row["Safe line"])]=(float(value),fee)
     if entered:
         comparison=[]
         for key,leg in unique_legs.items():
             if key not in entered:continue
             observed=float(leg["Observed hit rate"])
-            price=entered[key]
+            price,fee=entered[key]
+            p=leg.get("Calibrated probability")
+            p=float(p) if pd.notna(p) else None
+            threshold=yes_break_even(price,fee) if fee is not None else None
+            ev=yes_expected_value(p,price,fee) if p is not None and fee is not None else None
             comparison.append({"Player":leg["Player"],"Market":leg["Market"],
-                               "Line":leg["Safe line"],"YES price":round(price,3),
-                               "Break-even probability":round(price,3),
+                               "Line":leg["Safe line"],"Manual YES price":round(price,3),
+                               "Manual fee":round(fee,3) if fee is not None else None,
+                               "Price-only break-even":round(price,3),
+                               "Break-even incl fee":round(threshold,3) if threshold is not None else None,
                                "Observed frequency":round(observed,3),
-                               "Frequency minus break-even":round(observed-price,3)})
+                               "Validated single-leg probability":round(p,3) if p is not None else None,
+                               "Illustrative EV / $1 contract":round(ev,3) if ev is not None else None})
         st.dataframe(pd.DataFrame(comparison),use_container_width=True,hide_index=True)
-        st.warning("A positive frequency-minus-price gap is NOT evidence of an edge. The historical sample is small, price/fees can change, and joint parlay probabilities have not been calibrated.")
+        st.warning("Prices/fees are manually entered, not live Robinhood quotes. EV is withheld unless BOTH a fee and a held-out-validated single-leg probability are available. This is per-contract math, NOT a combo-parlay profit forecast.")
     for idx,group in enumerate(selected,1):
         with st.expander(f"Candidate parlay {idx} · {leg_count} legs",expanded=idx==1):
             for leg in group:
-                st.write(f"**{leg['Player']} — {leg['Market']} {leg['Safe line']:g}+** · {leg['Recent hits']}/3 recent hits · baseline {leg['Huie baseline']:g} · Sam {leg['Sam projection'] if leg['Sam projection'] is not None else 'N/A'} · {leg['Game']}")
+                prob=leg.get("Calibrated probability")
+                prob_text=f"{prob:.1%} held-out-calibrated scenario" if pd.notna(prob) else "probability not validated"
+                st.write(f"**{leg['Player']} — {leg['Market']} {leg['Safe line']:g}+** · {leg['Recent hits']}/3 recent hits · baseline {leg['Huie baseline']:g} · Sam {leg['Sam projection'] if leg['Sam projection'] is not None else 'N/A'} · {prob_text} · {leg['Game']}")
     st.subheader("Joint outcome uncertainty")
     st.caption("These are mathematical bounds only, not estimated parlay win probabilities. The per-leg frequencies are uncalibrated; bounds inherit that limitation. No independence assumption is made.")
     joint_rows=[]
