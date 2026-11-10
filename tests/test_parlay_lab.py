@@ -30,7 +30,11 @@ class ParlayLabTests(unittest.TestCase):
         df=pd.DataFrame([{"Player":"Sample Player","Market":"Points","Safer line":"15+",
                           "Model projection":19.1,"Last game":18,"2 games":20,
                           "Game":"BOS at NYK"}])
-        self.assertTrue(_candidates(df).empty)
+        picks=_candidates(df)
+        self.assertEqual(len(picks),1)
+        self.assertTrue(pd.isna(picks.iloc[0]["Recent hits"]))
+        self.assertTrue(pd.isna(picks.iloc[0]["Huie baseline"]))
+        self.assertTrue(dual_model_eligible(picks).empty)
 
     def test_join_across_game_label_and_player_abbreviation(self):
         bankroll=pd.DataFrame([{"Player":"S. Curry","Game":"GSW @ LAL",
