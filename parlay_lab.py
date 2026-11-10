@@ -4,6 +4,7 @@ import math
 import re
 import pandas as pd
 import streamlit as st
+from parlay_probability import joint_bounds, wilson_interval
 
 def _col(df, *names):
     for name in names:
@@ -350,12 +351,12 @@ def render(df):
     joint_rows=[]
     for idx,group in enumerate(selected,1):
         rates=[float(x["Observed hit rate"]) for x in group]
-        lower=max(0.0,sum(rates)-(len(rates)-1))
-        upper=min(rates)
+        lower,upper=joint_bounds(rates)
         joint_rows.append({"Parlay":idx,"Legs":len(rates),
                            "Illustrative lower bound":round(lower,3),
                            "Illustrative upper bound":round(upper,3),
                            "Interpretation":"Not a calibrated probability"})
     st.dataframe(pd.DataFrame(joint_rows),hide_index=True,use_container_width=True)
+    st.caption("These bounds use observed frequencies as hypothetical marginals, not calibrated forecasts.")
     st.warning("Actual joint probabilities require validated marginal probabilities and dependence estimates. Do not multiply these frequencies or use these bounds to claim positive expected value.")
     st.caption("Manual injury exclusions are not verified against an official injury report. Ranked by smoothed observed hit frequency and the weaker of the two model margins. These are NOT expected-value rankings: without contract prices, calibrated probabilities and correlation estimates, no parlay can be called favorable or profitable.")
