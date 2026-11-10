@@ -1682,6 +1682,10 @@ ROBINHOOD_NOV9_BETS=[
 ]
 
 ROBINHOOD_CONFIRMED_BET_SETTLEMENTS={
+    "Nov 9 · Parlay 21":{"date":"2026-11-09","time":"21:47","status":"Won",
+        "settlement_price":0.47,"quantity":522,"payout":245.34,
+        "realized_profit":150.86,"event_id":"a71f31da-6b1f-4683-a514-e8ce6a1dee41",
+        "note":"Robinhood-confirmed partial-price payout; realized profit as reported, original purchase cost preserved."},
     # User-reported Nov 9 losses; settlement details not yet supplied.
     "Nov 9 · Parlay 16":{"date":"2026-11-09","status":"Loss",
         "realized_profit":-99.99,"note":"User reported C. Wentz interceptions 3+ contract lost; estimated entry-cost loss pending settlement."},
