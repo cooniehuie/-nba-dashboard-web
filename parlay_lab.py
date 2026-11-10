@@ -4,7 +4,11 @@ import math
 import re
 import pandas as pd
 import streamlit as st
-from parlay_probability import joint_bounds, wilson_interval
+from parlay_probability import joint_bounds, wilson_interval, yes_break_even, yes_expected_value
+from parlay_context import game_day_context, injury_status, parse_game, name_key, team_key, team_context, matchup_adjustment
+from parlay_calibration import train as train_probabilities, predict as calibrated_predict
+from parlay_joint import correlated_joint
+from statistics import pstdev
 
 def _col(df, *names):
     for name in names:
@@ -136,6 +140,20 @@ def _history_view(data):
         except Exception as exc:
             st.warning("Historical results could not be retrieved: "+str(exc))
             return
+    st.session_state["lab_history_raw"]=history
+    st.session_state["lab_calibration"]=train_probabilities(history)
+    calibration=st.session_state["lab_calibration"]
+    if calibration:
+        with st.expander("Walk-forward probability calibration · held-out results"):
+            calibration_rows=[{"Market":market,"Training examples":row["train_n"],
+                               "Holdout examples":row["holdout_n"],
+                               "Brier score":row["brier"],"Naive baseline Brier":row["naive_brier"],
+                               "Passed held-out check":row["calibrated"]}
+                              for market,row in calibration.items()]
+            st.dataframe(pd.DataFrame(calibration_rows),hide_index=True,use_container_width=True)
+            st.caption("Calibration uses synthetic historical alternate lines (not archived Robinhood prices). Markets that fail the holdout check produce no forecast probability.")
+    else:
+        st.caption("Not enough ESPN completed games to validate hit-probability calibration.")
     # Match by unambiguous normalized player names; abbreviated names that
     # map to multiple athletes are deliberately left unresolved.
     import unicodedata
@@ -166,6 +184,8 @@ def _history_view(data):
         output.append({"Player":name,"Market":pick["Market"],"Safe line":pick["Safe line"],
                        "Completed games":len(values),"Hits":sum(v>=pick["Safe line"] for v in values),
                        "Historical average":round(sum(values)/len(values),2),
+                       "Historical SD":round(max(.75,pstdev(values[:5])),3) if len(values)>=5 else None,
+                       "ESPN team":team,
                        "Minutes projection":round(minutes_estimate,2) if minutes_estimate is not None else None,
                        "Recent minutes":round(projected_minutes,1) if projected_minutes is not None else None,
                        "Sam projection":pick["Sam projection"],
@@ -258,6 +278,8 @@ def render(df):
             data.at[idx,"Baseline margin"]=round(baseline-pick["Safe line"],2)
             data.at[idx,"External games"]=int(rec["Completed games"])
             data.at[idx,"External hits"]=int(rec["Hits"])
+            data.at[idx,"Historical SD"]=rec.get("Historical SD")
+            data.at[idx,"ESPN team"]=rec.get("ESPN team")
     st.subheader("Game-day availability and risk checks")
     st.caption("Manual injury/role review is required: this is not a live injury feed. Excluded players are never used in generated parlays.")
     excluded_text=st.text_area("Exclude players (one per line; injury, minutes limit, or uncertain role)",
