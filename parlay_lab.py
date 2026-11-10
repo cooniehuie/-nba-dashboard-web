@@ -63,14 +63,46 @@ def _historical_boxscores(days_back=10):
     from datetime import datetime, timedelta
     from zoneinfo import ZoneInfo
     from collections import defaultdict
-    from app import espn_nba_boxscores
+    from urllib.request import Request, urlopen
+    import json
+    def fetch(url):
+        with urlopen(Request(url,headers={"User-Agent":"Mozilla/5.0"}),timeout=8) as response:
+            return json.load(response)
     today=datetime.now(ZoneInfo("America/Los_Angeles")).date()
     result=defaultdict(list)
     failures=0
     for offset in range(1, days_back+1):
         day=today-timedelta(days=offset)
         try:
-            games,players=espn_nba_boxscores(day.strftime("%Y%m%d"))
+            board=fetch("https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard?dates="+day.strftime("%Y%m%d"))
+            games=[]
+            players=[]
+            for event in board.get("events",[]):
+                if event.get("status",{}).get("type",{}).get("state")!="post":continue
+                summary=fetch("https://site.api.espn.com/apis/site/v2/sports/basketball/nba/summary?event="+str(event["id"]))
+                for team in summary.get("boxscore",{}).get("players",[]):
+                    for group in team.get("statistics",[]):
+                        keys=[str(k).lower() for k in group.get("keys",[])]
+                        labels=[str(k).lower() for k in group.get("labels",[])]
+                        for athlete in group.get("athletes",[]):
+                            if athlete.get("didNotPlay") or athlete.get("inactive"):continue
+                            stats=athlete.get("stats",[])
+                            def stat(*options):
+                                for key in options:
+                                    idx=keys.index(key) if key in keys else (labels.index(key) if key in labels else -1)
+                                    if 0<=idx<len(stats):return stats[idx]
+                                return None
+                            def numeric(value):
+                                try:return float(str(value).split("-")[0])
+                                except (ValueError,TypeError):return None
+                            info=athlete.get("athlete",{})
+                            players.append({"name":info.get("displayName",info.get("fullName","")),
+                                            "team":team.get("team",{}).get("abbreviation",""),
+                                            "game":{"state":"post"},
+                                            "stats":{"Points":numeric(stat("pts","points")),
+                                                     "Rebounds":numeric(stat("reb","rebs","rebounds")),
+                                                     "Assists":numeric(stat("ast","assists")),
+                                                     "Threes":numeric(stat("3pt","3pm","3-pt"))}})
         except Exception:
             failures+=1
             continue
