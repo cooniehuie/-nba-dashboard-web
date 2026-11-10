@@ -293,6 +293,39 @@ def render(df):
     if not selected:
         st.warning("No combinations meet the cross-parlay player exposure limit.")
         return
+    st.subheader("Contract-price comparison")
+    st.caption("Optional: enter the offered YES price per $1 payout for an individual leg. Prices are not fetched from Robinhood. Observed hit rates are NOT calibrated probabilities; this is a sensitivity check, not a positive-EV recommendation.")
+    unique_legs={}
+    for group in selected:
+        for leg in group:
+            key=(leg["Player"],leg["Market"],leg["Safe line"])
+            unique_legs[key]=leg
+    price_rows=[{"Player":v["Player"],"Market":v["Market"],"Safe line":v["Safe line"],
+                 "YES price ($)":None,"Observed hit frequency":round(v["Observed hit rate"],3)}
+                for v in unique_legs.values()]
+    price_input=st.data_editor(pd.DataFrame(price_rows),hide_index=True,
+                               disabled=["Player","Market","Safe line","Observed hit frequency"],
+                               column_config={"YES price ($)":st.column_config.NumberColumn(
+                                   "YES price ($)",min_value=0.01,max_value=0.99,step=0.01)},
+                               use_container_width=True,key="lab_contract_prices")
+    entered={}
+    for _,row in price_input.iterrows():
+        value=row["YES price ($)"]
+        if pd.notna(value) and 0<float(value)<1:
+            entered[(row["Player"],row["Market"],row["Safe line"])]=float(value)
+    if entered:
+        comparison=[]
+        for key,leg in unique_legs.items():
+            if key not in entered:continue
+            observed=float(leg["Observed hit rate"])
+            price=entered[key]
+            comparison.append({"Player":leg["Player"],"Market":leg["Market"],
+                               "Line":leg["Safe line"],"YES price":round(price,3),
+                               "Break-even probability":round(price,3),
+                               "Observed frequency":round(observed,3),
+                               "Frequency minus break-even":round(observed-price,3)})
+        st.dataframe(pd.DataFrame(comparison),use_container_width=True,hide_index=True)
+        st.warning("A positive frequency-minus-price gap is NOT evidence of an edge. The historical sample is small, price/fees can change, and joint parlay probabilities have not been calibrated.")
     for idx,group in enumerate(selected,1):
         with st.expander(f"Candidate parlay {idx} · {leg_count} legs",expanded=idx==1):
             for leg in group:
