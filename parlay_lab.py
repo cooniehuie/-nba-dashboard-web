@@ -58,7 +58,7 @@ def _candidates(df):
     return result.drop_duplicates(subset=["Player","Market","Safe line","Game"])
 
 @st.cache_data(ttl=21600, show_spinner=False)
-def _historical_boxscores(days_back=10):
+def _historical_boxscores(days_back=30):
     """Fetch completed ESPN boxscores for recent calendar days; no synthetic games."""
     from datetime import datetime, timedelta
     from zoneinfo import ZoneInfo
@@ -116,8 +116,10 @@ def _historical_boxscores(days_back=10):
 
 def _history_view(data):
     st.subheader("External results · ESPN completed NBA games")
-    st.caption("Optional research fetch of the previous 10 calendar days. Only completed games with recorded player statistics count; unavailable records are not treated as misses.")
-    if not st.button("Load external historical results",key="lab_fetch_history"):
+    st.caption("Optional research fetch of the previous 30 calendar days. Only completed games with recorded player statistics count; unavailable records are not treated as misses.")
+    if st.button("Load external historical results",key="lab_fetch_history"):
+        st.session_state["lab_history_enabled"]=True
+    if not st.session_state.get("lab_history_enabled",False):
         return
     with st.spinner("Checking recent completed NBA box scores..."):
         try:
@@ -151,6 +153,7 @@ def _history_view(data):
                        "Sam projection":pick["Sam projection"],
                        "Huie baseline":pick["Huie baseline"]})
     if output:
+        st.session_state["lab_history_results"]=pd.DataFrame(output)
         st.dataframe(pd.DataFrame(output),use_container_width=True,hide_index=True)
     else:
         st.info("No unambiguous completed-game records were found for the current candidates.")
@@ -173,10 +176,32 @@ def render(df):
     show["Recent hit rate"]=show["Recent hit rate"].map(lambda x:f"{x:.0%}")
     st.dataframe(show,use_container_width=True,hide_index=True)
     _history_view(data)
+    historical=st.session_state.get("lab_history_results")
+    if st.session_state.get("lab_history_enabled") and isinstance(historical,pd.DataFrame) and not historical.empty:
+        # Join on unique player initial + surname and stat, never silently
+        # assign ambiguous names (e.g. Amen versus Ausar Thompson).
+        import unicodedata
+        def initials(value):
+            v=unicodedata.normalize("NFKD",str(value).lower())
+            words=" ".join("".join(ch if ch.isalnum() else " " for ch in v).split()).split()
+            return (words[0][:1]+" "+" ".join(words[1:])) if len(words)>1 else ""
+        counts=historical.assign(_key=historical["Player"].map(initials)).groupby(["_key","Market"]).size()
+        safe=historical.assign(_key=historical["Player"].map(initials))
+        safe=safe[safe.apply(lambda x:counts.loc[(x["_key"],x["Market"])]==1,axis=1)]
+        lookup_history={(x["_key"],x["Market"]):x for _,x in safe.iterrows()}
+        for idx,pick in data.iterrows():
+            rec=lookup_history.get((initials(pick["Player"]),pick["Market"]))
+            if rec is None or rec["Completed games"]<5:continue
+            # Historical average is an independent projection baseline.
+            data.at[idx,"Huie baseline"]=float(rec["Historical average"])
+            data.at[idx,"Baseline margin"]=round(float(rec["Historical average"])-pick["Safe line"],2)
+            data.at[idx,"External games"]=int(rec["Completed games"])
+            data.at[idx,"External hits"]=int(rec["Hits"])
     st.subheader("Smart Parlay Builder")
     st.info("Only OVER legs where BOTH Sam's projection and Huie's independent baseline are strictly above the safe line can qualify. Missing projections are excluded.")
     leg_count=st.select_slider("Number of legs",options=[2,3,4],value=2)
     require_three=st.checkbox("Require 3 of last 3 games to hit",value=True)
+    require_history=st.checkbox("Require at least 5 verified external games",value=False)
     different_games=st.checkbox("Prefer different matchups",value=True)
     max_parlays=st.slider("Combinations to show",1,15,5)
     # Both models MUST project strictly above the safe line. Missing Sam
@@ -187,6 +212,8 @@ def render(df):
         & data["Sam projection"].notna()
         & (data["Sam projection"] > data["Safe line"])
     ].copy()
+    if require_history:
+        eligible=eligible[eligible.get("External games",pd.Series(0,index=eligible.index)).fillna(0)>=5]
     eligible["Consensus margin"] = eligible[["Baseline margin","Sam margin"]].min(axis=1)
     eligible=eligible.sort_values(["Recent hits","Consensus margin"],ascending=False).head(24)
     # Cap candidate pool for predictable compute, avoid duplicate players in one parlay.
