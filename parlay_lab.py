@@ -8,6 +8,7 @@ from parlay_probability import joint_bounds, wilson_interval, yes_break_even, ye
 from parlay_context import game_day_context, injury_status, parse_game, name_key, team_key, team_context, matchup_adjustment
 from parlay_calibration import train as train_probabilities, predict as calibrated_predict
 from parlay_joint import correlated_joint
+from parlay_quotes import fetch_quote_feed, match_quote
 from statistics import pstdev
 
 def _col(df, *names):
@@ -245,6 +246,10 @@ def _live_nba_context():
 def _recent_opponent_context(opponents):
     return team_context(opponents,days=21,max_per_team=6)
 
+@st.cache_data(ttl=180,show_spinner=False)
+def _configured_contract_quotes(url,token):
+    return fetch_quote_feed(url,token)
+
 def render(df):
     st.title("🧪 Smart Parlay Builder & Huie's Model Lab")
     st.caption("Research-only combinations using today's saved workbook. No bets are placed, and model accuracy or profitability is not guaranteed.")
@@ -423,16 +428,32 @@ def render(df):
         st.warning("No combinations meet the cross-parlay player exposure limit.")
         return
     st.subheader("Contract-price comparison")
-    st.caption("Optional: enter the offered YES price per $1 payout for an individual leg. Prices are not fetched from Robinhood. Observed hit rates are NOT calibrated probabilities; this is a sensitivity check, not a positive-EV recommendation.")
+    st.caption("Automatic quotes can come from an administrator-configured HTTPS source; Robinhood prediction-market quotes are not available through the connected Robinhood integration. A manual YES price and fee may also be entered.")
+    quote_url=st.secrets.get("PREDICTION_QUOTES_URL","")
+    quote_token=st.secrets.get("PREDICTION_QUOTES_BEARER","")
+    external_quotes=[]
+    if quote_url:
+        try:
+            external_quotes=_configured_contract_quotes(str(quote_url),str(quote_token))
+            st.caption(f"{len(external_quotes)} fresh, structurally validated YES quotes from configured feed (20-minute maximum age). This does not independently verify the feed provider.")
+        except Exception as exc:
+            st.warning("Configured quote source unavailable: "+type(exc).__name__+". No quote is assumed.")
+    else:
+        st.caption("No trusted quotes feed configured in Streamlit Secrets. Prices and actual fees must be entered manually.")
     unique_legs={}
     for group in selected:
         for leg in group:
             key=(leg["Player"],leg["Market"],leg["Safe line"])
             unique_legs[key]=leg
-    price_rows=[{"Player":v["Player"],"Market":v["Market"],"Safe line":v["Safe line"],
-                 "YES price ($)":None,"Fee / contract ($)":None,
-                 "Observed hit frequency":round(v["Observed hit rate"],3)}
-                for v in unique_legs.values()]
+    price_rows=[]
+    feed_matches={}
+    for key,v in unique_legs.items():
+        quote=match_quote(v["Player"],v["Market"],v["Safe line"],external_quotes)
+        if quote:feed_matches[key]=quote
+        price_rows.append({"Player":v["Player"],"Market":v["Market"],"Safe line":v["Safe line"],
+                           "YES price ($)":quote["price"] if quote else None,
+                           "Fee / contract ($)":quote["fee"] if quote else None,
+                           "Observed hit frequency":round(v["Observed hit rate"],3)})
     price_input=st.data_editor(pd.DataFrame(price_rows),hide_index=True,
                                disabled=["Player","Market","Safe line","Observed hit frequency"],
                                column_config={"YES price ($)":st.column_config.NumberColumn(
@@ -457,7 +478,11 @@ def render(df):
             p=float(p) if pd.notna(p) else None
             threshold=yes_break_even(price,fee) if fee is not None else None
             ev=yes_expected_value(p,price,fee) if p is not None and fee is not None else None
+            quote=feed_matches.get(key)
+            from_feed=bool(quote and abs(price-quote["price"])<1e-8 and fee is not None
+                           and abs(fee-quote["fee"])<1e-8)
             comparison.append({"Player":leg["Player"],"Market":leg["Market"],
+                               "Price source":"Configured fresh feed" if from_feed else "Manual entry",
                                "Line":leg["Safe line"],"Manual YES price":round(price,3),
                                "Manual fee":round(fee,3) if fee is not None else None,
                                "Price-only break-even":round(price,3),
@@ -466,7 +491,7 @@ def render(df):
                                "Validated single-leg probability":round(p,3) if p is not None else None,
                                "Illustrative EV / $1 contract":round(ev,3) if ev is not None else None})
         st.dataframe(pd.DataFrame(comparison),use_container_width=True,hide_index=True)
-        st.warning("Prices/fees are manually entered, not live Robinhood quotes. EV is withheld unless BOTH a fee and a held-out-validated single-leg probability are available. This is per-contract math, NOT a combo-parlay profit forecast.")
+        st.warning("Feed quotes are NOT verified live Robinhood prices. Manual overrides are marked. EV is withheld unless BOTH the actual fee and a held-out-validated single-leg probability are available. This is per-contract math, NOT a combo-parlay profit forecast.")
     for idx,group in enumerate(selected,1):
         with st.expander(f"Candidate parlay {idx} · {leg_count} legs",expanded=idx==1):
             for leg in group:
