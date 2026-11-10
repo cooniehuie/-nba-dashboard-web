@@ -52,7 +52,7 @@ def _join_bankroll_safe_lines(bankroll, props):
     index={}
     ambiguous=set()
     for _,row in bankroll.iterrows():
-        market=_market_label(row[bm])
+        market=_market_label(str(row[bm])+" "+str(row[bl]))
         line=_num(row[bl])
         if market is None or line is None:continue
         k=(key(row[bp]),key(row[bg]),market)
