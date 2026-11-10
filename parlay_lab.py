@@ -196,6 +196,20 @@ def _history_view(data):
         else:st.info("Not enough verified games for a walk-forward backtest.")
     if failures:st.warning(str(failures)+" dates could not be fetched; historical samples are incomplete.")
 
+def dual_model_eligible(data, minimum_recent_hits=2):
+    """Only include over legs when both independent projections exceed line."""
+    if data is None or data.empty:return data
+    required=["Recent hits","Huie baseline","Safe line","Sam projection"]
+    if any(col not in data.columns for col in required):
+        return data.iloc[0:0].copy()
+    return data[
+        (data["Recent hits"]>=minimum_recent_hits)
+        & data["Huie baseline"].notna()
+        & (data["Huie baseline"]>data["Safe line"])
+        & data["Sam projection"].notna()
+        & (data["Sam projection"]>data["Safe line"])
+    ].copy()
+
 def render(df):
     st.title("🧪 Smart Parlay Builder & Huie's Model Lab")
     st.caption("Research-only combinations using today's saved workbook. No bets are placed, and model accuracy or profitability is not guaranteed.")
@@ -253,12 +267,7 @@ def render(df):
     overlap_limit=st.slider("Maximum appearances of a player across displayed parlays",1,5,2)
     # Both models MUST project strictly above the safe line. Missing Sam
     # projections are ineligible, rather than silently treated as agreement.
-    eligible=data[
-        (data["Recent hits"] >= (3 if require_three else 2))
-        & (data["Huie baseline"] > data["Safe line"])
-        & data["Sam projection"].notna()
-        & (data["Sam projection"] > data["Safe line"])
-    ].copy()
+    eligible=dual_model_eligible(data,3 if require_three else 2)
     if exclusions:
         eligible=eligible[~eligible["Player"].astype(str).str.casefold().isin(exclusions)]
     if require_history:
