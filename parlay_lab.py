@@ -93,7 +93,13 @@ def _historical_boxscores(days_back=30):
                                     if 0<=idx<len(stats):return stats[idx]
                                 return None
                             def numeric(value):
-                                try:return float(str(value).split("-")[0])
+                                try:
+                                    raw=str(value).strip()
+                                    if ":" in raw:
+                                        parts=raw.split(":")
+                                        if len(parts)==2:
+                                            return float(parts[0])+float(parts[1])/60
+                                    return float(raw.split("-")[0])
                                 except (ValueError,TypeError):return None
                             info=athlete.get("athlete",{})
                             players.append({"name":info.get("displayName",info.get("fullName","")),
