@@ -473,17 +473,26 @@ def render(df):
                 prob=leg.get("Calibrated probability")
                 prob_text=f"{prob:.1%} held-out-calibrated scenario" if pd.notna(prob) else "probability not validated"
                 st.write(f"**{leg['Player']} — {leg['Market']} {leg['Safe line']:g}+** · {leg['Recent hits']}/3 recent hits · baseline {leg['Huie baseline']:g} · Sam {leg['Sam projection'] if leg['Sam projection'] is not None else 'N/A'} · {prob_text} · {leg['Game']}")
-    st.subheader("Joint outcome uncertainty")
-    st.caption("These are mathematical bounds only, not estimated parlay win probabilities. The per-leg frequencies are uncalibrated; bounds inherit that limitation. No independence assumption is made.")
+    st.subheader("Joint parlay probability and uncertainty")
+    st.caption("Dependence-aware Fréchet bounds require validated marginal probabilities. Where sufficient overlapping historical game dates exist, an additional shrinkage-correlation simulation is shown as a SCENARIO, not a verified chance to win.")
+    historical_raw=st.session_state.get("lab_history_raw",{})
     joint_rows=[]
     for idx,group in enumerate(selected,1):
-        rates=[float(x["Observed hit rate"]) for x in group]
-        lower,upper=joint_bounds(rates)
-        joint_rows.append({"Parlay":idx,"Legs":len(rates),
-                           "Illustrative lower bound":round(lower,3),
-                           "Illustrative upper bound":round(upper,3),
-                           "Interpretation":"Not a calibrated probability"})
+        probabilities=[x.get("Calibrated probability") for x in group]
+        valid=all(pd.notna(p) and 0<float(p)<1 for p in probabilities)
+        if valid:
+            low,high=joint_bounds([float(p) for p in probabilities])
+            scenario=correlated_joint(group,historical_raw) if historical_raw else None
+            joint_rows.append({"Parlay":idx,"Legs":len(group),
+                               "Joint lower bound":round(low,3),"Joint upper bound":round(high,3),
+                               "Correlation scenario":scenario.get("scenario_probability") if scenario else None,
+                               "Common historical dates":scenario.get("minimum_common_game_dates") if scenario else None,
+                               "Source":"Held-out marginal calibration; paired ESPN history" if scenario else "Held-out marginal calibration; dependence unavailable"})
+        else:
+            joint_rows.append({"Parlay":idx,"Legs":len(group),
+                               "Joint lower bound":None,"Joint upper bound":None,
+                               "Correlation scenario":None,"Common historical dates":None,
+                               "Source":"Not enough validated historical data"})
     st.dataframe(pd.DataFrame(joint_rows),hide_index=True,use_container_width=True)
-    st.caption("These bounds use observed frequencies as hypothetical marginals, not calibrated forecasts.")
-    st.warning("Actual joint probabilities require validated marginal probabilities and dependence estimates. Do not multiply these frequencies or use these bounds to claim positive expected value.")
-    st.caption("Manual injury exclusions are not verified against an official injury report. Ranked by smoothed observed hit frequency and the weaker of the two model margins. These are NOT expected-value rankings: without contract prices, calibrated probabilities and correlation estimates, no parlay can be called favorable or profitable.")
+    st.warning("A correlation scenario is not a calibrated joint win probability. Where paired history is insufficient, the app does NOT assume independence. Do not interpret these as confirmed positive-EV parlays.")
+    st.caption("Injury reports and lineup checks are not guarantees of player participation. Ranked by historical frequency and dual-model consensus, NOT expected value. Exact Robinhood quote and fee data are not automatically available; no parlay is labeled profitable.")
