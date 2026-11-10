@@ -33,4 +33,24 @@ class ParlayUserInterfaceSmoke(unittest.TestCase):
         self.assertIn("Smart Parlay",rendered)
         self.assertGreaterEqual(len(app.expander),1)
 
+    def test_incomplete_workbook_history_stays_renderable(self):
+        # Exercise the real two-sheet path and deliberately missing game stats.
+        extra = '''
+props=frame.assign(**{"Last game":None,"2 games ago":None,"3 games ago":None,
+                       "Last 3 avg":[12.0,6.0,9.0]})
+bankroll=pd.DataFrame([
+    {"Player":"Sample One","Game":"GSW at BOS","Our play":"OVER 10 points",
+     "Safer line":"10+ points"},
+    {"Player":"Sample Two","Game":"LAL at ATL","Our play":"OVER 4 assists",
+     "Safer line":"4+ assists"}
+])
+parlay_lab.render(bankroll,props)
+'''
+        script=APP.replace("parlay_lab.render(frame)",extra)
+        app=AppTest.from_string(script,default_timeout=90).run()
+        errors=[str(e.message) for e in app.exception]
+        self.assertFalse(errors,errors)
+        titles=" ".join(str(x.value) for x in app.title)
+        self.assertIn("Smart Parlay",titles)
+
 if __name__=="__main__":unittest.main()
