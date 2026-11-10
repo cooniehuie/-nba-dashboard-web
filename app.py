@@ -1557,6 +1557,12 @@ def match_espn_player(short_name,players,market=None):
         sport="NFL" if market in ("Pass yds","Pass TDs","Rush yds","Rec yds","Rush+Rec yds","Anytime TD","Receptions") else "NBA"
         players=[p for p in players if p.get("sport","NBA")==sport]
     if len(parts)<2:return None
+    # Robinhood's Nov 9 A. Thompson rebound leg refers to Ausar Thompson.
+    # Avoid confusing him with Amen Thompson when both share the initial.
+    # Apply only to NBA rebounds, not other markets or NFL players.
+    if parts==["a","thompson"] and market=="Rebounds":
+        ausar=[p for p in players if norm(p.get("name","")).split()[:2]==["ausar","thompson"]]
+        if len(ausar)==1:return ausar[0]
     particles={"da","de","del","van","von","di","dos","du","la","le"}
     suffixes={"jr","sr","ii","iii","iv"}
     aliases={"j holiday":{"jrue"},"c johnson":{"cameron","cam"},
