@@ -1,0 +1,36 @@
+name: Streamlit production UI smoke
+on:
+  push:
+    paths:
+      - 'app.py'
+      - 'parlay_*.py'
+      - 'scripts/production_ui_smoke.py'
+      - '.github/workflows/production-ui-check.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  public-ui:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install Playwright
+        run: |
+          pip install playwright
+          python -m playwright install --with-deps chromium
+      - name: Check public desktop and mobile app
+        run: python scripts/production_ui_smoke.py
+        env:
+          DASHBOARD_URL: https://huie-dashboard.streamlit.app
+      - name: Save screenshots for diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: streamlit-production-smoke
+          path: ui_smoke_artifacts/
+          retention-days: 7
+          if-no-files-found: ignore
