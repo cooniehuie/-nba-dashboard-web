@@ -102,7 +102,8 @@ def _historical_boxscores(days_back=30):
                                             "stats":{"Points":numeric(stat("pts","points")),
                                                      "Rebounds":numeric(stat("reb","rebs","rebounds")),
                                                      "Assists":numeric(stat("ast","assists")),
-                                                     "Threes":numeric(stat("3pt","3pm","3-pt"))}})
+                                                     "Threes":numeric(stat("3pt","3pm","3-pt")),
+                                                     "Minutes":numeric(stat("min","minutes"))}})
         except Exception:
             failures+=1
             continue
@@ -145,12 +146,21 @@ def _history_view(data):
                 matches.append((name,team,games))
         if len(matches)!=1:continue
         name,team,games=matches[0]
-        values=[g["stats"].get(pick["Market"]) for g in games]
-        values=[float(v) for v in values if v is not None]
-        if not values:continue
+        samples=[(float(g["stats"][pick["Market"]]),g["stats"].get("Minutes"))
+                 for g in games if g["stats"].get(pick["Market"]) is not None]
+        if not samples:continue
+        values=[x[0] for x in samples]
+        minute_values=[float(m) for _,m in samples if m is not None and float(m)>0]
+        # A minutes-normalized estimate only uses observed minutes; it is
+        # withheld if there is insufficient minutes data.
+        per_min=[v/float(m) for v,m in samples if m is not None and float(m)>=5]
+        projected_minutes=(sum(minute_values[:5])/len(minute_values[:5])) if len(minute_values)>=5 else None
+        minutes_estimate=(sum(per_min)/len(per_min)*projected_minutes) if projected_minutes and len(per_min)>=5 else None
         output.append({"Player":name,"Market":pick["Market"],"Safe line":pick["Safe line"],
                        "Completed games":len(values),"Hits":sum(v>=pick["Safe line"] for v in values),
                        "Historical average":round(sum(values)/len(values),2),
+                       "Minutes projection":round(minutes_estimate,2) if minutes_estimate is not None else None,
+                       "Recent minutes":round(projected_minutes,1) if projected_minutes is not None else None,
                        "Sam projection":pick["Sam projection"],
                        "Huie baseline":pick["Huie baseline"]})
     if output:
@@ -194,9 +204,12 @@ def render(df):
         for idx,pick in data.iterrows():
             rec=lookup_history.get((initials(pick["Player"]),pick["Market"]))
             if rec is None or rec["Completed games"]<5:continue
-            # Historical average is an independent projection baseline.
-            data.at[idx,"Huie baseline"]=float(rec["Historical average"])
-            data.at[idx,"Baseline margin"]=round(float(rec["Historical average"])-pick["Safe line"],2)
+            # Use an independently calculated minutes-normalized projection
+            # when available; otherwise use the historical stat average.
+            minutes_based=rec.get("Minutes projection")
+            baseline=float(minutes_based) if pd.notna(minutes_based) else float(rec["Historical average"])
+            data.at[idx,"Huie baseline"]=baseline
+            data.at[idx,"Baseline margin"]=round(baseline-pick["Safe line"],2)
             data.at[idx,"External games"]=int(rec["Completed games"])
             data.at[idx,"External hits"]=int(rec["Hits"])
     st.subheader("Smart Parlay Builder")
