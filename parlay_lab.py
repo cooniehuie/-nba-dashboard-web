@@ -237,6 +237,11 @@ def render(df):
             data.at[idx,"Baseline margin"]=round(baseline-pick["Safe line"],2)
             data.at[idx,"External games"]=int(rec["Completed games"])
             data.at[idx,"External hits"]=int(rec["Hits"])
+    st.subheader("Game-day availability and risk checks")
+    st.caption("Manual injury/role review is required: this is not a live injury feed. Excluded players are never used in generated parlays.")
+    excluded_text=st.text_area("Exclude players (one per line; injury, minutes limit, or uncertain role)",
+                               value="",key="lab_excluded_players",height=80)
+    exclusions={x.strip().casefold() for x in excluded_text.splitlines() if x.strip()}
     st.subheader("Smart Parlay Builder")
     st.info("Only OVER legs where BOTH Sam's projection and Huie's independent baseline are strictly above the safe line can qualify. Missing projections are excluded.")
     leg_count=st.select_slider("Number of legs",options=[2,3,4],value=2)
@@ -254,9 +259,12 @@ def render(df):
         & data["Sam projection"].notna()
         & (data["Sam projection"] > data["Safe line"])
     ].copy()
+    if exclusions:
+        eligible=eligible[~eligible["Player"].astype(str).str.casefold().isin(exclusions)]
     if require_history:
         eligible=eligible[eligible.get("External games",pd.Series(0,index=eligible.index)).fillna(0)>=5]
     eligible["Consensus margin"] = eligible[["Baseline margin","Sam margin"]].min(axis=1)
+    st.caption(f"{len(eligible)} candidates pass the dual-model rule and current availability/history filters.")
     # Laplace-smoothed historical hit frequency is descriptive, not a
     # calibrated future probability; use only as a ranking tie-breaker.
     eligible["Observed hit rate"] = eligible.apply(
@@ -289,4 +297,4 @@ def render(df):
         with st.expander(f"Candidate parlay {idx} · {leg_count} legs",expanded=idx==1):
             for leg in group:
                 st.write(f"**{leg['Player']} — {leg['Market']} {leg['Safe line']:g}+** · {leg['Recent hits']}/3 recent hits · baseline {leg['Huie baseline']:g} · Sam {leg['Sam projection'] if leg['Sam projection'] is not None else 'N/A'} · {leg['Game']}")
-    st.caption("Ranked by smoothed observed hit frequency and the weaker of the two model margins. These are NOT expected-value rankings: without contract prices, calibrated probabilities and correlation estimates, no parlay can be called favorable or profitable.")
+    st.caption("Manual injury exclusions are not verified against an official injury report. Ranked by smoothed observed hit frequency and the weaker of the two model margins. These are NOT expected-value rankings: without contract prices, calibrated probabilities and correlation estimates, no parlay can be called favorable or profitable.")
