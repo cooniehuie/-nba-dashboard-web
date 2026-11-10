@@ -8,7 +8,7 @@ Dashboard: https://huie-dashboard.streamlit.app
 
 The builder creates research-only OVER parlays only when BOTH Sam's and Huie's independently calculated baseline are strictly above the same safe line. Missing projections are excluded. It will never place an order.
 
-Game-day checks are based on ESPN injury listings and live/final boxscore starters. Injury entries are automatically flagged and doubtful/out players excluded; unlisted players are NOT confirmed healthy. Only live/final boxscore starters can be confirmed. Pregame starter status is unknown without a separately verified starting-lineup provider.
+Game-day checks use ESPN injury listings, an official NBA live-boxscore starter feed when a complete five-per-team starting lineup is available, and ESPN live/final boxscore starters as a fallback. Injury entries are flagged and doubtful/out players excluded; unlisted players are NOT confirmed healthy. Pregame starter status remains unconfirmed until a complete official five-per-team listing exists. The NBA CDN can block automated requests; this is surfaced as unavailable rather than guessed.
 
 Huie's model can use ESPN completed player games, a five-game minutes projection and conservative matchup adjustments derived from actual opponent team pace/defense. Adjustments require five completed opponent games, are capped and benchmarked to the observed opponent sample, not a complete NBA league rating.
 
