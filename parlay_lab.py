@@ -265,11 +265,16 @@ def _historical_boxscores(days_back=30):
 
 def _history_view(data):
     st.subheader("External results · ESPN completed NBA games")
-    st.caption("Optional research fetch of the previous 30 calendar days. Only completed games with recorded player statistics count; unavailable records are not treated as misses.")
-    if st.button("Load external historical results",key="lab_fetch_history"):
-        st.session_state["lab_history_enabled"]=True
-    if not st.session_state.get("lab_history_enabled",False):
-        st.session_state.pop("lab_history_results",None)
+    st.caption("Huie's independent projections automatically use verified completed ESPN games when the workbook lacks recent stats. ESPN history is cached for six hours; no results are fabricated.")
+    auto=st.checkbox("Automatically load verified ESPN history for Huie's model",
+                     value=True,key="lab_auto_history")
+    if st.button("Refresh verified ESPN history",key="lab_fetch_history"):
+        _historical_boxscores.clear()
+    st.session_state["lab_history_enabled"]=auto
+    if not auto:
+        for key in ("lab_history_results","lab_history_raw","lab_calibration"):
+            st.session_state.pop(key,None)
+        st.info("ESPN history loading is off. Huie projections require three actual games or a recorded workbook average.")
         return
     with st.spinner("Checking recent completed NBA box scores..."):
         try:
@@ -416,7 +421,7 @@ def render(all_props):
     if missing_sam:
         st.warning("All Player Props has no numeric Sam model projections for these rows. No player can qualify until the Model projection column contains real numbers.")
     if missing_history:
-        st.info("Individual recent-game statistics are missing for some matched picks. Use 'Load external historical results' below to retrieve verified ESPN results. No missing games are treated as wins.")
+        st.info("The saved workbook has missing recent-game statistics. Huie's model will automatically check verified ESPN completed games below; players with insufficient data remain unverified.")
     _history_view(data)
     historical=st.session_state.get("lab_history_results")
     if st.session_state.get("lab_history_enabled") and isinstance(historical,pd.DataFrame) and not historical.empty:
