@@ -49,7 +49,11 @@ def injury_status(player, team, report):
                  and r["key"].split()[0].startswith(tokens[0])
                  and r["key"].split()[1:]==tokens[1:]]
     if team:
-        matches=[r for r in matches if not r["team"] or team_key(r["team"])==team_key(team)]
+        same_team=[r for r in matches if not r["team"] or team_key(r["team"])==team_key(team)]
+        # An archived team can be stale following a trade. Preserve a uniquely
+        # identifiable injury entry rather than treating it as a clean report.
+        if same_team:
+            matches=same_team
     if not matches: return ("unlisted","No ESPN injury entry (not medical clearance)")
     if len({(r["key"],r["team"]) for r in matches})>1:
         return ("review","Ambiguous player match")
