@@ -169,6 +169,31 @@ def _history_view(data):
     else:
         st.session_state.pop("lab_history_results",None)
         st.info("No unambiguous completed-game records were found for the current candidates.")
+    # Walk-forward evaluation: predict each game only from the five games
+    # before it. This avoids training on the result being predicted.
+    backtest=[]
+    for (name,team),games in history.items():
+        chronological=sorted(games,key=lambda x:x["date"])
+        for market in ("Points","Rebounds","Assists","Threes"):
+            valid=[(g["date"],g["stats"].get(market)) for g in chronological
+                   if g["stats"].get(market) is not None]
+            for i in range(5,len(valid)):
+                prior=[float(x[1]) for x in valid[i-5:i]]
+                predicted=sum(prior)/5
+                actual=float(valid[i][1])
+                backtest.append({"Player":name,"Market":market,
+                                 "Date":valid[i][0],"Predicted":predicted,
+                                 "Actual":actual,"Absolute error":abs(predicted-actual)})
+    with st.expander("Historical backtest · 5-game rolling baseline"):
+        st.caption("Walk-forward mean absolute error from previous-five-game forecasts. This measures Huie's simple baseline only, not Sam's historical performance or betting returns.")
+        if backtest:
+            back=pd.DataFrame(backtest)
+            summary=back.groupby("Market",as_index=False).agg(
+                Predictions=("Actual","size"),MAE=("Absolute error","mean"))
+            summary["MAE"]=summary["MAE"].round(2)
+            st.dataframe(summary,use_container_width=True,hide_index=True)
+            st.caption("A lower MAE means a more accurate stat projection. Do not compare MAE across different stat types as though they share the same scale.")
+        else:st.info("Not enough verified games for a walk-forward backtest.")
     if failures:st.warning(str(failures)+" dates could not be fetched; historical samples are incomplete.")
 
 def render(df):
