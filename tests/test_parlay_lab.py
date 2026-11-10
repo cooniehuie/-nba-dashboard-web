@@ -66,6 +66,16 @@ class ParlayLabTests(unittest.TestCase):
                              "3 games ago":14} for n in ("Amen Thompson","Ausar Thompson")])
         self.assertTrue(_join_bankroll_safe_lines(bankroll,props).empty)
 
+    def test_three_point_field_goals_end_to_end(self):
+        bankroll=pd.DataFrame([{"Player":"S. Curry","Game":"GSW @ LAL",
+                                 "Our play":"Over 3-point field goals","Safer line":"3+"}])
+        props=pd.DataFrame([{"Player":"Stephen Curry","Game":"GSW at LAL",
+                             "Market":"3-point field goals","Model projection":4.8,
+                             "Last game":5,"2 games ago":4,"3 games ago":4}])
+        picks=_candidates(_join_bankroll_safe_lines(bankroll,props))
+        self.assertEqual(len(picks),1)
+        self.assertEqual(picks.iloc[0]["Market"],"Threes")
+
     def test_market_classifier_does_not_confuse_3point_with_points(self):
         self.assertEqual(_market_label("3-point field goals"),"Threes")
         self.assertEqual(_market_label("over 2.5 3PM"),"Threes")
