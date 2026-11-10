@@ -1682,6 +1682,11 @@ ROBINHOOD_NOV9_BETS=[
 ]
 
 ROBINHOOD_CONFIRMED_BET_SETTLEMENTS={
+    # User-reported Nov 9 losses; settlement details not yet supplied.
+    "Nov 9 · Parlay 16":{"date":"2026-11-09","status":"Loss",
+        "realized_profit":-99.99,"note":"User reported C. Wentz interceptions 3+ contract lost; estimated entry-cost loss pending settlement."},
+    "Nov 9 · Parlay 19":{"date":"2026-11-09","status":"Loss",
+        "realized_profit":-99.99,"note":"User reported O. Beckham Jr. anytime TD contract lost; estimated entry-cost loss pending settlement."},
     # Game-result losses reported by user; Robinhood contract settlement not yet supplied.
     "Nov 8 · Parlay 68":{"date":"2026-11-08","status":"Loss",
         "realized_profit":-149.95,"note":"Tampa Bay lost; estimated full entry-cost loss pending Robinhood settlement."},
