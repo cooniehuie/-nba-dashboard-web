@@ -153,12 +153,12 @@ def _candidate_diagnostics(df):
     report["Numeric Sam projections"]=sum(_num(v) is not None for v in df[projcol]) if projcol is not None else 0
     return report
 
-def _candidates(df):
-    """Keep matched picks visible when history is incomplete; never invent results."""
+def _candidates(df, *, reference_only=False):
+    """Parse independent projections; production uses only All Player Props Reference line."""
     if df is None or df.empty:return pd.DataFrame()
     p=_col(df,"Player","Player name")
     m=_col(df,"Market","Stat","Stat type","Prop type","Prop","Category")
-    line=_col(df,"Safer line","Safe line","Safe alternate line")
+    line=_col(df,"Reference line") if reference_only else _col(df,"Safer line","Safe line","Safe alternate line")
     game=_col(df,"Game","Matchup")
     projection=_col(df,"Model projection","Sam projection","Projection")
     avg_col=_col(df,"Last 3 avg","Last 3 average")
@@ -186,6 +186,7 @@ def _candidates(df):
         recent_hits=sum(v>=target for v in valid) if recent_complete else None
         sam=_num(r[projection]) if projection else None
         rows.append({"Player":name,"Market":market,"Safe line":target,
+                     "Line source":"All Player Props · Reference line" if reference_only else "Safe line",
                      "Game":str(r[game]) if game else "Unknown",
                      "Sam projection":sam,"Huie baseline":baseline,
                      "Recent hits":recent_hits,"Games":len(valid),
@@ -363,18 +364,22 @@ def _history_view(data):
     if failures:st.warning(str(failures)+" dates could not be fetched; historical samples are incomplete.")
 
 def dual_model_eligible(data, minimum_recent_hits=2):
-    """Only include over legs when both independent projections exceed line."""
+    """Strict dual-projection OVER agreement; optional descriptive form filter.
+
+    The calling site supplies Reference line as the internal Safe line field.
+    Missing estimates NEVER qualify; equality does not qualify.
+    """
     if data is None or data.empty:return data
-    required=["Recent hits","Huie baseline","Safe line","Sam projection"]
+    required=["Huie baseline","Safe line","Sam projection"]
+    if minimum_recent_hits is not None:required.append("Recent hits")
     if any(col not in data.columns for col in required):
         return data.iloc[0:0].copy()
-    return data[
-        (data["Recent hits"]>=minimum_recent_hits)
-        & data["Huie baseline"].notna()
-        & (data["Huie baseline"]>data["Safe line"])
-        & data["Sam projection"].notna()
-        & (data["Sam projection"]>data["Safe line"])
-    ].copy()
+    recent_ok=(pd.Series(True,index=data.index) if minimum_recent_hits is None
+               else pd.to_numeric(data["Recent hits"],errors="coerce").ge(minimum_recent_hits))
+    line=pd.to_numeric(data["Safe line"],errors="coerce")
+    huie=pd.to_numeric(data["Huie baseline"],errors="coerce")
+    sam=pd.to_numeric(data["Sam projection"],errors="coerce")
+    return data[recent_ok & line.notna() & huie.gt(line) & sam.gt(line)].copy()
 
 @st.cache_data(ttl=900,show_spinner=False)
 def _live_nba_context():
@@ -388,48 +393,28 @@ def _recent_opponent_context(opponents):
 def _configured_contract_quotes(url,token):
     return fetch_quote_feed(url,token)
 
-def render(df, all_props=None):
+def render(all_props):
     st.title("🧪 Smart Parlay Builder & Huie's Model Lab")
-    st.caption("Research-only combinations using today's saved workbook. No bets are placed, and model accuracy or profitability is not guaranteed.")
-    if df is None or df.empty:
-        st.info("Upload today's workbook with safe lines and recent game stats to use this feature.")
+    st.caption("All Player Props only · Sam's model versus Huie's independent model · both must exceed the same Reference line. No bets are placed.")
+    if all_props is None or all_props.empty:
+        st.info("Today's All Player Props sheet is missing. Upload a workbook containing Player, Market, Reference line and Model projection.")
         return
-    join_info={}
-    data,joined=_source_candidates(df,all_props,join_info)
+    data=_candidates(all_props,reference_only=True)
     if data.empty:
-        st.warning("No eligible picks could be parsed from the saved Bankroll Builder sheet. The builder needs a player, identifiable market, numeric safe line, and three recent game results.")
-        st.caption("Bankroll Builder columns: "+", ".join(map(str,df.columns)))
-        if all_props is not None:
-            st.caption("All Player Props columns: "+", ".join(map(str,all_props.columns)))
-        st.caption("Safe lines are matched by player and market, with game labels checked when comparable. Ambiguous matches are excluded.")
-        if all_props is not None and not all_props.empty:
-            st.caption("Matched prop input coverage (no player data exposed):")
-            st.dataframe(pd.DataFrame([{"Check":k,"Rows":v} for k,v in _candidate_diagnostics(_join_bankroll_safe_lines(df,all_props)).items()]),hide_index=True,use_container_width=True)
-        if join_info:
-            st.dataframe(pd.DataFrame([{"Check":k.replace("_"," ").capitalize(),"Rows":v} for k,v in join_info.items() if isinstance(v,int)]),hide_index=True,use_container_width=True)
-            if "Our play" in df.columns:
-                st.caption("Examples of Our play labels: "+", ".join(repr(x) for x in df["Our play"].dropna().astype(str).unique()[:5]))
-            if "Safer line" in df.columns:
-                st.caption("Examples of safer lines: "+", ".join(repr(x) for x in df["Safer line"].dropna().astype(str).unique()[:5]))
+        st.warning("No usable All Player Props rows contain a player, recognized stat market and numeric Reference line. Bankroll Builder safe lines are not used.")
+        st.caption("Available All Player Props columns: "+", ".join(map(str,all_props.columns)))
+        st.dataframe(pd.DataFrame([{"Check":k,"Rows":v} for k,v in _candidate_diagnostics(all_props).items()]),use_container_width=True,hide_index=True)
         return
     st.subheader("Huie's Model Lab · independent recent-games baseline")
     st.write("Huie's baseline uses three recorded player results, or the workbook's recorded last-three average when individual games are incomplete. Missing values remain unavailable and never count as hits.")
     st.caption("Recent 3-game hit rates are descriptive. External injury, lineup and matchup data are shown only when verified. Calibrated probabilities require a held-out historical check.")
     missing_sam=data["Sam projection"].notna().sum()==0
     missing_history=data["Games"].lt(3).any()
-    with st.expander("Workbook data coverage · diagnose missing projections",expanded=bool(missing_sam)):
-        coverage=[]
-        if all_props is not None and not all_props.empty:
-            for key,value in _candidate_diagnostics(all_props).items():
-                coverage.append({"Source":"All Player Props","Check":key,"Count":value})
-        if not joined.empty:
-            for key,value in _candidate_diagnostics(joined).items():
-                coverage.append({"Source":"Matched bankroll picks","Check":key,"Count":value})
-        if coverage:
-            st.dataframe(pd.DataFrame(coverage),use_container_width=True,hide_index=True)
-        st.caption("Only numeric records count. Historical n/a entries are not player results, and sportsbook reference lines are not Sam projections.")
+    with st.expander("All Player Props · data coverage",expanded=bool(missing_sam)):
+        st.dataframe(pd.DataFrame([{"Check":k,"Rows":v} for k,v in _candidate_diagnostics(all_props).items()]),use_container_width=True,hide_index=True)
+        st.caption("Reference lines come exclusively from All Player Props. Historical n/a entries are not game results, and reference lines are not Sam projections.")
     if missing_sam:
-        st.warning("The saved workbook currently provides no numeric Sam model projections for the matched picks. No dual-model parlay can qualify until the All Player Props source has real projections. Ask the administrator to re-upload a complete daily workbook.")
+        st.warning("All Player Props has no numeric Sam model projections for these rows. No player can qualify until the Model projection column contains real numbers.")
     if missing_history:
         st.info("Individual recent-game statistics are missing for some matched picks. Use 'Load external historical results' below to retrieve verified ESPN results. No missing games are treated as wins.")
     _history_view(data)
@@ -472,7 +457,7 @@ def render(df, all_props=None):
     show=data.sort_values(["Recent hits","Baseline margin"],ascending=False,na_position="last").copy()
     show["Recent hit rate"]=show["Recent hit rate"].map(
         lambda x:f"{x:.0%}" if pd.notna(x) else "Unverified")
-    st.dataframe(show,use_container_width=True,hide_index=True)
+    st.dataframe(show.rename(columns={"Safe line":"Reference line","Huie baseline":"Huie projection"}),use_container_width=True,hide_index=True)
     st.caption("The model comparison refreshes after external historical results load. Entries missing either model's estimate do not qualify for the dual-model parlay list.")
 
     st.subheader("Game-day availability and risk checks")
@@ -555,17 +540,18 @@ def render(df, all_props=None):
     elif use_matchup:
         st.caption("Opponent matchup adjustments require unambiguous ESPN player-team matches from External Historical Results; no unidentified team is guessed.")
     st.subheader("Smart Parlay Builder")
-    st.info("Only OVER legs where BOTH Sam's projection and Huie's independent baseline are strictly above the safe line can qualify. Missing projections are excluded.")
+    st.info("OVER agreement only: Sam projection > Reference line AND Huie projection > Reference line. Equal-to-line, under-line and missing projections are excluded.")
     leg_count=st.select_slider("Number of legs",options=[2,3,4],value=2)
-    require_three=st.checkbox("Require 3 of last 3 games to hit",value=True)
+    recent_filter=st.selectbox("Optional recent-game filter",["Model agreement only (no recent-hit minimum)","At least 2 of 3 recent hits","All 3 recent hits"],index=0)
     require_history=st.checkbox("Require at least 5 verified external games",value=False)
     different_games=st.checkbox("Prefer different matchups",value=True)
     max_parlays=st.slider("Combinations to show",1,15,5)
     st.caption("These filters avoid repeating the same player within one parlay; they do not estimate correlation or odds.")
     overlap_limit=st.slider("Maximum appearances of a player across displayed parlays",1,5,2)
-    # Both models MUST project strictly above the safe line. Missing Sam
-    # projections are ineligible, rather than silently treated as agreement.
-    eligible=dual_model_eligible(data,3 if require_three else 2)
+    # The All Player Props Reference line is the ONLY qualifying threshold.
+    # Recent form is optional; never override the strict two-model agreement.
+    recent_min=[None,2,3][["Model agreement only (no recent-hit minimum)","At least 2 of 3 recent hits","All 3 recent hits"].index(recent_filter)]
+    eligible=dual_model_eligible(data,recent_min)
     if exclusions:
         eligible=eligible[~eligible["Player"].astype(str).str.casefold().isin(exclusions)]
     if require_history:
@@ -584,27 +570,31 @@ def render(df, all_props=None):
         probability_view=eligible[["Player","Market","Safe line","Calibrated probability"]].copy()
         probability_view["Calibrated probability"]=probability_view["Calibrated probability"].map(
             lambda p:f"{p:.1%}" if pd.notna(p) else "Not validated")
-        st.dataframe(probability_view,hide_index=True,use_container_width=True)
+        st.dataframe(probability_view.rename(columns={"Safe line":"Reference line"}),hide_index=True,use_container_width=True)
     else:
         st.caption("No eligible market has passed the held-out calibration check. Numerical win probabilities and EV are withheld.")
-    st.caption(f"{len(eligible)} candidates pass the dual-model rule and current availability/history filters.")
+    st.caption(f"{len(eligible)} All Player Props candidates pass both-model-above-Reference-line agreement and the optional filters.")
     # Laplace-smoothed historical hit frequency is descriptive, not a
     # calibrated future probability; use only as a ranking tie-breaker.
     eligible["Observed hit rate"] = eligible.apply(
         lambda x:(x["External hits"]+1)/(x["External games"]+2)
         if pd.notna(x.get("External games")) and x.get("External games",0)>=5
-        else (x["Recent hits"]+1)/(x["Games"]+2),axis=1)
-    eligible=eligible.sort_values(["Observed hit rate","Consensus margin"],ascending=False).head(24)
+        else ((x["Recent hits"]+1)/(x["Games"]+2)
+              if pd.notna(x.get("Recent hits")) and x.get("Games",0)>=3 else float("nan")),axis=1)
+    # Consensus edge is normalized so threes and points can be compared.
+    eligible["Relative consensus edge"]=(eligible["Consensus margin"]/
+                                        eligible["Safe line"].clip(lower=1))
+    eligible=eligible.sort_values(["Relative consensus edge","Observed hit rate"],ascending=False,na_position="last").head(24)
     # Cap candidate pool for predictable compute, avoid duplicate players in one parlay.
     combos=[]
     for group in itertools.combinations(eligible.to_dict("records"),leg_count):
         if len({x["Player"] for x in group})!=leg_count:continue
         if different_games and len({x["Game"] for x in group})!=leg_count:continue
-        score=sum(x["Observed hit rate"] for x in group)*10+sum(min(x["Consensus margin"],10) for x in group)
+        score=sum(float(x["Relative consensus edge"]) for x in group)+sum(float(x["Observed hit rate"]) if pd.notna(x["Observed hit rate"]) else 0.0 for x in group)*0.1
         combos.append((score,group))
     combos.sort(key=lambda item:item[0],reverse=True)
     if not combos:
-        st.info("No combinations satisfy the current filters. Try allowing 2/3 recent hits or shared matchups; both projections must still exceed the safe line.")
+        st.info("No parlay combinations satisfy the current filters. Try a smaller leg count, turn off the optional recent-hit requirement, or allow shared matchups. Both model projections must still exceed the Reference line.")
         return
     selected=[]
     player_exposure={}
@@ -639,12 +629,12 @@ def render(df, all_props=None):
     for key,v in unique_legs.items():
         quote=match_quote(v["Player"],v["Market"],v["Safe line"],external_quotes)
         if quote:feed_matches[key]=quote
-        price_rows.append({"Player":v["Player"],"Market":v["Market"],"Safe line":v["Safe line"],
+        price_rows.append({"Player":v["Player"],"Market":v["Market"],"Reference line":v["Safe line"],
                            "YES price ($)":quote["price"] if quote else None,
                            "Fee / contract ($)":quote["fee"] if quote else None,
                            "Observed hit frequency":round(v["Observed hit rate"],3)})
     price_input=st.data_editor(pd.DataFrame(price_rows),hide_index=True,
-                               disabled=["Player","Market","Safe line","Observed hit frequency"],
+                               disabled=["Player","Market","Reference line","Observed hit frequency"],
                                column_config={"YES price ($)":st.column_config.NumberColumn(
                                    "YES price ($)",min_value=0.01,max_value=0.99,step=0.01),
                                    "Fee / contract ($)":st.column_config.NumberColumn(
@@ -656,7 +646,7 @@ def render(df, all_props=None):
         if pd.notna(value) and 0<float(value)<1:
             raw_fee=row["Fee / contract ($)"]
             fee=float(raw_fee) if pd.notna(raw_fee) and 0<=float(raw_fee)<1 else None
-            entered[(row["Player"],row["Market"],row["Safe line"])]=(float(value),fee)
+            entered[(row["Player"],row["Market"],row["Reference line"])]=(float(value),fee)
     if entered:
         comparison=[]
         for key,leg in unique_legs.items():
@@ -672,7 +662,7 @@ def render(df, all_props=None):
                            and abs(fee-quote["fee"])<1e-8)
             comparison.append({"Player":leg["Player"],"Market":leg["Market"],
                                "Price source":"Configured fresh feed" if from_feed else "Manual entry",
-                               "Line":leg["Safe line"],"Manual YES price":round(price,3),
+                               "Reference line":leg["Safe line"],"Manual YES price":round(price,3),
                                "Manual fee":round(fee,3) if fee is not None else None,
                                "Price-only break-even":round(price,3),
                                "Break-even incl fee":round(threshold,3) if threshold is not None else None,
@@ -686,7 +676,8 @@ def render(df, all_props=None):
             for leg in group:
                 prob=leg.get("Calibrated probability")
                 prob_text=f"{prob:.1%} held-out-calibrated scenario" if pd.notna(prob) else "probability not validated"
-                st.write(f"**{leg['Player']} — {leg['Market']} {leg['Safe line']:g}+** · {leg['Recent hits']}/3 recent hits · baseline {leg['Huie baseline']:g} · Sam {leg['Sam projection'] if leg['Sam projection'] is not None else 'N/A'} · {prob_text} · {leg['Game']}")
+                form=f"{int(leg['Recent hits'])}/3" if pd.notna(leg.get("Recent hits")) else "unverified"
+                st.write(f"**{leg['Player']} — {leg['Market']} OVER {leg['Safe line']:g}** · Sam {leg['Sam projection']:g} · Huie {leg['Huie baseline']:g} · recent form {form} · {prob_text} · {leg['Game']}")
     st.subheader("Joint parlay probability and uncertainty")
     st.caption("Dependence-aware Fréchet bounds require validated marginal probabilities. Where sufficient overlapping historical game dates exist, an additional shrinkage-correlation simulation is shown as a SCENARIO, not a verified chance to win.")
     historical_raw=st.session_state.get("lab_history_raw",{})
@@ -709,4 +700,4 @@ def render(df, all_props=None):
                                "Source":"Not enough validated historical data"})
     st.dataframe(pd.DataFrame(joint_rows),hide_index=True,use_container_width=True)
     st.warning("A correlation scenario is not a calibrated joint win probability. Where paired history is insufficient, the app does NOT assume independence. Do not interpret these as confirmed positive-EV parlays.")
-    st.caption("Injury reports and lineup checks are not guarantees of player participation. Ranked by historical frequency and dual-model consensus, NOT expected value. Exact Robinhood quote and fee data are not automatically available; no parlay is labeled profitable.")
+    st.caption("All Player Props Reference lines only, not Bankroll Builder safe lines. Ranked by normalized two-model consensus and verified form where available, NOT expected value. Injury reports do not guarantee participation and no parlay is labeled profitable.")
