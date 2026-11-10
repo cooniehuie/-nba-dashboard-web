@@ -13,7 +13,7 @@ def run():
         page=browser.new_page(viewport={"width":1365,"height":900})
         page.goto(URL,wait_until="domcontentloaded",timeout=120000)
         try:
-            page.get_by_text("Huie's Degen Center",exact=False).first.wait_for(timeout=180000)
+            page.get_by_text("Smart Parlay Builder & Model Lab",exact=False).first.wait_for(timeout=180000)
             page.screenshot(path=str(OUT/"desktop_home.png"),full_page=True)
             # Explicit public access check: app should render the navigation
             # without requiring an administrator password.
@@ -27,7 +27,7 @@ def run():
             print("Desktop production Smart Parlay Builder: rendered")
             mobile=browser.new_page(viewport={"width":390,"height":844},device_scale_factor=1)
             mobile.goto(URL,wait_until="domcontentloaded",timeout=120000)
-            mobile.get_by_text("Huie's Degen Center",exact=False).first.wait_for(timeout=180000)
+            mobile.get_by_text("Daily NBA Projections",exact=False).first.wait_for(timeout=180000)
             mobile.screenshot(path=str(OUT/"mobile_home.png"),full_page=True)
             if mobile.locator('[data-testid="stException"]').count():
                 raise AssertionError("A Streamlit exception appeared in mobile view")
