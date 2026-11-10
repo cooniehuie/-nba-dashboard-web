@@ -121,13 +121,35 @@ def _join_bankroll_safe_lines(bankroll, props, diagnostics=None):
     info["matched_rows"]=len(matched)
     return pd.DataFrame(matched)
 
+def _candidate_diagnostics(df):
+    """Aggregate input coverage only; never expose private player data in logs."""
+    if df is None or df.empty:
+        return {"Matched input rows": 0}
+    stats=("Last game","2 games ago","3 games ago")
+    columns=[_col(df,name) for name in stats]
+    report={"Matched input rows":len(df),
+            "Recognized markets":sum(_market_label(v) is not None for v in df[_col(df,"Market")])
+                                  if _col(df,"Market") is not None else 0}
+    for label,col in zip(stats,columns):
+        report["Numeric "+label]=sum(_num(v) is not None for v in df[col]) if col is not None else 0
+    report["Three recorded games"]=sum(
+        all(col is not None and _num(row[col]) is not None for col in columns)
+        for _,row in df.iterrows())
+    avgcol=_col(df,"Last 3 avg","Last 3 average")
+    report["Numeric last-3 average"]=sum(_num(v) is not None for v in df[avgcol]) if avgcol is not None else 0
+    projcol=_col(df,"Model projection")
+    report["Numeric Sam projections"]=sum(_num(v) is not None for v in df[projcol]) if projcol is not None else 0
+    return report
+
 def _candidates(df):
-    """Parse supported workbook headers without guessing absent stats or markets."""
+    """Keep matched picks visible when history is incomplete; never invent results."""
+    if df is None or df.empty:return pd.DataFrame()
     p=_col(df,"Player","Player name")
     m=_col(df,"Market","Stat","Stat type","Prop type","Prop","Category")
-    line=_col(df,"Safer line","Safe line","Safer Line","Safe alternate line")
+    line=_col(df,"Safer line","Safe line","Safe alternate line")
     game=_col(df,"Game","Matchup")
     projection=_col(df,"Model projection","Sam projection","Projection")
+    avg_col=_col(df,"Last 3 avg","Last 3 average")
     history=[
         _col(df,"Last game","1 game","1 game ago","Last","Game 1"),
         _col(df,"2 games ago","2 games","2 games back","Game 2"),
@@ -139,22 +161,26 @@ def _candidates(df):
         name=str(r[p]).strip()
         target=_num(r[line])
         if not name or name.lower()=="nan" or target is None:continue
-        # Normalize the same market labels used in bankroll matching.
         market=_market_label(r[m]) if m is not None and pd.notna(r[m]) else None
-        if market is None and pd.notna(r[line]):
-            market=_market_label(r[line])
+        if market is None:
+            market=_market_label(r[line]) if pd.notna(r[line]) else None
         if market not in ("Points","Rebounds","Assists","Threes"):continue
-        if any(col is None for col in history):continue
-        values=[_num(r[c]) for c in history]
-        if any(v is None for v in values):continue
-        hit=sum(v>=target for v in values)
-        avg=sum(values)/len(values)
+        values=[_num(r[c]) if c is not None else None for c in history]
+        valid=[v for v in values if v is not None]
+        # An average is a projection baseline, not proof of three separate hits.
+        recent_complete=len(valid)==3
+        observed_avg=sum(valid)/3 if recent_complete else (_num(r[avg_col]) if avg_col is not None else None)
+        baseline=round(observed_avg,2) if observed_avg is not None else None
+        recent_hits=sum(v>=target for v in valid) if recent_complete else None
         sam=_num(r[projection]) if projection else None
         rows.append({"Player":name,"Market":market,"Safe line":target,
                      "Game":str(r[game]) if game else "Unknown",
-                     "Sam projection":sam,"Huie baseline":round(avg,2),
-                     "Recent hits":hit,"Games":len(values),"Recent hit rate":hit/len(values),
-                     "Baseline margin":round(avg-target,2),
+                     "Sam projection":sam,"Huie baseline":baseline,
+                     "Recent hits":recent_hits,"Games":len(valid),
+                     "Recent hit rate":recent_hits/3 if recent_hits is not None else None,
+                     "Baseline source":"3 separate games" if recent_complete else
+                                       ("Workbook last-3 average" if baseline is not None else "Unavailable"),
+                     "Baseline margin":round(baseline-target,2) if baseline is not None else None,
                      "Sam margin":round(sam-target,2) if sam is not None else None})
     result=pd.DataFrame(rows)
     if result.empty:return result
@@ -280,6 +306,9 @@ def _history_view(data):
         projected_minutes=(sum(minute_values[:5])/len(minute_values[:5])) if len(minute_values)>=5 else None
         minutes_estimate=(sum(per_min)/len(per_min)*projected_minutes) if projected_minutes and len(per_min)>=5 else None
         output.append({"Player":name,"Market":pick["Market"],"Safe line":pick["Safe line"],
+                       "Recent three games":min(3,len(values)),
+                       "Recent three hits":sum(v>=pick["Safe line"] for v in values[:3]) if len(values)>=3 else None,
+                       "Recent three average":round(sum(values[:3])/3,2) if len(values)>=3 else None,
                        "Completed games":len(values),"Hits":sum(v>=pick["Safe line"] for v in values),
                        "Historical average":round(sum(values)/len(values),2),
                        "Historical SD":round(max(.75,pstdev(values[:5])),3) if len(values)>=5 else None,
@@ -364,6 +393,9 @@ def render(df, all_props=None):
         if all_props is not None:
             st.caption("All Player Props columns: "+", ".join(map(str,all_props.columns)))
         st.caption("Safe lines are matched by player and market, with game labels checked when comparable. Ambiguous matches are excluded.")
+        if all_props is not None and not all_props.empty:
+            st.caption("Matched prop input coverage (no player data exposed):")
+            st.dataframe(pd.DataFrame([{"Check":k,"Rows":v} for k,v in _candidate_diagnostics(_join_bankroll_safe_lines(df,all_props)).items()]),hide_index=True,use_container_width=True)
         if join_info:
             st.dataframe(pd.DataFrame([{"Check":k.replace("_"," ").capitalize(),"Rows":v} for k,v in join_info.items() if isinstance(v,int)]),hide_index=True,use_container_width=True)
             if "Our play" in df.columns:
@@ -372,11 +404,13 @@ def render(df, all_props=None):
                 st.caption("Examples of safer lines: "+", ".join(repr(x) for x in df["Safer line"].dropna().astype(str).unique()[:5]))
         return
     st.subheader("Huie's Model Lab · independent recent-games baseline")
-    st.write("Huie's baseline is the average of the last three recorded games, compared with Sam's projection. It does not use Sam's projected value to calculate its own baseline.")
+    st.write("Huie's baseline uses three recorded player results, or the workbook's recorded last-three average when individual games are incomplete. Missing values remain unavailable and never count as hits.")
     st.caption("Recent 3-game hit rates are descriptive. External injury, lineup and matchup data are shown only when verified. Calibrated probabilities require a held-out historical check.")
     show=data.sort_values(["Recent hits","Baseline margin"],ascending=False).copy()
-    show["Recent hit rate"]=show["Recent hit rate"].map(lambda x:f"{x:.0%}")
+    show["Recent hit rate"]=show["Recent hit rate"].map(lambda x:f"{x:.0%}" if pd.notna(x) else "Unverified")
     st.dataframe(show,use_container_width=True,hide_index=True)
+    if data["Games"].lt(3).any():
+        st.info("Some picks have fewer than three recorded game results. Click 'Load external historical results' below to retrieve verified ESPN results before those picks can qualify.")
     _history_view(data)
     historical=st.session_state.get("lab_history_results")
     if st.session_state.get("lab_history_enabled") and isinstance(historical,pd.DataFrame) and not historical.empty:
@@ -393,12 +427,21 @@ def render(df, all_props=None):
         lookup_history={(x["_key"],x["Market"]):x for _,x in safe.iterrows()}
         for idx,pick in data.iterrows():
             rec=lookup_history.get((initials(pick["Player"]),pick["Market"]))
-            if rec is None or rec["Completed games"]<5:continue
-            # Use an independently calculated minutes-normalized projection
-            # when available; otherwise use the historical stat average.
+            if rec is None or rec["Completed games"]<3:continue
+            # Fill missing individual-game evidence only from verified ESPN games.
+            if rec["Recent three games"]==3:
+                data.at[idx,"Recent hits"]=int(rec["Recent three hits"])
+                data.at[idx,"Games"]=3
+                data.at[idx,"Recent hit rate"]=int(rec["Recent three hits"])/3
             minutes_based=rec.get("Minutes projection")
-            baseline=float(minutes_based) if pd.notna(minutes_based) else float(rec["Historical average"])
-            data.at[idx,"Huie baseline"]=baseline
+            if rec["Completed games"]>=5 and pd.notna(minutes_based):
+                baseline=float(minutes_based)
+                source="ESPN minutes-adjusted projection"
+            else:
+                baseline=float(rec["Recent three average"])
+                source="ESPN latest 3 completed games"
+            data.at[idx,"Huie baseline"]=round(baseline,2)
+            data.at[idx,"Baseline source"]=source
             data.at[idx,"Baseline margin"]=round(baseline-pick["Safe line"],2)
             data.at[idx,"External games"]=int(rec["Completed games"])
             data.at[idx,"External hits"]=int(rec["Hits"])
