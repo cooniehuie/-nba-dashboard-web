@@ -28,10 +28,10 @@ def _num(value):
 
 def _market_label(value):
     text=str(value).casefold()
-    if re.search(r"\\b(assists?|ast)\\b",text):return "Assists"
-    if re.search(r"\\b(rebounds?|reb)\\b",text):return "Rebounds"
-    if re.search(r"\\b(threes?|3pm|3pt|3-pointers?|3 pointers?)\\b",text):return "Threes"
-    if re.search(r"\\b(points?|pts)\\b",text):return "Points"
+    if re.search(r"\b(assists?|ast)\b",text):return "Assists"
+    if re.search(r"\b(rebounds?|reb)\b",text):return "Rebounds"
+    if re.search(r"\b(threes?|3pm|3pt|3-pointers?|3 pointers?)\b",text):return "Threes"
+    if re.search(r"\b(points?|pts)\b",text):return "Points"
     return None
 
 def _join_bankroll_safe_lines(bankroll, props):
@@ -48,7 +48,7 @@ def _join_bankroll_safe_lines(bankroll, props):
     if any(x is None for x in (bp,bg,bl,bm,pp,pg,pm)):
         return pd.DataFrame()
     def key(value):
-        return re.sub(r"\\s+"," ",str(value).strip()).casefold()
+        return re.sub(r"\s+"," ",str(value).strip()).casefold()
     index={}
     ambiguous=set()
     for _,row in bankroll.iterrows():
