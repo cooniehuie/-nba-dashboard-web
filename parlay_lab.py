@@ -28,7 +28,7 @@ def _candidates(df):
     projection=_col(df,"Model projection")
     history=[_col(df,x) for x in ("Last game","2 games ago","3 games ago")]
     history=[x for x in history if x is not None]
-    if not p or not line: return pd.DataFrame()
+    if p is None or line is None: return pd.DataFrame()
     rows=[]
     for _,r in df.iterrows():
         name=str(r[p]).strip()
@@ -120,6 +120,7 @@ def _history_view(data):
     if st.button("Load external historical results",key="lab_fetch_history"):
         st.session_state["lab_history_enabled"]=True
     if not st.session_state.get("lab_history_enabled",False):
+        st.session_state.pop("lab_history_results",None)
         return
     with st.spinner("Checking recent completed NBA box scores..."):
         try:
@@ -156,6 +157,7 @@ def _history_view(data):
         st.session_state["lab_history_results"]=pd.DataFrame(output)
         st.dataframe(pd.DataFrame(output),use_container_width=True,hide_index=True)
     else:
+        st.session_state.pop("lab_history_results",None)
         st.info("No unambiguous completed-game records were found for the current candidates.")
     if failures:st.warning(str(failures)+" dates could not be fetched; historical samples are incomplete.")
 
@@ -171,7 +173,7 @@ def render(df):
         return
     st.subheader("Huie's Model Lab · independent recent-games baseline")
     st.write("Huie's baseline is the average of the last three recorded games, compared with Sam's projection. It does not use Sam's projected value to calculate its own baseline.")
-    st.caption("A 3/3 historical hit rate is a three-game observation, NOT a 100% forecast probability. No opponent, minutes, injury, odds or correlation adjustments yet.")
+    st.caption("Recent hit rates are descriptive, not calibrated future probabilities. Matchup, minutes and injury adjustments are not yet validated.")
     show=data.sort_values(["Recent hits","Baseline margin"],ascending=False).copy()
     show["Recent hit rate"]=show["Recent hit rate"].map(lambda x:f"{x:.0%}")
     st.dataframe(show,use_container_width=True,hide_index=True)
