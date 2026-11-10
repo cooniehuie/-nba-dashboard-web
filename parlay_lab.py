@@ -5,7 +5,7 @@ import re
 import pandas as pd
 import streamlit as st
 from parlay_probability import joint_bounds, wilson_interval, yes_break_even, yes_expected_value
-from parlay_context import game_day_context, injury_status, parse_game, name_key, team_key, team_context, matchup_adjustment
+from parlay_context import game_day_context, injury_status, parse_game, name_key, team_key, starter_match, team_context, matchup_adjustment
 from parlay_calibration import train as train_probabilities, predict as calibrated_predict
 from parlay_joint import correlated_joint
 from parlay_quotes import fetch_quote_feed, match_quote
@@ -299,7 +299,7 @@ def render(df):
                                value="",key="lab_excluded_players",height=80)
     exclusions={x.strip().casefold() for x in excluded_text.splitlines() if x.strip()}
     st.subheader("ESPN injury reports and verified starters")
-    st.caption("ESPN injury listings are not a medical clearance. Lineups are labeled confirmed only when an in-progress or completed boxscore explicitly marks the player as a starter.")
+    st.caption("ESPN injury listings are not a medical clearance. Starter confirmations use complete NBA official starting fives when published, or ESPN in-progress/final boxscores. Pregame listings are otherwise unknown.")
     use_live=st.checkbox("Load ESPN game-day injury and confirmed-starter checks",value=True,key="lab_live_context")
     live=None
     if use_live:
@@ -325,13 +325,20 @@ def render(df):
                         starting="Unconfirmed (pregame)"
                     elif game["state"] in ("in","post"):
                         known=live["starters"].get(game["id"],set())
-                        if known and team and team_key(team) in side:
-                            if (team_key(team),name_key(pick["Player"])) in known:
-                                starting="Confirmed ESPN starter"
-                            else:
-                                starting="Not confirmed as starter"
+                        matched=starter_match(pick["Player"],team,known)
+                        if matched is True:
+                            starting="Confirmed ESPN starter"
+                        elif matched is False:
+                            starting="Not an ESPN-confirmed starter"
                         else:
-                            starting="Unverified (boxscore unavailable or team unmatched)"
+                            starting="Unverified (boxscore or player match incomplete)"
+                official=live.get("official_starters",{}).get(frozenset(side))
+                if official:
+                    verified=starter_match(pick["Player"],team,official["players"])
+                    if verified is True:
+                        starting="Confirmed NBA official starter"
+                    elif verified is False:
+                        starting="Not listed in confirmed NBA starting five"
         data.at[idx,"ESPN injury flag"]=flag
         data.at[idx,"ESPN injury status"]=status
         data.at[idx,"Starter verification"]=starting
