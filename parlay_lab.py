@@ -270,7 +270,8 @@ def render(df):
     data=_candidates(df)
     if data.empty:
         st.warning("No eligible picks could be parsed from the saved Bankroll Builder sheet. The builder needs a player, identifiable market, numeric safe line, and three recent game results.")
-        st.caption("Detected workbook columns: "+", ".join(map(str,df.columns)))\n        st.caption("Recognized recent-game headers include Last game, 2 games, 3 games, 2 games ago, and 3 games ago. No missing player stats are invented.")
+        st.caption("Detected workbook columns: "+", ".join(map(str,df.columns)))
+        st.caption("Recognized recent-game headers include Last game, 2 games, 3 games, 2 games ago, and 3 games ago. No missing player stats are invented.")
         return
     st.subheader("Huie's Model Lab · independent recent-games baseline")
     st.write("Huie's baseline is the average of the last three recorded games, compared with Sam's projection. It does not use Sam's projected value to calculate its own baseline.")
