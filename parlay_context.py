@@ -61,12 +61,14 @@ def starter_match(player, team, named_starters):
     """Return True/False/None for uniquely matched confirmed lineup membership."""
     team=team_key(team)
     tokens=name_key(player).split()
-    if not team or len(tokens)<2 or not named_starters:return None
-    known=[key.split() for abbr,key in named_starters if team_key(abbr)==team]
-    if len(known)<5:return None
+    if len(tokens)<2 or not named_starters:return None
+    known=[key.split() for abbr,key in named_starters if not team or team_key(abbr)==team]
+    if not known:return None
     matches=[p for p in known if p==tokens or (p[0].startswith(tokens[0]) and p[1:]==tokens[1:])]
     if len(matches)==1:return True
     if len(matches)>1:return None
+    # Without a known team, the absence of a matching starter proves nothing.
+    if not team or len(known)<5:return None
     return False
 
 def parse_game(label):
