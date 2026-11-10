@@ -1646,6 +1646,29 @@ def automatic_parlay_result(legs,players):
     return "Loss" if missed_final else ("Won" if all_reached else "Pending")
 
 
+ROBINHOOD_NOV9_BETS=[
+("Nov 9 · Parlay 20",429,22.1,99.99,5.18,[["J. Smith Jr.","Threes",2],["F. VanVleet","Threes",2],["N. Jokic","Assists",8],["A. Sengun","Assists",6]],"2026-11-09","17:10"),
+("Nov 9 · Parlay 19",1341,7,99.99,6.12,[["O. Beckham Jr.","Anytime TD",1]],"2026-11-09","17:08"),
+("Nov 9 · Parlay 18",368,25.8,99.88,4.94,[["J. Allen","Anytime TD",1],["J. Cook III","Anytime TD",1]],"2026-11-09","17:07"),
+("Nov 9 · Parlay 17",1189,7.9,99.99,6.06,[["J. Allen","Anytime TD",1],["J. Cook III","Rush yds",60],["T. Hockenson","Receptions",3],["BUF","Game winner",1],["D. Moore","Rec yds",30],["K. Shakir","Rec yds",30],["J. Jefferson","Rec yds",60],["K. Shakir","Receptions",2],["D. Moore","Receptions",2]],"2026-11-09","16:50"),
+("Nov 9 · Parlay 16",1341,7,99.99,6.12,[["C. Wentz","Interceptions",3]],"2026-11-09","15:34"),
+("Nov 9 · Parlay 15",402,23.6,99.95,5.08,[["D. Queen","Points",10],["S. Bey","Points",15],["Y. Lendeborg","Points",15],["Z. Williamson","Rebounds",4],["D. Green","Assists",6]],"2026-11-09","15:30"),
+("Nov 9 · Parlay 14",231,41.8,99.99,3.43,[["D. Vassell","Points",10],["O. Ighodaro","Rebounds",4],["K. Maluach","Rebounds",4],["S. Castle","Rebounds",4]],"2026-11-09","15:22"),
+("Nov 9 · Parlay 13",340,28,99.97,4.77,[["O. Toppin","Points",10],["A. Nembhard","Assists",6],["I. Zubac","Rebounds",8]],"2026-11-09","15:19"),
+("Nov 9 · Parlay 12",361,26.21,99.53,4.9,[["C. Coward","Points",10],["J. Wells","Points",10],["C. Boozer","Rebounds",8]],"2026-11-09","15:17"),
+("Nov 9 · Parlay 11",425,22.3,99.94,5.17,[["D. Jenkins","Points",10],["A. Thompson","Assists",4],["P. Reed","Points",10]],"2026-11-09","13:07"),
+("Nov 9 · Parlay 10",417,22.4,98.49,5.08,[["G. Allen","Threes",3],["N. Alexander-Walker","Threes",3],["D. Robinson","Threes",3],["S. Curry","Threes",3]],"2026-11-09","12:39"),
+("Nov 9 · Parlay 9",1219,7.7,99.94,6.08,[["G. Allen","Threes",4],["D. Mitchell","Threes",3],["E. Mobley","Threes",2]],"2026-11-09","12:37"),
+("Nov 9 · Parlay 8",1380,6.8,99.97,6.13,[["A. Reaves","Threes",2],["A. Wiggins","Threes",2],["C. McCollum","Threes",2],["N. Alexander-Walker","Threes",3],["L. Doncic","Threes",4],["Z. Williams","Threes",1]],"2026-11-09","12:33"),
+("Nov 9 · Parlay 7",377,25.2,99.99,4.99,[["L. Doncic","Threes",4],["N. Alexander-Walker","Threes",3],["A. Wiggins","Threes",2],["A. Reaves","Threes",1]],"2026-11-09","12:31"),
+("Nov 9 · Parlay 6",2285,4.1,99.98,6.3,[["L. Doncic","Threes",5],["N. Alexander-Walker","Threes",4],["A. Wiggins","Threes",3],["A. Reaves","Threes",2],["Z. Williams","Threes",1]],"2026-11-09","12:29"),
+("Nov 9 · Parlay 5",4679,2,100,6.42,[["L. Doncic","Threes",6],["N. Alexander-Walker","Threes",5],["A. Wiggins","Threes",3],["C. McCollum","Threes",1],["Z. Williams","Threes",1]],"2026-11-09","12:26"),
+("Nov 9 · Parlay 4",355,26.2,100,6.99,[["F. VanVleet","Assists",4],["A. Nembhard","Assists",4],["C. McCollum","Assists",2],["D. Green","Assists",4],["D. Queen","Assists",2],["J. Fears","Assists",2]],"2026-11-09","09:46"),
+("Nov 9 · Parlay 3",223,42.7,99.69,4.47,[["D. Queen","Rebounds",4],["K. Maluach","Rebounds",4],["A. Thompson","Rebounds",6]],"2026-11-09","09:39"),
+("Nov 9 · Parlay 2",217,43.9,99.61,4.35,[["J. Harden","Threes",1],["A. Wiggins","Threes",1],["Z. Williams","Threes",1],["D. Jenkins","Threes",1]],"2026-11-09","09:37"),
+("Nov 9 · Parlay 1",343,27.1,99.78,6.83,[["E. Mobley","Threes",1],["J. Harden","Threes",2],["A. Wiggins","Threes",2],["N. Alexander-Walker","Threes",2]],"2026-11-09","09:36"),
+]
+
 ROBINHOOD_CONFIRMED_BET_SETTLEMENTS={
     # Game-result losses reported by user; Robinhood contract settlement not yet supplied.
     "Nov 8 · Parlay 68":{"date":"2026-11-08","status":"Loss",
@@ -1676,14 +1699,14 @@ ROBINHOOD_CONFIRMED_PAYOUTS=[
 def show_personal_bets():
     st.title("💸 My Bets · Robinhood")
     from datetime import date
-    available_days=[date(2026,11,8),date(2026,11,7)]
+    available_days=[date(2026,11,9),date(2026,11,8),date(2026,11,7)]
     selected_day=st.selectbox("Bet date",available_days,format_func=lambda d:d.strftime("%B %-d, %Y"),key="my_bets_selected_date")
     st.caption("Daily bet tracking · Historical bets and settlement records are retained separately.")
     imported=imported_bet_rows()
     # Keep original November 7 settlement IDs intact; date selection never overwrites records.
     historical=list(reversed(ROBINHOOD_NOV7_BETS))
     current=list(reversed(ROBINHOOD_NOV8_BETS))
-    dated_bets=historical if selected_day==date(2026,11,7) else current
+    dated_bets=historical if selected_day==date(2026,11,7) else (current if selected_day==date(2026,11,8) else list(reversed(ROBINHOOD_NOV9_BETS)))
     all_bets=[(name,qty,price,legs) for name,qty,price,cost,fees,legs,*_ in dated_bets]
     for i,item in enumerate(imported,1):
         if str(item.get("date",""))==selected_day.isoformat():
