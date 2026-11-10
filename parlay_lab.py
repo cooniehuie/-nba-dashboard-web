@@ -15,7 +15,7 @@ def _col(df, *names):
 def _num(value):
     try:
         if pd.isna(value): return None
-        found = re.search(r"-?\\d+(?:\\.\\d+)?", str(value))
+        found = re.search(r"-?\d+(?:\.\d+)?", str(value))
         return float(found.group()) if found else None
     except (ValueError, TypeError):
         return None
