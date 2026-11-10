@@ -139,19 +139,10 @@ def _candidates(df):
         name=str(r[p]).strip()
         target=_num(r[line])
         if not name or name.lower()=="nan" or target is None:continue
-        market=str(r[m]).strip().title() if m and pd.notna(r[m]) else ""
-        aliases={"Pts":"Points","Point":"Points","Reb":"Rebounds","Rebound":"Rebounds",
-                 "Ast":"Assists","Assist":"Assists","3Pm":"Threes","3Pt":"Threes",
-                 "3Pts":"Threes","3-Pointers":"Threes","3 Pointers":"Threes",
-                 "Three-Pointers":"Threes","Three Pointers":"Threes"}
-        market=aliases.get(market,market)
-        if market not in ("Points","Rebounds","Assists","Threes"):
-            # A textual prop label can carry the market, but numeric lines cannot.
-            text=" ".join(str(r[c]) for c in (m,line) if c is not None).lower()
-            market=next((value for token,value in (
-                ("assist","Assists"),("rebound","Rebounds"),("three","Threes"),
-                ("3pt","Threes"),("3pm","Threes"),("point","Points"),("pts","Points"))
-                if token in text),"")
+        # Normalize the same market labels used in bankroll matching.
+        market=_market_label(r[m]) if m is not None and pd.notna(r[m]) else None
+        if market is None and pd.notna(r[line]):
+            market=_market_label(r[line])
         if market not in ("Points","Rebounds","Assists","Threes"):continue
         if any(col is None for col in history):continue
         values=[_num(r[c]) for c in history]
