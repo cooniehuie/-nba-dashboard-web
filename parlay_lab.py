@@ -26,6 +26,49 @@ def _num(value):
     except (ValueError, TypeError):
         return None
 
+def _market_label(value):
+    text=str(value).casefold()
+    if re.search(r"\\b(assists?|ast)\\b",text):return "Assists"
+    if re.search(r"\\b(rebounds?|reb)\\b",text):return "Rebounds"
+    if re.search(r"\\b(threes?|3pm|3pt|3-pointers?|3 pointers?)\\b",text):return "Threes"
+    if re.search(r"\\b(points?|pts)\\b",text):return "Points"
+    return None
+
+def _join_bankroll_safe_lines(bankroll, props):
+    """Only join explicit, unique player/game/market safe lines; no fabricated lines."""
+    if bankroll is None or props is None or bankroll.empty or props.empty:
+        return pd.DataFrame()
+    bp=_col(bankroll,"Player")
+    bg=_col(bankroll,"Game")
+    bl=_col(bankroll,"Safer line","Safe line")
+    bm=_col(bankroll,"Our play","Market")
+    pp=_col(props,"Player")
+    pg=_col(props,"Game")
+    pm=_col(props,"Market")
+    if any(x is None for x in (bp,bg,bl,bm,pp,pg,pm)):
+        return pd.DataFrame()
+    def key(value):
+        return re.sub(r"\\s+"," ",str(value).strip()).casefold()
+    index={}
+    ambiguous=set()
+    for _,row in bankroll.iterrows():
+        market=_market_label(row[bm])
+        line=_num(row[bl])
+        if market is None or line is None:continue
+        k=(key(row[bp]),key(row[bg]),market)
+        if k in index:ambiguous.add(k)
+        else:index[k]=line
+    matched=[]
+    for _,row in props.iterrows():
+        market=_market_label(row[pm])
+        if market is None:continue
+        k=(key(row[pp]),key(row[pg]),market)
+        if k not in index or k in ambiguous:continue
+        record=row.to_dict()
+        record["Safer line"]=index[k]
+        matched.append(record)
+    return pd.DataFrame(matched)
+
 def _candidates(df):
     """Parse supported workbook headers without guessing absent stats or markets."""
     p=_col(df,"Player","Player name")
@@ -269,13 +312,13 @@ def render(df, all_props=None):
         return
     data=_candidates(df)
     if data.empty and all_props is not None and not all_props.empty:
-        data=_candidates(all_props)
+        data=_candidates(_join_bankroll_safe_lines(df,all_props))
     if data.empty:
         st.warning("No eligible picks could be parsed from the saved Bankroll Builder sheet. The builder needs a player, identifiable market, numeric safe line, and three recent game results.")
         st.caption("Bankroll Builder columns: "+", ".join(map(str,df.columns)))
         if all_props is not None:
             st.caption("All Player Props columns: "+", ".join(map(str,all_props.columns)))
-        st.caption("Recognized recent-game headers include Last game, 2 games, 3 games, 2 games ago, and 3 games ago. No missing player stats are invented.")
+        st.caption("Safe lines are joined from Bankroll Builder to All Player Props only when player, game, and market match uniquely. Missing or ambiguous matches are excluded.")
         return
     st.subheader("Huie's Model Lab · independent recent-games baseline")
     st.write("Huie's baseline is the average of the last three recorded games, compared with Sam's projection. It does not use Sam's projected value to calculate its own baseline.")
