@@ -1647,6 +1647,10 @@ def automatic_parlay_result(legs,players):
 
 
 ROBINHOOD_NOV9_BETS=[
+("Nov 9 · Parlay 24",352,27,99.9,4.86,[["F. VanVleet","Points",10],["F. VanVleet","Assists",4],["T. Eason","Rebounds",4],["J. Murray","Threes",2]],"2026-11-09","17:37"),
+("Nov 9 · Parlay 23",1769,5.3,99.97,6.21,[["J. Champagnie","Threes",3],["F. VanVleet","Threes",3],["J. Murray","Threes",3],["J. Smith Jr.","Threes",3]],"2026-11-09","17:35"),
+("Nov 9 · Parlay 22",597,15.8,99.89,5.56,[["F. VanVleet","Threes",2],["J. Murray","Threes",2],["J. Smith Jr.","Threes",2],["J. Champagnie","Threes",2],["T. Murphy III","Threes",2],["Y. Lendeborg","Threes",2]],"2026-11-09","17:34"),
+("Nov 9 · Parlay 21",522,18.1,99.9,5.42,[["S. Curry","Threes",4],["T. Murphy III","Threes",3],["Y. Lendeborg","Threes",2],["S. Bey","Threes",1]],"2026-11-09","17:32"),
 ("Nov 9 · Parlay 20",429,22.1,99.99,5.18,[["J. Smith Jr.","Threes",2],["F. VanVleet","Threes",2],["N. Jokic","Assists",8],["A. Sengun","Assists",6]],"2026-11-09","17:10"),
 ("Nov 9 · Parlay 19",1341,7,99.99,6.12,[["O. Beckham Jr.","Anytime TD",1]],"2026-11-09","17:08"),
 ("Nov 9 · Parlay 18",368,25.8,99.88,4.94,[["J. Allen","Anytime TD",1],["J. Cook III","Anytime TD",1]],"2026-11-09","17:07"),
