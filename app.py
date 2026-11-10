@@ -2117,7 +2117,7 @@ with st.sidebar:
     else:
         st.caption("Read-only access. Only the administrator can upload or replace projections.")
     st.divider()
-    nav_options=["Overview","Bankroll Builder Performance","🔴 Bankroll Builder Live Tracking"]+(["💸 My Bets"] if is_admin else [])+["Bankroll Builder","Model's Favorite Props","All Player Props","Three-Point Projections","Individual Games"]
+    nav_options=["Overview","Bankroll Builder Performance","🔴 Bankroll Builder Live Tracking"]+(["💸 My Bets"] if is_admin else [])+["Bankroll Builder","🧪 Smart Parlay Builder & Model Lab","Model's Favorite Props","All Player Props","Three-Point Projections","Individual Games"]
     section=st.radio("Navigate",nav_options,label_visibility="visible",key="site_nav")
     phone_view=st.toggle("📱 Preview phone cards on desktop",value=False,key="phone_view",help="Cards appear automatically on phones. Enable this to preview card layout on desktop.")
 
@@ -2332,6 +2332,9 @@ if section=="Overview":
         with st.expander("💰 Bankroll Builder",expanded=False):
             if bankroll:show_table(bankroll,False,key_suffix="_mobile_home")
             else:st.info("No Bankroll Builder sheet found.")
+elif section=="🧪 Smart Parlay Builder & Model Lab":
+    from parlay_lab import render as render_parlay_lab
+    render_parlay_lab(sheets[bankroll] if bankroll else None)
 elif section=="Bankroll Builder Performance":
     show_bankroll_performance()
 elif section=="🔴 Bankroll Builder Live Tracking":
