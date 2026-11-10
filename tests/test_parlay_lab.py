@@ -24,7 +24,7 @@ class ParlayLabTests(unittest.TestCase):
         picks=_candidates(df)
         self.assertEqual(len(picks),1)
         self.assertEqual(picks.iloc[0]["Recent hits"],3)
-        self.assertAlmostEqual(picks.iloc[0]["Huie baseline"],55/3)
+        self.assertAlmostEqual(picks.iloc[0]["Huie baseline"],round(55/3,2))
 
     def test_missing_recent_game_not_imputed(self):
         df=pd.DataFrame([{"Player":"Sample Player","Market":"Points","Safer line":"15+",
