@@ -57,6 +57,73 @@ def _candidates(df):
     if result.empty:return result
     return result.drop_duplicates(subset=["Player","Market","Safe line","Game"])
 
+@st.cache_data(ttl=21600, show_spinner=False)
+def _historical_boxscores(days_back=10):
+    """Fetch completed ESPN boxscores for recent calendar days; no synthetic games."""
+    from datetime import datetime, timedelta
+    from zoneinfo import ZoneInfo
+    from collections import defaultdict
+    from app import espn_nba_boxscores
+    today=datetime.now(ZoneInfo("America/Los_Angeles")).date()
+    result=defaultdict(list)
+    failures=0
+    for offset in range(1, days_back+1):
+        day=today-timedelta(days=offset)
+        try:
+            games,players=espn_nba_boxscores(day.strftime("%Y%m%d"))
+        except Exception:
+            failures+=1
+            continue
+        for athlete in players:
+            game=athlete.get("game",{})
+            if game.get("state")!="post" or athlete.get("dnp"):
+                continue
+            key=(str(athlete.get("name","")).casefold(),str(athlete.get("team","")).upper())
+            result[key].append({"date":day.isoformat(),"stats":athlete.get("stats",{})})
+    return dict(result),failures
+
+def _history_view(data):
+    st.subheader("External results · ESPN completed NBA games")
+    st.caption("Optional research fetch of the previous 10 calendar days. Only completed games with recorded player statistics count; unavailable records are not treated as misses.")
+    if not st.button("Load external historical results",key="lab_fetch_history"):
+        return
+    with st.spinner("Checking recent completed NBA box scores..."):
+        try:
+            history,failures=_historical_boxscores()
+        except Exception as exc:
+            st.warning("Historical results could not be retrieved: "+str(exc))
+            return
+    # Match by unambiguous normalized player names; abbreviated names that
+    # map to multiple athletes are deliberately left unresolved.
+    import unicodedata
+    def norm(value):
+        value=unicodedata.normalize("NFKD",str(value).lower())
+        return " ".join("".join(ch if ch.isalnum() else " " for ch in value).split())
+    output=[]
+    for _,pick in data.iterrows():
+        short=norm(pick["Player"]).split()
+        if len(short)<2:continue
+        matches=[]
+        for (name,team),games in history.items():
+            full=norm(name).split()
+            if len(full)>1 and full[0].startswith(short[0]) and full[1:]==short[1:]:
+                matches.append((name,team,games))
+        if len(matches)!=1:continue
+        name,team,games=matches[0]
+        values=[g["stats"].get(pick["Market"]) for g in games]
+        values=[float(v) for v in values if v is not None]
+        if not values:continue
+        output.append({"Player":name,"Market":pick["Market"],"Safe line":pick["Safe line"],
+                       "Completed games":len(values),"Hits":sum(v>=pick["Safe line"] for v in values),
+                       "Historical average":round(sum(values)/len(values),2),
+                       "Sam projection":pick["Sam projection"],
+                       "Huie baseline":pick["Huie baseline"]})
+    if output:
+        st.dataframe(pd.DataFrame(output),use_container_width=True,hide_index=True)
+    else:
+        st.info("No unambiguous completed-game records were found for the current candidates.")
+    if failures:st.warning(str(failures)+" dates could not be fetched; historical samples are incomplete.")
+
 def render(df):
     st.title("🧪 Smart Parlay Builder & Huie's Model Lab")
     st.caption("Research-only combinations using today's saved workbook. No bets are placed, and model accuracy or profitability is not guaranteed.")
@@ -73,6 +140,7 @@ def render(df):
     show=data.sort_values(["Recent hits","Baseline margin"],ascending=False).copy()
     show["Recent hit rate"]=show["Recent hit rate"].map(lambda x:f"{x:.0%}")
     st.dataframe(show,use_container_width=True,hide_index=True)
+    _history_view(data)
     st.subheader("Smart Parlay Builder")
     st.info("Only OVER legs where BOTH Sam's projection and Huie's independent baseline are strictly above the safe line can qualify. Missing projections are excluded.")
     leg_count=st.select_slider("Number of legs",options=[2,3,4],value=2)
