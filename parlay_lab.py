@@ -345,4 +345,17 @@ def render(df):
         with st.expander(f"Candidate parlay {idx} · {leg_count} legs",expanded=idx==1):
             for leg in group:
                 st.write(f"**{leg['Player']} — {leg['Market']} {leg['Safe line']:g}+** · {leg['Recent hits']}/3 recent hits · baseline {leg['Huie baseline']:g} · Sam {leg['Sam projection'] if leg['Sam projection'] is not None else 'N/A'} · {leg['Game']}")
+    st.subheader("Joint outcome uncertainty")
+    st.caption("These are mathematical bounds only, not estimated parlay win probabilities. The per-leg frequencies are uncalibrated; bounds inherit that limitation. No independence assumption is made.")
+    joint_rows=[]
+    for idx,group in enumerate(selected,1):
+        rates=[float(x["Observed hit rate"]) for x in group]
+        lower=max(0.0,sum(rates)-(len(rates)-1))
+        upper=min(rates)
+        joint_rows.append({"Parlay":idx,"Legs":len(rates),
+                           "Illustrative lower bound":round(lower,3),
+                           "Illustrative upper bound":round(upper,3),
+                           "Interpretation":"Not a calibrated probability"})
+    st.dataframe(pd.DataFrame(joint_rows),hide_index=True,use_container_width=True)
+    st.warning("Actual joint probabilities require validated marginal probabilities and dependence estimates. Do not multiply these frequencies or use these bounds to claim positive expected value.")
     st.caption("Manual injury exclusions are not verified against an official injury report. Ranked by smoothed observed hit frequency and the weaker of the two model margins. These are NOT expected-value rankings: without contract prices, calibrated probabilities and correlation estimates, no parlay can be called favorable or profitable.")
