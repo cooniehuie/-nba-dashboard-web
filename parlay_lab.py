@@ -121,6 +121,18 @@ def _join_bankroll_safe_lines(bankroll, props, diagnostics=None):
     info["matched_rows"]=len(matched)
     return pd.DataFrame(matched)
 
+def _source_candidates(bankroll, all_props=None, diagnostics=None):
+    """Always combine the two saved workbook sheets when both are available.
+
+    Bankroll's descriptive 'Our play' field can be parsed as a market, so
+    checking whether _candidates(bankroll) is empty is NOT a valid trigger
+    for joining. Using it silently drops all Sam projections.
+    """
+    if all_props is not None and not all_props.empty:
+        joined=_join_bankroll_safe_lines(bankroll, all_props, diagnostics)
+        return _candidates(joined), joined
+    return _candidates(bankroll), pd.DataFrame()
+
 def _candidate_diagnostics(df):
     """Aggregate input coverage only; never expose private player data in logs."""
     if df is None or df.empty:
@@ -382,11 +394,8 @@ def render(df, all_props=None):
     if df is None or df.empty:
         st.info("Upload today's workbook with safe lines and recent game stats to use this feature.")
         return
-    data=_candidates(df)
     join_info={}
-    if data.empty and all_props is not None and not all_props.empty:
-        joined=_join_bankroll_safe_lines(df,all_props,join_info)
-        data=_candidates(joined)
+    data,joined=_source_candidates(df,all_props,join_info)
     if data.empty:
         st.warning("No eligible picks could be parsed from the saved Bankroll Builder sheet. The builder needs a player, identifiable market, numeric safe line, and three recent game results.")
         st.caption("Bankroll Builder columns: "+", ".join(map(str,df.columns)))
@@ -413,7 +422,7 @@ def render(df, all_props=None):
         if all_props is not None and not all_props.empty:
             for key,value in _candidate_diagnostics(all_props).items():
                 coverage.append({"Source":"All Player Props","Check":key,"Count":value})
-        if "joined" in locals() and not joined.empty:
+        if not joined.empty:
             for key,value in _candidate_diagnostics(joined).items():
                 coverage.append({"Source":"Matched bankroll picks","Check":key,"Count":value})
         if coverage:
