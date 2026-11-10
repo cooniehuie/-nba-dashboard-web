@@ -27,37 +27,48 @@ def _num(value):
         return None
 
 def _candidates(df):
-    p=_col(df,"Player")
-    m=_col(df,"Market","Stat")
-    line=_col(df,"Safer line","Safe line")
-    game=_col(df,"Game")
-    projection=_col(df,"Model projection")
-    history=[_col(df,x) for x in ("Last game","2 games ago","3 games ago")]
-    history=[x for x in history if x is not None]
-    if p is None or line is None: return pd.DataFrame()
+    """Parse supported workbook headers without guessing absent stats or markets."""
+    p=_col(df,"Player","Player name")
+    m=_col(df,"Market","Stat","Stat type","Prop type","Prop","Category")
+    line=_col(df,"Safer line","Safe line","Safer Line","Safe alternate line")
+    game=_col(df,"Game","Matchup")
+    projection=_col(df,"Model projection","Sam projection","Projection")
+    history=[
+        _col(df,"Last game","1 game","1 game ago","Last","Game 1"),
+        _col(df,"2 games ago","2 games","2 games back","Game 2"),
+        _col(df,"3 games ago","3 games","3 games back","Game 3"),
+    ]
+    if p is None or line is None:return pd.DataFrame()
     rows=[]
     for _,r in df.iterrows():
         name=str(r[p]).strip()
         target=_num(r[line])
         if not name or name.lower()=="nan" or target is None:continue
-        market=str(r[m]).strip().title() if m else ""
-        if not market:
-            text=str(r[line]).lower()
-            market=next((value for token,value in (("assist","Assists"),("rebound","Rebounds"),("three","Threes"),("point","Points")) if token in text),"")
+        market=str(r[m]).strip().title() if m and pd.notna(r[m]) else ""
+        aliases={"Pts":"Points","Point":"Points","Reb":"Rebounds","Rebound":"Rebounds",
+                 "Ast":"Assists","Assist":"Assists","3Pm":"Threes","3Pt":"Threes",
+                 "3Pts":"Threes","3-Pointers":"Threes","3 Pointers":"Threes",
+                 "Three-Pointers":"Threes","Three Pointers":"Threes"}
+        market=aliases.get(market,market)
+        if market not in ("Points","Rebounds","Assists","Threes"):
+            # A textual prop label can carry the market, but numeric lines cannot.
+            text=" ".join(str(r[c]) for c in (m,line) if c is not None).lower()
+            market=next((value for token,value in (
+                ("assist","Assists"),("rebound","Rebounds"),("three","Threes"),
+                ("3pt","Threes"),("3pm","Threes"),("point","Points"),("pts","Points"))
+                if token in text),"")
         if market not in ("Points","Rebounds","Assists","Threes"):continue
+        if any(col is None for col in history):continue
         values=[_num(r[c]) for c in history]
-        values=[v for v in values if v is not None]
-        if len(values)<3:continue
-        # This is an empirical recent-games baseline, NOT a calibrated win probability.
+        if any(v is None for v in values):continue
         hit=sum(v>=target for v in values)
         avg=sum(values)/len(values)
-        gap=avg-target
         sam=_num(r[projection]) if projection else None
         rows.append({"Player":name,"Market":market,"Safe line":target,
                      "Game":str(r[game]) if game else "Unknown",
                      "Sam projection":sam,"Huie baseline":round(avg,2),
                      "Recent hits":hit,"Games":len(values),"Recent hit rate":hit/len(values),
-                     "Baseline margin":round(gap,2),
+                     "Baseline margin":round(avg-target,2),
                      "Sam margin":round(sam-target,2) if sam is not None else None})
     result=pd.DataFrame(rows)
     if result.empty:return result
@@ -258,7 +269,7 @@ def render(df):
         return
     data=_candidates(df)
     if data.empty:
-        st.warning("No eligible picks. This prototype requires Player, Safer line, Market (or stat named in line), and all three recent game columns.")
+        st.warning("No eligible picks could be parsed from the saved Bankroll Builder sheet. The builder needs a player, identifiable market, numeric safe line, and three recent game results.")\n        st.caption("Detected workbook columns: "+", ".join(map(str,df.columns)))\n        st.caption("Recognized recent-game headers include Last game, 2 games, 3 games, 2 games ago, and 3 games ago. No missing player stats are invented.")
         return
     st.subheader("Huie's Model Lab · independent recent-games baseline")
     st.write("Huie's baseline is the average of the last three recorded games, compared with Sam's projection. It does not use Sam's projected value to calculate its own baseline.")
