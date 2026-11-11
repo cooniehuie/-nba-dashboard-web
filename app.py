@@ -2378,6 +2378,13 @@ def show_table(name, allow_filters=True, key_suffix=""):
     st.download_button("Download filtered CSV",df.to_csv(index=False).encode("utf-8"),file_name="nba_"+name.lower().replace(" ","_")+".csv",mime="text/csv",key="download_"+name+key_suffix)
 
 if section=="Overview":
+    # Keep Overview and the dedicated performance page on the same archived results.
+    # Only authenticated admins can write completed daily snapshots.
+    if is_admin:
+        try:
+            auto_archive_yesterday_bankroll()
+        except Exception:
+            pass
     # Desktop keeps the original, fully expanded homepage.
     with st.container(key="desktop_overview"):
         st.subheader("📈 Bankroll Builder Performance")
