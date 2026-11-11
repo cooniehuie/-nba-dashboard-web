@@ -1686,6 +1686,7 @@ ROBINHOOD_NOV9_BETS=[
 ]
 
 ROBINHOOD_NOV10_BETS=[
+("Nov 10 · Parlay 17",1235,7.6,99.93,6.07,[["J. Brown","Threes",2],["T. Maxey","Threes",3],["P. George","Threes",3],["S. Hauser","Threes",2]],"2026-11-10","17:07"),
 ("Nov 10 · Parlay 16",270,35.5,99.79,3.94,[["T. Silva","Points",10],["W. Carter Jr.","Points",10],["A. Caruso","Assists",2]],"2026-11-10","16:38"),
 ("Nov 10 · Parlay 15",414,22.9,99.93,5.12,[["J. Richardson","Assists",2],["J. Green","Assists",2],["K. Thompson","Assists",2],["W. Carter Jr.","Rebounds",8]],"2026-11-10","16:34"),
 ("Nov 10 · Parlay 14",1000,9.4,99.96,5.96,[["A. Caruso","Assists",2],["K. Wagler","Points",10],["A. Black","Points",15],["A. Bailey","Rebounds",6]],"2026-11-10","16:17"),
