@@ -20,6 +20,29 @@ The probability calibrator backtests rolling forecasts using historical complete
 
 Contract prices and fees are manual unless the admin sets up a real read-only quote feed. The current connected Robinhood integration does NOT expose live prediction-contract quotes. A positive historical frequency-price gap is not a verified edge, and no parlay is labeled profitable.
 
+## Huie Projections · Individual Games
+
+The public **🏀 Huie Projections** sidebar tab uses the same independently computed,
+historically guarded Huie forecast pipeline as the Smart Parlay Builder, using
+only the **All Player Props** sheet. Select one matchup (like Sam's Individual
+Games tab) or choose **All games** to expand each matchup. Each player's row
+shows the bookmaker **Reference line**, Huie's projected stat and signed edge
+(over = green, under = red), Sam's projection as a separate comparison, most
+recent verified ESPN stats where available, sample/playing-time signals and
+the selected projection method. Use the market, player and OVER filters to
+focus the view. Public visitors have read-only access.
+
+The optional **opponent pace/defense** checkbox requests additional verified
+team results before applying the same conservative matchup adjustment used
+by Model Lab. It defaults off so browsing all games does not trigger numerous
+network requests. Therefore the two views may differ if that option is
+enabled in one tab and disabled in the other. The same choice of independent
+formula and historical validation is shared across both views.
+
+A missing Huie estimate remains **UNVERIFIED**, not an assumed UNDER.
+The **Both models OVER** label is strictly comparative, not a claim of positive
+expected value, wager profitability or guaranteed win probability.
+
 ## Optional secure quote feed
 
 Set the following in Streamlit Secrets (never in this public GitHub repository):
