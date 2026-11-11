@@ -661,7 +661,7 @@ def responsive_dataframe(frame,key,preferred=None,max_rows=150,desktop_frame=Non
 def show_bankroll_performance():
     st.title("📈 Bankroll Builder Performance")
     from bankroll_parlay_tracker import render_bankroll_parlays
-    render_bankroll_parlays()
+    render_bankroll_parlays(espn_nba_boxscores,match_espn_player,ROBINHOOD_CONFIRMED_BET_SETTLEMENTS)
     st.divider()
     if is_admin:
         try:
