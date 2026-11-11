@@ -96,6 +96,7 @@ def _stat_summary(graded):
             total_graded+=n
         row["Total hits"]=total_hits
         row["Total graded"]=total_graded
+        row["Unverified"]=int((~graded.loc[graded["Market"]==market,"Result"].isin(("Hit","Miss","Push","DNP"))).sum())
         row["Hit rate"]=f"{100*total_hits/total_graded:.1f}%" if total_graded else "—"
         rows.append(row)
     return pd.DataFrame(rows)
@@ -198,8 +199,23 @@ def render_summary(projections, espn_nba_boxscores, match_espn_player, selected_
                 st.bar_chart(table.set_index("Stat")[["Over hits","Under hits"]],stack=True)
         else:
             st.info("Games have not produced any final, verified Huie hits or misses yet. The chart will populate after games finish.")
-        st.dataframe(table,hide_index=True,use_container_width=True,
-                     column_config={"Stat":st.column_config.TextColumn("Stat",width="small")})
+        # Compact mobile-friendly summary stays immediately below the graph.
+        # The wide over/under detail remains accessible without forcing a
+        # horizontal scroll to discover the Unverified count.
+        st.markdown("**Daily breakdown by stat**")
+        compact=table[["Stat","Total hits","Total graded","Unverified","Hit rate"]].copy()
+        compact["Hits / graded"]=compact["Total hits"].astype(str)+" / "+compact["Total graded"].astype(str)
+        compact=compact[["Stat","Hits / graded","Unverified","Hit rate"]]
+        st.dataframe(compact,hide_index=True,use_container_width=True,
+                     column_config={
+                         "Stat":st.column_config.TextColumn("Stat",width="small"),
+                         "Hits / graded":st.column_config.TextColumn("Hits / graded",width="small"),
+                         "Unverified":st.column_config.NumberColumn("Unverified",width="small"),
+                         "Hit rate":st.column_config.TextColumn("Hit rate",width="small")})
+        st.caption(f"**Total unverified across all stats: {unverified}** · "
+                   "Missing Huie predictions are counted; DNP and pushes are separate.")
+        with st.expander("Full Over / Under breakdown",expanded=False):
+            st.dataframe(table,hide_index=True,use_container_width=True)
         with st.expander("See every projection and final result",expanded=False):
             choices=["All","Hit","Miss","Pending/unverified","DNP","Push"]
             choice=st.selectbox("Show results",choices,key="huie_daily_result_filter")
