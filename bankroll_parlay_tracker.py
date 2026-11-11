@@ -25,31 +25,32 @@ def render_bankroll_parlays(espn_nba_boxscores,match_espn_player,confirmed_settl
                         confirmed_settlements,prefix="bankroll_parlays",
                         title="Bankroll Builder Parlays · Live Tracking")
 
-def render_overview_parlay_pl(settlements):
-    """Plot confirmed net settlement P/L only, alongside Bankroll Builder hit-rate chart."""
-    st.markdown("#### 🎟️ Bankroll Builder Parlay Realized P/L")
+def render_overview_parlay_pl(settlements, bankroll_history=None):
+    """One compact date-aligned summary beneath the existing Safe Line performance graph."""
+    st.markdown("#### Bankroll Builder · Parlay P/L by List Date")
     records=[]
     for p in PARLAYS:
         settlement=(settlements or {}).get(p.get("my_bets",""),{})
         confirmed=(settlement.get("status") in ("Won","Loss","Lost","Closed")
                    and settlement.get("realized_profit") is not None)
-        records.append({"Date":p["date"],"Parlay":p["id"],
-                        "Invested":p["cost"],
+        records.append({"Date":p["date"],"Parlay":p["id"],"Invested":p["cost"],
                         "Realized P/L":float(settlement["realized_profit"]) if confirmed else None,
                         "Status":settlement.get("status") if confirmed else "Pending"})
     frame=pd.DataFrame(records)
-    confirmed=frame.dropna(subset=["Realized P/L"])
-    a,b,c=st.columns(3)
-    a.metric("Parlays",len(frame))
-    b.metric("Invested",f'${frame["Invested"].sum():,.2f}')
-    c.metric("Realized P/L",f'${confirmed["Realized P/L"].sum():+,.2f}' if len(confirmed) else "Pending")
-    if confirmed.empty:
-        st.caption("No confirmed settlements yet. The P/L graph will populate when Robinhood settlement results are recorded.")
-    else:
-        daily=confirmed.groupby("Date",as_index=False)["Realized P/L"].sum().sort_values("Date")
-        daily["Cumulative P/L"]=daily["Realized P/L"].cumsum()
-        st.line_chart(daily.set_index("Date")[["Cumulative P/L"]],y_label="Realized P/L ($)")
-        st.bar_chart(daily.set_index("Date")[["Realized P/L"]],y_label="Daily realized P/L ($)")
-    with st.expander("Parlay settlement breakdown",expanded=False):
+    history=bankroll_history.copy() if bankroll_history is not None else pd.DataFrame()
+    dates=sorted(set(frame["Date"]).union(set(history["Date"]) if not history.empty else set()),reverse=True)
+    summary=[]
+    for date in dates:
+        bets=frame[frame["Date"]==date]
+        matched=history[history["Date"]==date] if not history.empty else pd.DataFrame()
+        settled=bets.dropna(subset=["Realized P/L"])
+        row=matched.iloc[0] if not matched.empty else None
+        summary.append({"Bankroll List Date":date,
+                        "Safe Line Hit Rate":f'{row["Hit rate"]:.1f}%' if row is not None and row["Graded"] else "—",
+                        "Parlays":len(bets) if len(bets) else "—",
+                        "Settled":len(settled) if len(bets) else "—",
+                        "Realized P/L":f'${settled["Realized P/L"].sum():+,.2f}' if len(settled) else ("Pending" if len(bets) else "—")})
+    st.dataframe(pd.DataFrame(summary),hide_index=True,use_container_width=True)
+    with st.expander("Individual Bankroll Builder parlays",expanded=False):
         st.dataframe(frame,hide_index=True,use_container_width=True)
-    st.caption("Only confirmed net settlement profit/loss is charted; pending wagers do not count as losses or wins.")
+    st.caption("P/L is attributed to the date of the Bankroll Builder list used to place the parlay, not the settlement date. Only confirmed net settlements count.")
