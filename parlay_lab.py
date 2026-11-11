@@ -8,6 +8,7 @@ from parlay_probability import joint_bounds, wilson_interval, yes_break_even, ye
 from parlay_context import game_day_context, injury_status, parse_game, name_key, team_key, starter_match, team_context, matchup_adjustment
 from parlay_calibration import train as train_probabilities, predict as calibrated_predict
 from parlay_joint import correlated_joint
+from parlay_predictive import forecast as predictive_forecast, audit as predictive_audit
 from parlay_quotes import fetch_quote_feed, match_quote
 from statistics import pstdev
 
@@ -283,6 +284,15 @@ def _history_view(data):
             st.warning("Historical results could not be retrieved: "+str(exc))
             return
     st.session_state["lab_history_raw"]=history
+    model_audit=predictive_audit(history)
+    st.session_state["lab_predictive_audit"]=model_audit
+    with st.expander("Predictive model evaluation · actual ESPN outcomes"):
+        st.caption("The proposed recency-shrunk rate × minutes forecast is checked against the preceding five-game average using only earlier games to predict later ones. A market switches to the enhanced model only if the recent chronological evaluation includes at least 45 observations on at least four dates AND improves MAE by 1.5% or more.")
+        if model_audit:
+            st.dataframe(pd.DataFrame([{"Market":m,**v} for m,v in model_audit.items()]),
+                         use_container_width=True,hide_index=True)
+        else:
+            st.info("Insufficient completed ESPN history for a reliable predictive comparison. Existing historical baseline remains in use.")
     st.session_state["lab_calibration"]=train_probabilities(history)
     calibration=st.session_state["lab_calibration"]
     if calibration:
@@ -313,6 +323,9 @@ def _history_view(data):
                 matches.append((name,team,games))
         if len(matches)!=1:continue
         name,team,games=matches[0]
+        games=sorted(games,key=lambda g:str(g.get("date","")),reverse=True)
+        adaptive=predictive_forecast(games,pick["Market"])
+        validation=model_audit.get(pick["Market"],{})
         samples=[(float(g["stats"][pick["Market"]]),g["stats"].get("Minutes"))
                  for g in games if g["stats"].get(pick["Market"]) is not None]
         if not samples:continue
@@ -333,6 +346,14 @@ def _history_view(data):
                        "ESPN team":team,
                        "Minutes projection":round(minutes_estimate,2) if minutes_estimate is not None else None,
                        "Recent minutes":round(projected_minutes,1) if projected_minutes is not None else None,
+                       "Adaptive projection":adaptive["projection"] if adaptive else None,
+                       "Adaptive method":adaptive["method"] if adaptive else "Unavailable",
+                       "Expected minutes":adaptive["expected_minutes"] if adaptive else None,
+                       "Minutes trend":adaptive["minutes_signal"] if adaptive else "Unknown",
+                       "Recent rate change":adaptive["recent_rate_change"] if adaptive else None,
+                       "Predictive validation":validation.get("status","Insufficient evidence"),
+                       "Use adaptive":bool(validation.get("enabled",False) and adaptive is not None and
+                                          adaptive["method"].startswith("Rate ×")),
                        "Sam projection":pick["Sam projection"],
                        "Huie baseline":pick["Huie baseline"]})
     if output:
@@ -445,12 +466,19 @@ def render(all_props):
                 data.at[idx,"Games"]=3
                 data.at[idx,"Recent hit rate"]=int(rec["Recent three hits"])/3
             minutes_based=rec.get("Minutes projection")
-            if rec["Completed games"]>=5 and pd.notna(minutes_based):
+            if rec.get("Use adaptive") and pd.notna(rec.get("Adaptive projection")):
+                baseline=float(rec["Adaptive projection"])
+                source="Validated adaptive minutes × recent stat rate"
+            elif rec["Completed games"]>=5 and pd.notna(minutes_based):
                 baseline=float(minutes_based)
-                source="ESPN minutes-adjusted projection"
+                source="ESPN historical minutes-normalized fallback"
             else:
                 baseline=float(rec["Recent three average"])
-                source="ESPN latest 3 completed games"
+                source="ESPN latest 3 completed games (limited)"
+            data.at[idx,"Adaptive candidate"]=rec.get("Adaptive projection")
+            data.at[idx,"Expected minutes"]=rec.get("Expected minutes")
+            data.at[idx,"Minutes trend"]=rec.get("Minutes trend")
+            data.at[idx,"Predictive validation"]=rec.get("Predictive validation")
             data.at[idx,"Huie baseline"]=round(baseline,2)
             data.at[idx,"Baseline source"]=source
             data.at[idx,"Baseline margin"]=round(baseline-pick["Safe line"],2)
