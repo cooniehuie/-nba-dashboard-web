@@ -1686,6 +1686,7 @@ ROBINHOOD_NOV9_BETS=[
 ]
 
 ROBINHOOD_NOV10_BETS=[
+("Nov 10 · Parlay 25",1219,7.66,99.41,6.04,[["R. Williams III","Rebounds",6],["I. Hartenstein","Rebounds",10],["S. Gilgeous-Alexander","Points",35],["D. Avdija","Assists",6],["D. Clingan","Rebounds",6]],"2026-11-10","19:46"),
 ("Nov 10 · Parlay 24",1489,6.27,99.44,6.13,[["S. Gilgeous-Alexander","Threes",3],["J. Holiday","Threes",2],["T. Camara","Threes",2],["D. Acuff Jr.","Threes",2],["D. Bane","Threes",3],["K. Wagler","Threes",1]],"2026-11-10","17:39"),
 ("Nov 10 · Parlay 23",1304,7.12,98.88,6.05,[["K. Wagler","Threes",2],["R. Hachimura","Threes",2],["D. Booker","Threes",2],["D. Brooks","Threes",2]],"2026-11-10","17:34"),
 ("Nov 10 · Parlay 22",1252,7.47,99.59,6.06,[["D. Lillard","Threes",3],["T. Camara","Threes",3],["D. Acuff Jr.","Threes",3],["D. Bane","Threes",4]],"2026-11-10","17:30"),
