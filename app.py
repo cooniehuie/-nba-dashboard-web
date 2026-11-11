@@ -1717,6 +1717,10 @@ ROBINHOOD_NOV10_BETS=[
 ]
 
 ROBINHOOD_CONFIRMED_BET_SETTLEMENTS={
+    "Nov 10 · Parlay 10":{"date":"2026-11-10","time":"21:11","settlement_date":"2026-11-10","status":"Won",
+        "settlement_price":0.49,"quantity":569,"payout":278.81,
+        "realized_profit":184.36,"event_id":"c9d90ca0-4187-4877-983f-a5ef7d04aff8",
+        "note":"Robinhood-confirmed payout; original purchase and fees preserved. Realized profit is Robinhood-reported."},
     "Nov 9 · Parlay 26":{"date":"2026-11-09","time":"22:03","settlement_date":"2026-11-09","status":"Loss",
         "settlement_price":0.0,"quantity":100,"payout":0.0,
         "realized_profit":-99.00,"event_id":"7153e8e6-9337-4cf1-92bd-d863bc44c7a9",
