@@ -151,14 +151,19 @@ def render_summary(projections, espn_nba_boxscores, match_espn_player, selected_
         over=int(((finished["Side"]=="OVER")&(finished["Result"]=="Hit")).sum())
         under=int(((finished["Side"]=="UNDER")&(finished["Result"]=="Hit")).sum())
         attempts=len(finished)
-        a,b,c,d=st.columns(4)
+        pushes=int((graded["Result"]=="Push").sum())
+        dnp=int((graded["Result"]=="DNP").sum())
+        # Count every outcome lacking a verified hit/miss, including missing
+        # Huie forecasts, pending games and player/box-score mismatches.
+        unverified=int((~graded["Result"].isin(("Hit","Miss","Push","DNP"))).sum())
+        a,b,c,d,e=st.columns(5)
         a.metric("Total hits",hits)
         b.metric("Over hits",over)
         c.metric("Under hits",under)
         d.metric("Hit rate",f"{100*hits/attempts:.1f}%" if attempts else "—")
-        st.caption(f"{attempts} graded (hit/miss) · {int((scoped['Result']=='Push').sum())} pushes · "
-                   f"{int((scoped['Result']=='DNP').sum())} DNP · "
-                   f"{len(scoped)-attempts-int((scoped['Result']=='Push').sum())-int((scoped['Result']=='DNP').sum())} pending/unverified")
+        e.metric("Unverified",unverified)
+        st.caption(f"{attempts} graded (hit/miss) · {pushes} pushes · {dnp} DNP · "
+                   f"{unverified} unverified (includes pending games, unmatched stats and missing Huie projections)")
         table=_stat_summary(graded)
         with st.expander("Grading coverage and unverified reasons",expanded=attempts==0 or attempts<len(scoped)*0.6):
             st.caption(f"Matched NBA games: {matching_games}/{expected_games} · "
