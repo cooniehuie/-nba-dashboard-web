@@ -573,8 +573,9 @@ def render(all_props):
         lambda x:f"{x:.0%}" if pd.notna(x) else "Unverified")
     display=show.rename(columns={"Safe line":"Reference line","Huie baseline":"Huie projection",
                                  "Baseline source":"Huie method",
-                                 "Baseline margin":"Huie margin"})
-    preferred=["Player","Market","Reference line","Sam projection","Huie projection",
+                                 "Baseline margin":"Huie margin",
+                                 "Adaptive candidate":"Experimental forecast"})
+    preferred=["Player","Market","Reference line","Sam projection","Huie projection","Experimental forecast",
                "Huie method","Expected minutes","Minutes trend","Recent rate change",
                "Predictive validation","Matchup context","Sam margin","Huie margin",
                "Recent hits","Recent hit rate","Game"]
