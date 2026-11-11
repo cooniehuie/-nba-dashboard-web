@@ -119,6 +119,28 @@ def render_summary(projections, espn_nba_boxscores, match_espn_player, selected_
         if not games:
             st.info("No NBA games were returned for this date. Nothing has been graded.")
             return
+        # Block false hit rates when the latest workbook belongs to another
+        # slate. November 10 and November 11 can share one matchup, so a few
+        # legitimate-looking graded props do NOT prove the date is correct.
+        workbook_matchups={frozenset(team_key(t) for t in parsed)
+                           for label in projections.get("Game",pd.Series(dtype=str)).dropna().unique()
+                           if (parsed:=parse_game(label))}
+        scoreboard_matchups={frozenset(team_key(t) for t in parsed)
+                             for event in games
+                             if (parsed:=parse_game(event.get("name","")))}
+        matching_games=len(workbook_matchups & scoreboard_matchups)
+        expected_games=len(workbook_matchups)
+        if not expected_games:
+            st.error("The workbook's game labels could not be validated. No box-score results were graded.")
+            return
+        if matching_games!=expected_games:
+            st.warning(f"Only {matching_games} of {expected_games} workbook matchups match the "
+                       f"ESPN schedule for {selected_date:%b %d, %Y}.")
+        if matching_games/expected_games<0.8:
+            st.error("The workbook appears to belong to a different NBA date. "
+                     "Grading is blocked to prevent a misleading hit rate. "
+                     "Select the workbook's actual game date or load the matching archived projections.")
+            return
         graded=grade_predictions(projections,games,players,match_espn_player)
         if graded.empty:
             st.info("No Huie player projections were available to grade.")
@@ -138,6 +160,13 @@ def render_summary(projections, espn_nba_boxscores, match_espn_player, selected_
                    f"{int((scoped['Result']=='DNP').sum())} DNP · "
                    f"{len(scoped)-attempts-int((scoped['Result']=='Push').sum())-int((scoped['Result']=='DNP').sum())} pending/unverified")
         table=_stat_summary(graded)
+        with st.expander("Grading coverage and unverified reasons",expanded=attempts==0 or attempts<len(scoped)*0.6):
+            st.caption(f"Matched NBA games: {matching_games}/{expected_games} · "
+                       f"Final box-score outcomes: {attempts}/{len(scoped)} projected Over/Under picks")
+            breakdown=(scoped["Result"].value_counts(dropna=False)
+                       .rename_axis("Result").reset_index(name="Projections"))
+            st.dataframe(breakdown,hide_index=True,use_container_width=True)
+            st.caption("Unmatched players and missing stats are not silently treated as misses.")
         if attempts:
             try:
                 import altair as alt
