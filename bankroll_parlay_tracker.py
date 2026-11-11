@@ -22,8 +22,9 @@ def render_bankroll_parlays(espn_nba_boxscores,match_espn_player,confirmed_settl
                      "quantity":p["contracts"],"cost":p["cost"],"fees":p["fees"],
                      "time":p["filled_at"],"legs":p["legs"],
                      "my_bets":p.get("my_bets","")})
+    outcomes=bankroll_outcomes(confirmed_settlements,espn_nba_boxscores,match_espn_player)
     render_live_parlays(bets,espn_nba_boxscores,match_espn_player,
-                        confirmed_settlements,prefix="bankroll_parlays",
+                        outcomes,prefix="bankroll_parlays",
                         title="Bankroll Builder Parlays · Live Tracking")
 
 def automatic_game_results(espn_nba_boxscores, match_espn_player):
@@ -59,11 +60,51 @@ def automatic_game_results(espn_nba_boxscores, match_espn_player):
         outcomes[(day,p["id"])]=result
     return outcomes
 
+def inferred_settlements(espn_nba_boxscores, match_espn_player):
+    """Full-hold contract outcomes. A final-game miss loses; all reached wins."""
+    results={}
+    feeds={}
+    for p in PARLAYS:
+        date=p["date"]
+        if date not in feeds:
+            try:
+                feeds[date]=espn_nba_boxscores(date.replace("-",""))[1]
+            except Exception:
+                feeds[date]=[]
+        hits=0
+        misses=0
+        for name,market,target in p["legs"]:
+            athlete=match_espn_player(name,feeds[date],market)
+            game=athlete.get("game",{}) if athlete else {}
+            actual=athlete.get("stats",{}).get(market) if athlete else None
+            if actual is not None and actual>=target:
+                hits+=1
+            elif actual is not None and game.get("state")=="post":
+                misses+=1
+        if misses:
+            results[p["my_bets"]]={"status":"Loss","realized_profit":-p["cost"],"source":"Final box score"}
+        elif hits==len(p["legs"]):
+            results[p["my_bets"]]={"status":"Won","realized_profit":p["contracts"]-p["cost"],"source":"All targets reached"}
+    return results
+
+
+def bankroll_outcomes(settlements, espn_nba_boxscores=None, match_espn_player=None):
+    """Preserve confirmed transactions; otherwise use full-hold outcome rules."""
+    results=dict(settlements or {})
+    if espn_nba_boxscores is not None and match_espn_player is not None:
+        inferred=inferred_settlements(espn_nba_boxscores,match_espn_player)
+        for key,value in inferred.items():
+            current=results.get(key,{})
+            if current.get("realized_profit") is None or current.get("status") not in ("Won","Loss","Lost","Closed"):
+                results[key]=value
+    return results
+
 def render_overview_parlay_pl(settlements, bankroll_history=None, espn_nba_boxscores=None, match_espn_player=None):
     """Stable Overview performance view using native Streamlit components."""
+    outcomes=bankroll_outcomes(settlements,espn_nba_boxscores,match_espn_player)
     records=[]
     for p in PARLAYS:
-        settlement=(settlements or {}).get(p.get("my_bets",""),{})
+        settlement=outcomes.get(p.get("my_bets",""),{})
         settled=(settlement.get("status") in ("Won","Loss","Lost","Closed")
                  and settlement.get("realized_profit") is not None)
         records.append({"Date":p["date"],"Parlay":p["id"],"Invested":p["cost"],
@@ -76,7 +117,7 @@ def render_overview_parlay_pl(settlements, bankroll_history=None, espn_nba_boxsc
     a,b,c=st.columns(3)
     a.metric("Invested","${:,.2f}".format(invested))
     b.metric("Parlays",len(frame))
-    c.metric("Realized P/L",("{:+,.2f}".format(pl)) if len(confirmed) else "Pending")
+    c.metric("Realized P/L",("${:+,.2f}".format(pl)) if len(confirmed) else "Pending")
     st.caption("Daily realized P/L by original Bankroll Builder list date")
     if len(confirmed):
         daily=confirmed.groupby("Date",as_index=False)["Realized P/L"].sum()
