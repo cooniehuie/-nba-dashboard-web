@@ -59,6 +59,25 @@ parlay_lab.render(props)
         unavailable=comparisons[0].loc[comparisons[0]["Player"]=="Sample Two"].iloc[0]
         self.assertTrue(pd.isna(unavailable["Huie projection"]))
 
+    def test_validated_predictive_model_is_used_when_audit_accepts(self):
+        script=APP.replace("parlay_lab.render(frame)",'''
+parlay_lab.predictive_audit=lambda history: {"Points":{
+    "status":"Adaptive enabled","enabled":True}}
+props=frame.assign(**{"Last game":None,"2 games ago":None,
+                      "3 games ago":None,"Last 3 avg":None})
+parlay_lab.render(props)
+''')
+        app=AppTest.from_string(script,default_timeout=90).run()
+        errors=[str(e.message) for e in app.exception]
+        self.assertFalse(errors,errors)
+        comparisons=[x.value for x in app.dataframe
+                     if "Huie projection" in x.value.columns]
+        self.assertTrue(comparisons)
+        row=comparisons[0].loc[comparisons[0]["Player"]=="Sample One"].iloc[0]
+        self.assertIn("Validated adaptive",row["Huie method"])
+        self.assertAlmostEqual(row["Huie projection"],row["Experimental forecast"])
+        self.assertEqual(row["Sam projection"],16)
+
     def test_incomplete_workbook_history_stays_renderable(self):
         # Exercise All Player Props alone with deliberately missing game stats.
         extra = '''
