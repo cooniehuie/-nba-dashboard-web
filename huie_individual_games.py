@@ -119,9 +119,11 @@ def render(all_props):
             with st.spinner("Checking recent opponent pace and defense..."):
                 try:
                     context=_recent_opponent_context(opponents)
-                    data=opponent_adjusted_projections(data,context.get("rows",[]))
-                    # Recompute displayed edges and sides after final adjustments.
-                    data=prepare_side_metrics(data)
+                    # Recalculate the final public table from the original,
+                    # unrenamed candidate data so the same adjustment rules
+                    # as Model Lab are applied before edge/side calculations.
+                    data=prepare_projections(matching,history,model_audit=audit,
+                                             context_rows=context.get("rows",[]))
                     if context.get("failures"):
                         st.caption(f'{context["failures"]} opponent-data requests were unavailable; missing values were not imputed.')
                 except Exception as exc:
