@@ -159,6 +159,23 @@ def render_overview_parlay_pl(settlements, bankroll_history=None, espn_nba_boxsc
       .bkpl-bar-wrap{flex:0 0 70px;min-width:70px}
       .bkpl-big{font-size:46px}
     }
+    /* Matches the compact Safe Line History sizing on phones for one-screen screenshots. */
+    @media(max-width:750px){
+      .bkpl-hero{padding:11px 13px!important;margin:4px 0 8px!important;border-radius:15px!important}
+      .bkpl-kicker{font-size:9px!important;letter-spacing:.09em!important;line-height:1.2!important;white-space:nowrap}
+      .bkpl-grid{gap:5px!important}
+      .bkpl-big{font-size:36px!important;line-height:1.04!important}
+      .bkpl-muted{font-size:10px!important;line-height:1.2!important}
+      .bkpl-track{height:7px!important;margin:8px 0 4px!important}
+      .bkpl-stats{gap:11px!important;flex-wrap:nowrap!important;margin-top:5px!important;align-items:start!important}
+      .bkpl-stat{min-width:0}
+      .bkpl-stat strong{font-size:16px!important;line-height:1.1!important;white-space:nowrap}
+      .bkpl-stat span{font-size:8px!important;line-height:1.15!important}
+      .bkpl-chart{height:93px!important;padding:4px 0 0!important;gap:5px!important}
+      .bkpl-bar-track{height:57px!important;flex:0 0 57px!important;border-radius:5px!important}
+      .bkpl-bar-wrap{flex:0 0 66px!important;min-width:66px!important;max-width:66px!important;gap:2px!important}
+      .bkpl-bar-wrap span,.bkpl-bar-wrap b{font-size:9px!important;line-height:1.15!important}
+    }
     </style>""",unsafe_allow_html=True)
     markup='''<div class="bkpl-hero"><div class="bkpl-kicker">🏀 BANKROLL BUILDER · PARLAY P/L HISTORY</div>
       <div class="bkpl-grid"><div><div class="bkpl-big">{}</div>
