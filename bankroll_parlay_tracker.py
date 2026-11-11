@@ -100,29 +100,81 @@ def bankroll_outcomes(settlements, espn_nba_boxscores=None, match_espn_player=No
     return results
 
 def render_overview_parlay_pl(settlements, bankroll_history=None, espn_nba_boxscores=None, match_espn_player=None):
-    """Stable Overview performance view using native Streamlit components."""
+    """Match the existing Safe Line History hero with daily P/L bars."""
     outcomes=bankroll_outcomes(settlements,espn_nba_boxscores,match_espn_player)
     records=[]
     for p in PARLAYS:
         settlement=outcomes.get(p.get("my_bets",""),{})
         settled=(settlement.get("status") in ("Won","Loss","Lost","Closed")
                  and settlement.get("realized_profit") is not None)
-        records.append({"Date":p["date"],"Parlay":p["id"],"Invested":p["cost"],
+        records.append({"Date":p["date"],"Parlay":p["id"],"Invested":float(p["cost"]),
                         "Realized P/L":float(settlement["realized_profit"]) if settled else None,
                         "Status":settlement.get("status") if settled else "Pending"})
     frame=pd.DataFrame(records)
     confirmed=frame.dropna(subset=["Realized P/L"])
-    invested=frame["Invested"].sum()
-    pl=confirmed["Realized P/L"].sum()
-    a,b,c=st.columns(3)
-    a.metric("Invested","${:,.2f}".format(invested))
-    b.metric("Parlays",len(frame))
-    c.metric("Realized P/L",("${:+,.2f}".format(pl)) if len(confirmed) else "Pending")
-    st.caption("Daily realized P/L by original Bankroll Builder list date")
-    if len(confirmed):
-        daily=confirmed.groupby("Date",as_index=False)["Realized P/L"].sum()
-        st.bar_chart(daily.set_index("Date"),height=220)
-    else:
-        st.caption("P/L bars appear after confirmed Robinhood settlements.")
-    with st.expander("Individual parlay results"):
+    total=float(confirmed["Realized P/L"].sum())
+    invested=float(frame["Invested"].sum())
+    won=int((confirmed["Realized P/L"]>0).sum())
+    lost=int((confirmed["Realized P/L"]<0).sum())
+    pending=len(frame)-len(confirmed)
+    daily=confirmed.groupby("Date")["Realized P/L"].sum().to_dict() if len(confirmed) else {}
+    dates=sorted(frame["Date"].unique(),reverse=True)
+    magnitude=max([abs(v) for v in daily.values()] or [1.0])
+    bars=[]
+    for date in dates:
+        value=daily.get(date)
+        label=pd.to_datetime(date).strftime("%b %-d")
+        if value is None:
+            height=4
+            color="#94a3b8"
+            amount="Pending"
+        else:
+            height=max(5,100*abs(value)/magnitude)
+            color="#34d399" if value>=0 else "#fb7185"
+            amount="${:+,.2f}".format(value)
+        bars.append('<div class="bkpl-bar-wrap"><div class="bkpl-bar-track"><div class="bkpl-bar" style="height:{:.1f}%;background:{}"></div></div><span>{}</span><b>{}</b></div>'.format(height,color,label,amount))
+    total_label="${:+,.2f}".format(total) if len(confirmed) else "Pending"
+    st.markdown("""<style>
+    .bkpl-hero{border-radius:22px;padding:26px 30px;background:linear-gradient(125deg,#0f172a,#172554 62%,#0e7490);color:#fff;box-shadow:0 16px 35px #0f172a20;margin:14px 0 22px}
+    .bkpl-kicker{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:#93c5fd;font-weight:700}
+    .bkpl-grid{display:grid;grid-template-columns:1.2fr 1fr;gap:24px;align-items:center}
+    .bkpl-big{font-size:clamp(48px,6vw,82px);font-weight:850;line-height:1.12;letter-spacing:-.05em}
+    .bkpl-muted{color:#cbd5e1;font-size:13px}
+    .bkpl-stats{display:flex;gap:20px;flex-wrap:wrap;margin-top:18px}
+    .bkpl-stat strong{display:block;font-size:25px;color:#fff}
+    .bkpl-stat span{font-size:12px;color:#cbd5e1}
+    .bkpl-track{height:12px;border-radius:30px;background:#ffffff30;overflow:hidden;margin:16px 0 7px}
+    .bkpl-fill{height:100%;background:linear-gradient(90deg,#34d399,#a7f3d0);border-radius:30px}
+    .bkpl-chart{display:flex;align-items:end;gap:7px;height:170px;padding-top:12px}
+    .bkpl-bar-wrap{flex:1;min-width:0;text-align:center;display:flex;flex-direction:column;align-items:center;gap:5px;height:100%}
+    .bkpl-bar-track{width:100%;height:118px;display:flex;align-items:end;border-radius:7px;background:#ffffff14;overflow:hidden}
+    .bkpl-bar{width:100%;border-radius:6px 6px 0 0}
+    .bkpl-bar-wrap span{font-size:10px;color:#cbd5e1;white-space:nowrap}
+    .bkpl-bar-wrap b{font-size:10px;color:white;white-space:nowrap}
+    @media(max-width:750px){
+      .bkpl-hero{width:100%;max-width:100%;min-width:0;box-sizing:border-box;padding:16px;overflow:hidden}
+      .bkpl-grid{grid-template-columns:minmax(0,1fr);gap:12px;min-width:0;max-width:100%}
+      .bkpl-grid>div{min-width:0;max-width:100%;overflow:hidden}
+      .bkpl-chart{width:100%;max-width:100%;min-width:0;box-sizing:border-box;height:160px;gap:6px;overflow-x:auto;overflow-y:hidden;padding-bottom:8px}
+      .bkpl-bar-wrap{flex:0 0 70px;min-width:70px}
+      .bkpl-big{font-size:46px}
+    }
+    </style>""",unsafe_allow_html=True)
+    markup='''<div class="bkpl-hero"><div class="bkpl-kicker">🏀 BANKROLL BUILDER · PARLAY P/L HISTORY</div>
+      <div class="bkpl-grid"><div><div class="bkpl-big">{}</div>
+      <div class="bkpl-muted">Realized P/L · {} graded parlays</div>
+      <div class="bkpl-track"><div class="bkpl-fill" style="width:{:.1f}%"></div></div>
+      <div class="bkpl-stats">
+      <div class="bkpl-stat"><strong>${:,.2f}</strong><span>INVESTED</span></div>
+      <div class="bkpl-stat"><strong>{}</strong><span>PARLAYS</span></div>
+      <div class="bkpl-stat"><strong>{}</strong><span>WINS</span></div>
+      <div class="bkpl-stat"><strong>{}</strong><span>LOSSES</span></div>
+      <div class="bkpl-stat"><strong>{}</strong><span>PENDING</span></div></div></div>
+      <div><div class="bkpl-muted">DAILY REALIZED P/L</div>
+      <div class="bkpl-chart">{}</div></div></div></div>'''.format(
+        total_label,len(confirmed),100*len(confirmed)/len(frame) if len(frame) else 0,
+        invested,len(frame),won,lost,pending,"".join(bars))
+    st.markdown(markup,unsafe_allow_html=True)
+    with st.expander("Individual parlay results",expanded=False):
         st.dataframe(frame,hide_index=True,use_container_width=True)
+    st.caption("Daily P/L follows the original Bankroll Builder list date. Green = profit; red = loss; gray = pending.")
