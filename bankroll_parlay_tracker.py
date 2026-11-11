@@ -183,7 +183,7 @@ def render_overview_parlay_pl(settlements, bankroll_history=None, espn_nba_boxsc
       <div class="bkpl-track"><div class="bkpl-fill" style="width:{:.1f}%"></div></div>
       <div class="bkpl-stats">
       <div class="bkpl-stat"><strong>${:,.2f}</strong><span>STARTING BALANCE</span></div>
-      <div class="bkpl-stat"><strong>${:,.2f}</strong><span>BALANCE</span></div>
+      <div class="bkpl-stat"><strong>${:,.2f}</strong><span>CURRENT BALANCE</span></div>
       <div class="bkpl-stat"><strong>{}</strong><span>PARLAYS</span></div>
       <div class="bkpl-stat"><strong>{}</strong><span>WINS</span></div>
       <div class="bkpl-stat"><strong>{}</strong><span>LOSSES</span></div>
