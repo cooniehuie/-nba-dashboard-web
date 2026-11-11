@@ -1686,6 +1686,9 @@ ROBINHOOD_NOV9_BETS=[
 ]
 
 ROBINHOOD_NOV10_BETS=[
+("Nov 10 · Parlay 21",1252,7.47,99.59,6.06,[["D. Lillard","Threes",3],["T. Camara","Threes",3],["D. Acuff Jr.","Threes",3],["D. Bane","Threes",4]],"2026-11-10","17:30"),
+("Nov 10 · Parlay 20",229,38.24,90.92,3.36,[["D. Acuff Jr.","Threes",2],["T. Silva","Threes",2],["D. Bane","Threes",2],["D. Lillard","Threes",2],["T. Camara","Threes",2]],"2026-11-10","17:27"),
+("Nov 10 · Parlay 19",833,10.82,95.71,5.61,[["T. Silva","Threes",3],["D. Bane","Threes",3],["T. Camara","Threes",3],["D. Lillard","Threes",3],["D. Acuff Jr.","Threes",3]],"2026-11-10","17:26"),
 ("Nov 10 · Parlay 18",317,29.75,98.80,4.50,[["K. Dunn","Threes",1],["S. Gilgeous-Alexander","Threes",2],["J. Green","Assists",2]],"2026-11-10","17:13"),
 ("Nov 10 · Parlay 17",1235,7.6,99.93,6.07,[["J. Brown","Threes",2],["T. Maxey","Threes",3],["P. George","Threes",3],["S. Hauser","Threes",2]],"2026-11-10","17:07"),
 ("Nov 10 · Parlay 16",270,35.5,99.79,3.94,[["T. Silva","Points",10],["W. Carter Jr.","Points",10],["A. Caruso","Assists",2]],"2026-11-10","16:38"),
