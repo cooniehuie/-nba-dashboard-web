@@ -1,7 +1,6 @@
 """Dedicated Bankroll Builder wagers, separate from My Bets settlement ledger."""
 import pandas as pd
 import html
-import html
 import streamlit as st
 
 PARLAYS = [
@@ -62,7 +61,8 @@ def automatic_game_results(espn_nba_boxscores, match_espn_player):
 
 def render_overview_parlay_pl(settlements, bankroll_history=None, espn_nba_boxscores=None, match_espn_player=None):
     """Match the existing Bankroll Builder Safe Line History hero design."""
-    outcomes=(automatic_game_results(espn_nba_boxscores,match_espn_player)\n              if espn_nba_boxscores and match_espn_player else {})
+    outcomes=(automatic_game_results(espn_nba_boxscores,match_espn_player)
+              if espn_nba_boxscores and match_espn_player else {})
     records=[]
     for p in PARLAYS:
         settlement=(settlements or {}).get(p.get("my_bets",""),{})
