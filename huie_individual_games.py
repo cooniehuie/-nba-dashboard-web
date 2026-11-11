@@ -1,5 +1,5 @@
 """Public read-only Huie projections grouped like Sam's Individual Games."""
-from datetime import datetime
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 import pandas as pd
@@ -86,7 +86,9 @@ def render(all_props,espn_nba_boxscores=None,match_espn_player=None,archived_pro
     st.caption("All Player Props · Huie's independently calculated NBA projections vs the Reference line. Public read-only. Sam's projections are displayed for comparison only, not used to calculate Huie's.")
 
     pacific_today=datetime.now(ZoneInfo("America/Los_Angeles")).date()
-    selected_date=st.date_input("Huie projections game date",value=pacific_today,
+    if st.button("📅 View yesterday's completed games",key="huie_yesterday_results"):
+        st.session_state["huie_projections_results_date"]=pacific_today-timedelta(days=1)
+    selected_date=st.date_input("Game date for Huie projections and results",value=pacific_today,
                                 max_value=pacific_today,key="huie_projections_results_date",
                                 help="Historical dates automatically load their dated archived workbook, when available.")
     if selected_date!=pacific_today:
