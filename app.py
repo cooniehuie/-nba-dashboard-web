@@ -2163,7 +2163,7 @@ with st.sidebar:
     else:
         st.caption("Read-only access. Only the administrator can upload or replace projections.")
     st.divider()
-    nav_options=["Overview","Bankroll Builder Performance","🔴 Bankroll Builder Live Tracking"]+(["💸 My Bets"] if is_admin else [])+["Bankroll Builder","🧪 Smart Parlay Builder & Model Lab","Model's Favorite Props","All Player Props","Three-Point Projections","Individual Games","🏀 Huie Projections"]
+    nav_options=["Overview","Bankroll Builder Performance","🔴 Bankroll Builder Live Tracking"]+(["💸 My Bets"] if is_admin else [])+["Bankroll Builder","🧪 Smart Parlay Builder & Model Lab","📊 Huie Parlay Performance","Model's Favorite Props","All Player Props","Three-Point Projections","Individual Games","🏀 Huie Projections"]
     section=st.radio("Navigate",nav_options,label_visibility="visible",key="site_nav")
     phone_view=st.toggle("📱 Preview phone cards on desktop",value=False,key="phone_view",help="Cards appear automatically on phones. Enable this to preview card layout on desktop.")
 
@@ -2381,6 +2381,9 @@ if section=="Overview":
 elif section=="🧪 Smart Parlay Builder & Model Lab":
     from parlay_lab import render as render_parlay_lab
     render_parlay_lab(sheets[allprops] if allprops else None)
+elif section=="📊 Huie Parlay Performance":
+    from huie_parlay_performance import render as render_huie_parlay_performance
+    render_huie_parlay_performance(espn_nba_boxscores,match_espn_player,ROBINHOOD_CONFIRMED_BET_SETTLEMENTS)
 elif section=="Bankroll Builder Performance":
     show_bankroll_performance()
 elif section=="🔴 Bankroll Builder Live Tracking":
