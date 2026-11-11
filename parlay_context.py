@@ -75,9 +75,39 @@ def starter_match(player, team, named_starters):
     if not team or len(known)<5:return None
     return False
 
+# Official NBA team names from daily All Player Props workbooks; no fuzzy guessing.
+NBA_FULL_TEAM_NAMES={
+    "atlanta hawks":"ATL","boston celtics":"BOS",
+    "brooklyn nets":"BKN","charlotte hornets":"CHA",
+    "chicago bulls":"CHI","cleveland cavaliers":"CLE",
+    "dallas mavericks":"DAL","denver nuggets":"DEN",
+    "detroit pistons":"DET","golden state warriors":"GSW",
+    "houston rockets":"HOU","indiana pacers":"IND",
+    "los angeles clippers":"LAC","la clippers":"LAC",
+    "los angeles lakers":"LAL","la lakers":"LAL",
+    "memphis grizzlies":"MEM","miami heat":"MIA",
+    "milwaukee bucks":"MIL","minnesota timberwolves":"MIN",
+    "new orleans pelicans":"NOP","new york knicks":"NYK",
+    "oklahoma city thunder":"OKC","orlando magic":"ORL",
+    "philadelphia 76ers":"PHI","philadelphia sixers":"PHI",
+    "phoenix suns":"PHX","portland trail blazers":"POR",
+    "sacramento kings":"SAC","san antonio spurs":"SAS",
+    "toronto raptors":"TOR","utah jazz":"UTA",
+    "washington wizards":"WAS",
+}
+NBA_CODES=set(NBA_FULL_TEAM_NAMES.values())
+
 def parse_game(label):
-    m=re.search(r"\b([A-Za-z]{2,4})\s+(?:at|@|vs\.?|v)\s+([A-Za-z]{2,4})\b",str(label),re.I)
-    return (team_key(m[1]),team_key(m[2])) if m else None
+    """Recognize abbreviated and full-name workbook games, never guess a team."""
+    parts=re.split(r"\s*(?:@|\bat\b|\bvs\.?\b|\bversus\b)\s*",str(label),maxsplit=1,flags=re.I)
+    if len(parts)!=2:return None
+    def resolved(part):
+        part=" ".join(part.casefold().split()).strip(" .")
+        if part in NBA_FULL_TEAM_NAMES:return NBA_FULL_TEAM_NAMES[part]
+        team=team_key(part.upper())
+        return team if team in NBA_CODES else None
+    away,home=(resolved(x) for x in parts)
+    return (away,home) if away and home and away!=home else None
 def scoreboard(data):
     games=[]
     for event in data.get("events",[]):
