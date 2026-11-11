@@ -27,8 +27,42 @@ def render_bankroll_parlays(espn_nba_boxscores,match_espn_player,confirmed_settl
                         confirmed_settlements,prefix="bankroll_parlays",
                         title="Bankroll Builder Parlays · Live Tracking")
 
-def render_overview_parlay_pl(settlements, bankroll_history=None):
+def automatic_game_results(espn_nba_boxscores, match_espn_player):
+    """Compute box-score outcomes without treating them as Robinhood settlements."""
+    feeds={}
+    outcomes={}
+    for p in PARLAYS:
+        day=p["date"]
+        if day not in feeds:
+            try:
+                feeds[day]=espn_nba_boxscores(day.replace("-",""))[1]
+            except Exception:
+                feeds[day]=[]
+        statuses=[]
+        for name,market,target in p["legs"]:
+            athlete=match_espn_player(name,feeds[day],market)
+            game=athlete.get("game",{}) if athlete else {}
+            stat=athlete.get("stats",{}).get(market) if athlete else None
+            if stat is None or athlete.get("dnp"):
+                statuses.append("Unverified")
+            elif stat>=target:
+                statuses.append("Hit" if game.get("state")=="post" else "Live hit")
+            elif game.get("state")=="post":
+                statuses.append("Miss")
+            else:
+                statuses.append("Pending")
+        if "Miss" in statuses:
+            result="Game result: lost"
+        elif all(s=="Hit" for s in statuses):
+            result="Game result: won"
+        else:
+            result="Unverified / in progress"
+        outcomes[(day,p["id"])]=result
+    return outcomes
+
+def render_overview_parlay_pl(settlements, bankroll_history=None, espn_nba_boxscores=None, match_espn_player=None):
     """Match the existing Bankroll Builder Safe Line History hero design."""
+    outcomes=(automatic_game_results(espn_nba_boxscores,match_espn_player)\n              if espn_nba_boxscores and match_espn_player else {})
     records=[]
     for p in PARLAYS:
         settlement=(settlements or {}).get(p.get("my_bets",""),{})
@@ -36,7 +70,7 @@ def render_overview_parlay_pl(settlements, bankroll_history=None):
                  and settlement.get("realized_profit") is not None)
         records.append({"Date":p["date"],"Parlay":p["id"],"Invested":float(p["cost"]),
                         "Realized P/L":float(settlement["realized_profit"]) if settled else None,
-                        "Status":settlement.get("status") if settled else "Pending"})
+                        "Status":settlement.get("status") if settled else outcomes.get((p["date"],p["id"]),"Pending")})
     frame=pd.DataFrame(records)
     confirmed=frame.dropna(subset=["Realized P/L"])
     invested=frame["Invested"].sum()
@@ -108,6 +142,6 @@ def render_overview_parlay_pl(settlements, bankroll_history=None):
         <div><div class="bkpl-muted">DAILY REALIZED P/L · BY BANKROLL LIST DATE</div>
           <div class="bkpl-chart">{''.join(bars)}</div></div>
       </div></div>""",unsafe_allow_html=True)
-    with st.expander("Individual parlay settlements",expanded=False):
+    with st.expander("Automatic game results and settlement details",expanded=False):
         st.dataframe(frame,hide_index=True,use_container_width=True)
-    st.caption("Green = profit · Red = loss · Gray = pending. P/L is assigned to the original Bankroll Builder list date, not the settlement date.")
+    st.caption("Game outcomes update from final NBA box scores. Realized P/L updates only from confirmed Robinhood settlements. Green = profit · Red = loss · Gray = pending.")
