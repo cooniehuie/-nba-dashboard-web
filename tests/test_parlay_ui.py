@@ -19,6 +19,8 @@ def fake_historical(days_back=30):
             "Points":12+d,"Rebounds":None,"Assists":None,"Threes":None,"Minutes":30}}
         for d in range(1,7)]},0)
 parlay_lab._historical_boxscores=fake_historical
+# Keep matchup checks deterministic. Live provider checks run separately.
+parlay_lab._recent_opponent_context=lambda opponents:{"rows":[],"failures":0}
 # Only this test process uses an empty secrets object.
 st.secrets={}
 frame=pd.DataFrame([
