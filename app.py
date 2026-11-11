@@ -606,7 +606,7 @@ def performance_graph(frame):
           <div class="bk-track"><div class="bk-fill" style="width:{pct:.2f}%"></div></div>
           <div class="bk-stats"><div class="bk-stat"><strong>{wins}</strong><span>WINS</span></div>
           <div class="bk-stat"><strong>{losses}</strong><span>LOSSES</span></div>
-          <div class="bk-stat"><strong>{excluded}</strong><span>EXCLUDED</span></div></div>
+          <div class="bk-stat"><strong>{excluded}</strong><span>DNP</span></div></div>
         </div>
         <div><div class="bk-muted">DAILY HIT RATE</div><div class="bk-chart">{''.join(bars)}</div></div>
       </div>
