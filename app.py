@@ -1683,6 +1683,10 @@ ROBINHOOD_NOV9_BETS=[
 ]
 
 ROBINHOOD_CONFIRMED_BET_SETTLEMENTS={
+    "Nov 9 · Parlay 26":{"date":"2026-11-09","time":"22:03","settlement_date":"2026-11-09","status":"Loss",
+        "settlement_price":0.0,"quantity":100,"payout":0.0,
+        "realized_profit":-99.00,"event_id":"7153e8e6-9337-4cf1-92bd-d863bc44c7a9",
+        "note":"Robinhood-confirmed realized loss excludes $0.07 original commission; purchase total cost $99.07 preserved."},
     "Nov 9 · Parlay 14":{"date":"2026-11-09","time":"10:11","settlement_date":"2026-11-10","status":"Won",
         "settlement_price":0.776,"quantity":231,"payout":179.26,
         "realized_profit":82.70,"event_id":"ef52725a-5bf2-4b30-a13e-f98f9328eeea",
