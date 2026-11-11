@@ -81,10 +81,24 @@ def _table(frame,key):
                  })
 
 
-def render(all_props,espn_nba_boxscores=None,match_espn_player=None):
+def render(all_props,espn_nba_boxscores=None,match_espn_player=None,archived_props_loader=None):
     st.title("🏀 Huie Projections · Individual Games")
     st.caption("All Player Props · Huie's independently calculated NBA projections vs the Reference line. Public read-only. Sam's projections are displayed for comparison only, not used to calculate Huie's.")
 
+    pacific_today=datetime.now(ZoneInfo("America/Los_Angeles")).date()
+    selected_date=st.date_input("Huie projections game date",value=pacific_today,
+                                max_value=pacific_today,key="huie_projections_results_date",
+                                help="Historical dates automatically load their dated archived workbook, when available.")
+    if selected_date!=pacific_today:
+        if archived_props_loader is None:
+            st.error("A historical workbook loader is unavailable. Can't grade older games against the latest workbook.")
+            return
+        all_props,message=archived_props_loader(selected_date.isoformat())
+        if all_props is None or all_props.empty:
+            st.error(message)
+            st.info("Choose the date of the latest workbook, or save/upload the matching historical workbook.")
+            return
+        st.success(message)
     if all_props is None or all_props.empty:
         st.info("No All Player Props sheet is loaded. Upload the daily workbook as administrator.")
         return
@@ -92,15 +106,6 @@ def render(all_props,espn_nba_boxscores=None,match_espn_player=None):
     if candidates.empty:
         st.warning("No player props with a recognized market and numeric Reference line were found in All Player Props.")
         return
-
-    # The selected results date must refer to the workbook being displayed.
-    # A date change alone does not load a different historical workbook.
-    pacific_today=datetime.now(ZoneInfo("America/Los_Angeles")).date()
-    selected_date=st.date_input("Huie projections game date",value=pacific_today,
-                                max_value=pacific_today,key="huie_projections_results_date",
-                                help="Choose the actual game date of the loaded All Player Props workbook.")
-    if selected_date!=pacific_today:
-        st.caption("Historical grading uses the currently loaded workbook, not an archived dated snapshot. Check that the workbook is from this selected date.")
 
     games=list(dict.fromkeys(candidates["Game"].dropna().astype(str).tolist()))
     game_choice=st.selectbox("Choose matchup",["All games"]+games,key="huie_game_choice")
