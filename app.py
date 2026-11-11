@@ -1683,6 +1683,16 @@ ROBINHOOD_NOV9_BETS=[
 ]
 
 ROBINHOOD_NOV10_BETS=[
+("Nov 10 · Parlay 14",1000,9.4,99.96,5.96,[["A. Caruso","Assists",2],["K. Wagler","Points",10],["A. Black","Points",15],["A. Bailey","Rebounds",6]],"2026-11-10","16:17"),
+("Nov 10 · Parlay 13",848,11.1,99.99,5.86,[["T. Camara","Threes",4],["D. Lillard","Threes",3],["S. Gilgeous-Alexander","Threes",2],["J. Holiday","Threes",1]],"2026-11-10","15:35"),
+("Nov 10 · Parlay 12",303,32.02,101.36,4.35,[["T. Maxey","Threes",2],["J. Brown","Threes",2],["P. George","Threes",2]],"2026-11-10","15:34"),
+("Nov 10 · Parlay 11",217,42,94.36,3.22,[["J. Brunson","Threes",2],["L. Shamet","Threes",2],["T. Herro","Threes",2]],"2026-11-10","15:31"),
+("Nov 10 · Parlay 10",569,16.6,99.97,5.52,[["L. Markkanen","Threes",4],["D. Peterson","Threes",3],["D. Mitchell","Threes",2],["A. Bailey","Threes",1]],"2026-11-10","15:25"),
+("Nov 10 · Parlay 9",2402,3.87,99.19,6.26,[["D. Bane","Threes",5],["T. Silva","Threes",4],["D. Acuff Jr.","Threes",3]],"2026-11-10","14:52"),
+("Nov 10 · Parlay 8",1563,5.97,99.43,6.15,[["D. Bane","Threes",4],["D. Acuff Jr.","Threes",3],["T. Silva","Threes",3],["A. Black","Threes",2]],"2026-11-10","14:51"),
+("Nov 10 · Parlay 7",1304,7.2,99.99,6.1,[["K. Kuzma","Points",10],["B. Stirtz","Points",10],["K. Murray","Points",10]],"2026-11-10","14:41"),
+("Nov 10 · Parlay 6",1705,5.5,99.99,6.22,[["D. Mitchell","Threes",3],["D. Peterson","Threes",3],["R. Hachimura","Threes",3]],"2026-11-10","14:40"),
+("Nov 10 · Parlay 5",377,25.2,99.99,4.99,[["R. Hachimura","Threes",2],["D. Mitchell","Threes",2],["D. Peterson","Threes",2]],"2026-11-10","14:40"),
 ("Nov 10 · Parlay 4",421,24.8,109.91,5.50,[["K. Wagler","Threes",1],["S. Gilgeous-Alexander","Threes",2],["W. Carter Jr.","Threes",1]],"2026-11-10","09:20"),
 ("Nov 10 · Parlay 3",286,33.26,99.26,4.13,[["K. Wagler","Assists",2],["C. Gillespie","Assists",2],["F. Wagner","Assists",6],["D. Acuff Jr.","Assists",6]],"2026-11-10","09:10"),
 ("Nov 10 · Parlay 2",246,39.1,99.82,3.63,[["A. Simons","Threes",1],["D. Jones Jr.","Threes",1],["L. Markkanen","Threes",2],["D. Bane","Threes",2]],"2026-11-10","09:04"),
