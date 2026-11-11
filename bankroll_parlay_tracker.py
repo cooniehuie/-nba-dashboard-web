@@ -183,6 +183,7 @@ def render_overview_parlay_pl(settlements, bankroll_history=None, espn_nba_boxsc
       <div class="bkpl-track"><div class="bkpl-fill" style="width:{:.1f}%"></div></div>
       <div class="bkpl-stats">
       <div class="bkpl-stat"><strong>${:,.2f}</strong><span>INVESTED</span></div>
+      <div class="bkpl-stat"><strong>${:,.2f}</strong><span>BALANCE</span></div>
       <div class="bkpl-stat"><strong>{}</strong><span>PARLAYS</span></div>
       <div class="bkpl-stat"><strong>{}</strong><span>WINS</span></div>
       <div class="bkpl-stat"><strong>{}</strong><span>LOSSES</span></div>
@@ -190,7 +191,7 @@ def render_overview_parlay_pl(settlements, bankroll_history=None, espn_nba_boxsc
       <div><div class="bkpl-muted">DAILY REALIZED P/L</div>
       <div class="bkpl-chart">{}</div></div></div></div>'''.format(
         total_label,len(confirmed),100*len(confirmed)/len(frame) if len(frame) else 0,
-        invested,len(frame),won,lost,pending,"".join(bars))
+        invested,invested+total,len(frame),won,lost,pending,"".join(bars))
     st.markdown(markup,unsafe_allow_html=True)
     with st.expander("Individual parlay results",expanded=False):
         st.dataframe(frame,hide_index=True,use_container_width=True)
