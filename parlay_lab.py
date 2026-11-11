@@ -8,7 +8,8 @@ from parlay_probability import joint_bounds, wilson_interval, yes_break_even, ye
 from parlay_context import game_day_context, injury_status, parse_game, name_key, team_key, starter_match, team_context, matchup_adjustment
 from parlay_calibration import train as train_probabilities, predict as calibrated_predict
 from parlay_joint import correlated_joint
-from parlay_predictive import forecast as predictive_forecast, audit as predictive_audit
+from parlay_predictive import audit as predictive_audit
+from parlay_huie_projections import historical_projection_results, enrich_huie_projections, opponent_adjusted_projections
 from parlay_quotes import fetch_quote_feed, match_quote
 from statistics import pstdev
 
@@ -306,56 +307,8 @@ def _history_view(data):
             st.caption("Calibration uses synthetic historical alternate lines (not archived Robinhood prices). Markets that fail the holdout check produce no forecast probability.")
     else:
         st.caption("Not enough ESPN completed games to validate hit-probability calibration.")
-    # Match by unambiguous normalized player names; abbreviated names that
-    # map to multiple athletes are deliberately left unresolved.
-    import unicodedata
-    def norm(value):
-        value=unicodedata.normalize("NFKD",str(value).lower())
-        return " ".join("".join(ch if ch.isalnum() else " " for ch in value).split())
-    output=[]
-    for _,pick in data.iterrows():
-        short=norm(pick["Player"]).split()
-        if len(short)<2:continue
-        matches=[]
-        for (name,team),games in history.items():
-            full=norm(name).split()
-            if len(full)>1 and full[0].startswith(short[0]) and full[1:]==short[1:]:
-                matches.append((name,team,games))
-        if len(matches)!=1:continue
-        name,team,games=matches[0]
-        games=sorted(games,key=lambda g:str(g.get("date","")),reverse=True)
-        adaptive=predictive_forecast(games,pick["Market"])
-        validation=model_audit.get(pick["Market"],{})
-        samples=[(float(g["stats"][pick["Market"]]),g["stats"].get("Minutes"))
-                 for g in games if g["stats"].get(pick["Market"]) is not None]
-        if not samples:continue
-        values=[x[0] for x in samples]
-        minute_values=[float(m) for _,m in samples if m is not None and float(m)>0]
-        # A minutes-normalized estimate only uses observed minutes; it is
-        # withheld if there is insufficient minutes data.
-        per_min=[v/float(m) for v,m in samples if m is not None and float(m)>=5]
-        projected_minutes=(sum(minute_values[:5])/len(minute_values[:5])) if len(minute_values)>=5 else None
-        minutes_estimate=(sum(per_min)/len(per_min)*projected_minutes) if projected_minutes and len(per_min)>=5 else None
-        output.append({"Player":name,"Market":pick["Market"],"Safe line":pick["Safe line"],
-                       "Recent three games":min(3,len(values)),
-                       "Recent three hits":sum(v>=pick["Safe line"] for v in values[:3]) if len(values)>=3 else None,
-                       "Recent three average":round(sum(values[:3])/3,2) if len(values)>=3 else None,
-                       "Completed games":len(values),"Hits":sum(v>=pick["Safe line"] for v in values),
-                       "Historical average":round(sum(values)/len(values),2),
-                       "Historical SD":round(max(.75,pstdev(values[:5])),3) if len(values)>=5 else None,
-                       "ESPN team":team,
-                       "Minutes projection":round(minutes_estimate,2) if minutes_estimate is not None else None,
-                       "Recent minutes":round(projected_minutes,1) if projected_minutes is not None else None,
-                       "Adaptive projection":adaptive["projection"] if adaptive else None,
-                       "Adaptive method":adaptive["method"] if adaptive else "Unavailable",
-                       "Expected minutes":adaptive["expected_minutes"] if adaptive else None,
-                       "Minutes trend":adaptive["minutes_signal"] if adaptive else "Unknown",
-                       "Recent rate change":adaptive["recent_rate_change"] if adaptive else None,
-                       "Predictive validation":validation.get("status","Insufficient evidence"),
-                       "Use adaptive":bool(validation.get("enabled",False) and adaptive is not None and
-                                          adaptive["method"].startswith("Rate ×")),
-                       "Sam projection":pick["Sam projection"],
-                       "Huie baseline":pick["Huie baseline"]})
+    results=historical_projection_results(data,history,model_audit)
+    output=results.to_dict("records") if not results.empty else []
     if output:
         st.session_state["lab_history_results"]=pd.DataFrame(output)
         st.dataframe(pd.DataFrame(output),use_container_width=True,hide_index=True)
@@ -445,47 +398,8 @@ def render(all_props):
         st.info("The saved workbook has missing recent-game statistics. Huie's model will automatically check verified ESPN completed games below; players with insufficient data remain unverified.")
     _history_view(data)
     historical=st.session_state.get("lab_history_results")
-    if st.session_state.get("lab_history_enabled") and isinstance(historical,pd.DataFrame) and not historical.empty:
-        # Join on unique player initial + surname and stat, never silently
-        # assign ambiguous names (e.g. Amen versus Ausar Thompson).
-        import unicodedata
-        def initials(value):
-            v=unicodedata.normalize("NFKD",str(value).lower())
-            words=" ".join("".join(ch if ch.isalnum() else " " for ch in v).split()).split()
-            return (words[0][:1]+" "+" ".join(words[1:])) if len(words)>1 else ""
-        counts=historical.assign(_key=historical["Player"].map(initials)).groupby(["_key","Market"]).size()
-        safe=historical.assign(_key=historical["Player"].map(initials))
-        safe=safe[safe.apply(lambda x:counts.loc[(x["_key"],x["Market"])]==1,axis=1)]
-        lookup_history={(x["_key"],x["Market"]):x for _,x in safe.iterrows()}
-        for idx,pick in data.iterrows():
-            rec=lookup_history.get((initials(pick["Player"]),pick["Market"]))
-            if rec is None or rec["Completed games"]<3:continue
-            # Fill missing individual-game evidence only from verified ESPN games.
-            if rec["Recent three games"]==3:
-                data.at[idx,"Recent hits"]=int(rec["Recent three hits"])
-                data.at[idx,"Games"]=3
-                data.at[idx,"Recent hit rate"]=int(rec["Recent three hits"])/3
-            minutes_based=rec.get("Minutes projection")
-            if rec.get("Use adaptive") and pd.notna(rec.get("Adaptive projection")):
-                baseline=float(rec["Adaptive projection"])
-                source="Validated adaptive minutes × recent stat rate"
-            elif rec["Completed games"]>=5 and pd.notna(minutes_based):
-                baseline=float(minutes_based)
-                source="ESPN historical minutes-normalized fallback"
-            else:
-                baseline=float(rec["Recent three average"])
-                source="ESPN latest 3 completed games (limited)"
-            data.at[idx,"Adaptive candidate"]=rec.get("Adaptive projection")
-            data.at[idx,"Expected minutes"]=rec.get("Expected minutes")
-            data.at[idx,"Minutes trend"]=rec.get("Minutes trend")
-            data.at[idx,"Predictive validation"]=rec.get("Predictive validation")
-            data.at[idx,"Huie baseline"]=round(baseline,2)
-            data.at[idx,"Baseline source"]=source
-            data.at[idx,"Baseline margin"]=round(baseline-pick["Safe line"],2)
-            data.at[idx,"External games"]=int(rec["Completed games"])
-            data.at[idx,"External hits"]=int(rec["Hits"])
-            data.at[idx,"Historical SD"]=rec.get("Historical SD")
-            data.at[idx,"ESPN team"]=rec.get("ESPN team")
+    if st.session_state.get("lab_history_enabled"):
+        data=enrich_huie_projections(data,historical)
     st.subheader("Game-day availability and risk checks")
     st.caption("Manual injury/role review is required: this is not a live injury feed. Excluded players are never used in generated parlays.")
     excluded_text=st.text_area("Exclude players (one per line; injury, minutes limit, or uncertain role)",
@@ -550,15 +464,7 @@ def render(all_props):
     if use_matchup and opponent_for:
         with st.spinner("Checking recent completed opponent boxscores..."):
             context=_recent_opponent_context(tuple(sorted(set(opponent_for.values()))))
-        for idx,opponent in opponent_for.items():
-            row=data.loc[idx]
-            adjustment=matchup_adjustment(context["rows"],opponent,row["Market"])
-            if adjustment is None or pd.isna(row.get("External games")):
-                continue
-            data.at[idx,"Huie baseline"]=round(float(row["Huie baseline"])*adjustment["factor"],2)
-            data.at[idx,"Baseline margin"]=round(float(data.at[idx,"Huie baseline"])-float(row["Safe line"]),2)
-            data.at[idx,"Matchup context"]=f'{opponent} · {adjustment["games"]} games · x{adjustment["factor"]:.3f}'
-            data.at[idx,"Baseline source"]=str(row.get("Baseline source",""))+" + exploratory opponent pace/defense"
+        data=opponent_adjusted_projections(data,context["rows"])
         if "Matchup context" in data:
             st.dataframe(data[["Player","Market","Matchup context"]].dropna(subset=["Matchup context"]),
                          hide_index=True,use_container_width=True)
