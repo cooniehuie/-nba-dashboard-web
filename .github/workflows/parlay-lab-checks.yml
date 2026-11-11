@@ -4,6 +4,7 @@ on:
     paths:
       - 'app.py'
       - 'parlay_*.py'
+      - 'huie_individual_games.py'
       - 'tests/test_*.py'
       - 'requirements.txt'
       - '.github/workflows/parlay-lab-checks.yml'
@@ -22,6 +23,6 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
       - name: Compile dashboard and every model module
-        run: python -m py_compile app.py parlay_*.py
+        run: python -m py_compile app.py parlay_*.py huie_individual_games.py
       - name: Run all parlay regression tests
         run: python -m unittest discover -s tests -p 'test_*.py' -v
