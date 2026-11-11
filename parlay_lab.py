@@ -432,7 +432,7 @@ def render(all_props):
         st.dataframe(pd.DataFrame([{"Check":k,"Rows":v} for k,v in _candidate_diagnostics(all_props).items()]),use_container_width=True,hide_index=True)
         return
     st.subheader("Huie's Model Lab · independent recent-games baseline")
-    st.write("Huie's baseline uses three recorded player results, or the workbook's recorded last-three average when individual games are incomplete. Missing values remain unavailable and never count as hits.")
+    st.write("Huie's projection uses independently verified NBA box scores: recent per-minute production, changing playing time, and matchup context where reliable. The enhanced minutes-and-rate formula activates only when a chronological historical evaluation supports it; otherwise the historical fallback remains.")
     st.caption("Recent 3-game hit rates are descriptive. External injury, lineup and matchup data are shown only when verified. Calibrated probabilities require a held-out historical check.")
     missing_sam=data["Sam projection"].notna().sum()==0
     missing_history=data["Games"].lt(3).any()
@@ -486,13 +486,6 @@ def render(all_props):
             data.at[idx,"External hits"]=int(rec["Hits"])
             data.at[idx,"Historical SD"]=rec.get("Historical SD")
             data.at[idx,"ESPN team"]=rec.get("ESPN team")
-    st.subheader("Model comparison · available verified information")
-    show=data.sort_values(["Recent hits","Baseline margin"],ascending=False,na_position="last").copy()
-    show["Recent hit rate"]=show["Recent hit rate"].map(
-        lambda x:f"{x:.0%}" if pd.notna(x) else "Unverified")
-    st.dataframe(show.rename(columns={"Safe line":"Reference line","Huie baseline":"Huie projection"}),use_container_width=True,hide_index=True)
-    st.caption("The model comparison refreshes after external historical results load. Entries missing either model's estimate do not qualify for the dual-model parlay list.")
-
     st.subheader("Game-day availability and risk checks")
     st.caption("Manual injury/role review is required: this is not a live injury feed. Excluded players are never used in generated parlays.")
     excluded_text=st.text_area("Exclude players (one per line; injury, minutes limit, or uncertain role)",
@@ -565,6 +558,7 @@ def render(all_props):
             data.at[idx,"Huie baseline"]=round(float(row["Huie baseline"])*adjustment["factor"],2)
             data.at[idx,"Baseline margin"]=round(float(data.at[idx,"Huie baseline"])-float(row["Safe line"]),2)
             data.at[idx,"Matchup context"]=f'{opponent} · {adjustment["games"]} games · x{adjustment["factor"]:.3f}'
+            data.at[idx,"Baseline source"]=str(row.get("Baseline source",""))+" + exploratory opponent pace/defense"
         if "Matchup context" in data:
             st.dataframe(data[["Player","Market","Matchup context"]].dropna(subset=["Matchup context"]),
                          hide_index=True,use_container_width=True)
@@ -572,6 +566,24 @@ def render(all_props):
             st.caption(f'{context["failures"]} ESPN game requests were unavailable; incomplete samples were not imputed.')
     elif use_matchup:
         st.caption("Opponent matchup adjustments require unambiguous ESPN player-team matches from External Historical Results; no unidentified team is guessed.")
+    st.subheader("Model comparison · final projections")
+    st.caption("The displayed Huie projection is the value actually used for parlay qualification, including any selected matchup adjustment. Sam's model projection is never used to calculate Huie's.")
+    show=data.sort_values(["Baseline margin","Sam margin"],ascending=False,na_position="last").copy()
+    show["Recent hit rate"]=show["Recent hit rate"].map(
+        lambda x:f"{x:.0%}" if pd.notna(x) else "Unverified")
+    display=show.rename(columns={"Safe line":"Reference line","Huie baseline":"Huie projection",
+                                 "Baseline source":"Huie method",
+                                 "Baseline margin":"Huie margin"})
+    preferred=["Player","Market","Reference line","Sam projection","Huie projection",
+               "Huie method","Expected minutes","Minutes trend","Recent rate change",
+               "Predictive validation","Matchup context","Sam margin","Huie margin",
+               "Recent hits","Recent hit rate","Game"]
+    cols=[col for col in preferred if col in display.columns]
+    st.dataframe(display[cols],use_container_width=True,hide_index=True)
+    st.caption(f'{int(data["Huie baseline"].notna().sum())} Huie projections available from verified player data; '+
+               f'{int(data["Sam projection"].notna().sum())} Sam projections available. '+
+               "Missing history, unverified opponent adjustments, or absent player estimates are never invented.")
+
     st.subheader("Smart Parlay Builder")
     st.info("OVER agreement only: Sam projection > Reference line AND Huie projection > Reference line. Equal-to-line, under-line and missing projections are excluded.")
     leg_count=st.select_slider("Number of legs",options=[2,3,4],value=2)
