@@ -1686,11 +1686,12 @@ ROBINHOOD_NOV9_BETS=[
 ]
 
 ROBINHOOD_NOV10_BETS=[
-("Nov 10 · Parlay 23",1489,6.27,99.44,6.13,[["S. Gilgeous-Alexander","Threes",3],["J. Holiday","Threes",2],["T. Camara","Threes",2],["D. Acuff Jr.","Threes",2],["D. Bane","Threes",3],["K. Wagler","Threes",1]],"2026-11-10","17:39"),
-("Nov 10 · Parlay 22",1304,7.12,98.88,6.05,[["K. Wagler","Threes",2],["R. Hachimura","Threes",2],["D. Booker","Threes",2],["D. Brooks","Threes",2]],"2026-11-10","17:34"),
-("Nov 10 · Parlay 21",1252,7.47,99.59,6.06,[["D. Lillard","Threes",3],["T. Camara","Threes",3],["D. Acuff Jr.","Threes",3],["D. Bane","Threes",4]],"2026-11-10","17:30"),
-("Nov 10 · Parlay 20",229,38.24,90.92,3.36,[["D. Acuff Jr.","Threes",2],["T. Silva","Threes",2],["D. Bane","Threes",2],["D. Lillard","Threes",2],["T. Camara","Threes",2]],"2026-11-10","17:27"),
-("Nov 10 · Parlay 19",833,10.82,95.71,5.61,[["T. Silva","Threes",3],["D. Bane","Threes",3],["T. Camara","Threes",3],["D. Lillard","Threes",3],["D. Acuff Jr.","Threes",3]],"2026-11-10","17:26"),
+("Nov 10 · Parlay 24",1489,6.27,99.44,6.13,[["S. Gilgeous-Alexander","Threes",3],["J. Holiday","Threes",2],["T. Camara","Threes",2],["D. Acuff Jr.","Threes",2],["D. Bane","Threes",3],["K. Wagler","Threes",1]],"2026-11-10","17:39"),
+("Nov 10 · Parlay 23",1304,7.12,98.88,6.05,[["K. Wagler","Threes",2],["R. Hachimura","Threes",2],["D. Booker","Threes",2],["D. Brooks","Threes",2]],"2026-11-10","17:34"),
+("Nov 10 · Parlay 22",1252,7.47,99.59,6.06,[["D. Lillard","Threes",3],["T. Camara","Threes",3],["D. Acuff Jr.","Threes",3],["D. Bane","Threes",4]],"2026-11-10","17:30"),
+("Nov 10 · Parlay 21",229,38.24,90.92,3.36,[["D. Acuff Jr.","Threes",2],["T. Silva","Threes",2],["D. Bane","Threes",2],["D. Lillard","Threes",2],["T. Camara","Threes",2]],"2026-11-10","17:27"),
+("Nov 10 · Parlay 20",833,10.82,95.71,5.61,[["T. Silva","Threes",3],["D. Bane","Threes",3],["T. Camara","Threes",3],["D. Lillard","Threes",3],["D. Acuff Jr.","Threes",3]],"2026-11-10","17:26"),
+("Nov 10 · Parlay 19",1471,19.3,299.95,16.05,[["D. Brooks","Threes",2],["R. Hachimura","Threes",2],["M. Bridges","Rebounds",6],["D. Mitchell","Assists",6]],"2026-11-10","17:17"),
 ("Nov 10 · Parlay 18",317,29.75,98.80,4.50,[["K. Dunn","Threes",1],["S. Gilgeous-Alexander","Threes",2],["J. Green","Assists",2]],"2026-11-10","17:13"),
 ("Nov 10 · Parlay 17",1235,7.6,99.93,6.07,[["J. Brown","Threes",2],["T. Maxey","Threes",3],["P. George","Threes",3],["S. Hauser","Threes",2]],"2026-11-10","17:07"),
 ("Nov 10 · Parlay 16",270,35.5,99.79,3.94,[["T. Silva","Points",10],["W. Carter Jr.","Points",10],["A. Caruso","Assists",2]],"2026-11-10","16:38"),
@@ -1709,6 +1710,7 @@ ROBINHOOD_NOV10_BETS=[
 ("Nov 10 · Parlay 3",286,33.26,99.26,4.13,[["K. Wagler","Assists",2],["C. Gillespie","Assists",2],["F. Wagner","Assists",6],["D. Acuff Jr.","Assists",6]],"2026-11-10","09:10"),
 ("Nov 10 · Parlay 2",246,39.1,99.82,3.63,[["A. Simons","Threes",1],["D. Jones Jr.","Threes",1],["L. Markkanen","Threes",2],["D. Bane","Threes",2]],"2026-11-10","09:04"),
 ("Nov 10 · Parlay 1",346,27.5,99.98,4.83,[["A. Drummond","Rebounds",4],["W. Carter Jr.","Rebounds",8],["A. Black","Rebounds",4],["I. Hartenstein","Rebounds",8]],"2026-11-10","09:02"),
+
 ]
 
 ROBINHOOD_CONFIRMED_BET_SETTLEMENTS={
