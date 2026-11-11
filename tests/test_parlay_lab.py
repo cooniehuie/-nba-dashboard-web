@@ -60,7 +60,8 @@ class ParlayLabTests(unittest.TestCase):
         diag={}
         joined=_join_bankroll_safe_lines(bankroll,props,diag)
         self.assertEqual(len(joined),1)
-        self.assertEqual(diag["game_label_fallbacks"],1)
+        # Full NBA team names now resolve to the same matchup without fallback.
+        self.assertEqual(diag["game_label_fallbacks"],0)
 
     def test_ambiguous_player_market_rejected(self):
         bankroll=pd.DataFrame([{"Player":"A. Thompson","Game":"Unknown",
