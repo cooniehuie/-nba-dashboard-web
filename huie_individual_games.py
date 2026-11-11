@@ -92,7 +92,11 @@ def render(all_props):
 
     games=list(dict.fromkeys(candidates["Game"].dropna().astype(str).tolist()))
     game_choice=st.selectbox("Choose matchup",["All games"]+games,key="huie_game_choice")
-    matching=candidates if game_choice=="All games" else candidates[candidates["Game"]==game_choice]
+    # The projection parser requires the ORIGINAL All Player Props headers.
+    # Candidate rows contain an internal Safe line, not Reference line.
+    game_col=next((col for col in all_props.columns if str(col).strip().lower()=="game"),None)
+    raw_matching=(all_props if game_choice=="All games" or game_col is None else
+                  all_props[all_props[game_col].astype(str)==game_choice])
 
     with st.spinner("Preparing independently verified Huie projections..."):
         try:
@@ -105,7 +109,7 @@ def render(all_props):
         except Exception as exc:
             audit={}
             st.warning("Historical model validation is unavailable; no enhanced model is activated. "+str(exc))
-        data=prepare_projections(matching,history,model_audit=audit)
+        data=prepare_projections(raw_matching,history,model_audit=audit)
     if data.empty:
         st.info("No usable projection rows for this matchup.")
         return
@@ -122,7 +126,7 @@ def render(all_props):
                     # Recalculate the final public table from the original,
                     # unrenamed candidate data so the same adjustment rules
                     # as Model Lab are applied before edge/side calculations.
-                    data=prepare_projections(matching,history,model_audit=audit,
+                    data=prepare_projections(raw_matching,history,model_audit=audit,
                                              context_rows=context.get("rows",[]))
                     if context.get("failures"):
                         st.caption(f'{context["failures"]} opponent-data requests were unavailable; missing values were not imputed.')
