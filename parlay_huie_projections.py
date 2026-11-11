@@ -62,6 +62,9 @@ def historical_projection_results(data, history, model_audit):
             "Recent three games":min(3,len(recent)),
             "Recent three hits":sum(value>=pick["Safe line"] for value in recent) if len(recent)==3 else None,
             "Recent three average":round(sum(recent)/3,2) if len(recent)==3 else None,
+            "Last game":recent[0] if len(recent)>0 else None,
+            "2 games ago":recent[1] if len(recent)>1 else None,
+            "3 games ago":recent[2] if len(recent)>2 else None,
             "Completed games":len(values),
             "Hits":sum(value>=pick["Safe line"] for value in values),
             "Historical average":round(sum(values)/len(values),2),
@@ -98,6 +101,8 @@ def enrich_huie_projections(data, historical):
             result.at[idx,"Recent hits"]=int(rec["Recent three hits"])
             result.at[idx,"Games"]=3
             result.at[idx,"Recent hit rate"]=int(rec["Recent three hits"])/3
+            for key in ("Last game","2 games ago","3 games ago"):
+                result.at[idx,key]=rec.get(key)
         minutes_based=rec.get("Minutes projection")
         if rec.get("Use adaptive") and pd.notna(rec.get("Adaptive projection")):
             baseline=float(rec["Adaptive projection"])
