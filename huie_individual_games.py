@@ -135,6 +135,9 @@ def render(all_props,espn_nba_boxscores=None,match_espn_player=None):
     use_matchup=st.checkbox("Include verified opponent pace/defense adjustment where available",
                             value=False,key="huie_games_matchup",
                             help="Optional: uses ESPN completed-team boxscores. This may take longer for All games.")
+    if selected_date!=pacific_today and use_matchup:
+        st.warning("Opponent adjustments are disabled for earlier dates because the current context may include later game results.")
+        use_matchup=False
     if use_matchup:
         opponents=_opponent_codes(data)
         if opponents:
