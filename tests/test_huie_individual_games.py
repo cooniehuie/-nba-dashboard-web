@@ -101,7 +101,7 @@ class HuieIndividualGamesUITests(unittest.TestCase):
         titles=" ".join(str(v.value) for v in app.title)
         self.assertIn("Huie Projections",titles)
         self.assertTrue(any("Choose matchup" in str(x.label) for x in app.selectbox))
-        self.assertGreater(len(app.dataframe),0)
+        self.assertGreater(len(app.dataframe),0, f"info={[x.message for x in app.info]} | warning={[x.message for x in app.warning]} | multiselect={[x.value for x in app.multiselect]} | expander={[x.label for x in app.expander]} | subheader={[x.value for x in app.subheader]} | checkbox={[x.value for x in app.checkbox]}")
 
     def test_single_game_selection(self):
         app=AppTest.from_string(APP,default_timeout=90).run()
@@ -110,7 +110,7 @@ class HuieIndividualGamesUITests(unittest.TestCase):
         self.assertIn("Cleveland Cavaliers @ Charlotte Hornets",choices)
         app.selectbox[0].set_value("Cleveland Cavaliers @ Charlotte Hornets").run()
         self.assertFalse([str(e.message) for e in app.exception])
-        self.assertTrue(any("Cleveland Cavaliers @ Charlotte Hornets" in str(e.value) for e in app.subheader))
+        self.assertTrue(any("Cleveland Cavaliers @ Charlotte Hornets" in str(e.value) for e in app.subheader), f"subheader={[x.value for x in app.subheader]}, info={[x.message for x in app.info]}, multiselect={[x.value for x in app.multiselect]}")
 
 if __name__=="__main__":
     unittest.main()
