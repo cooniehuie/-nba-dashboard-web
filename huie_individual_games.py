@@ -1,4 +1,7 @@
 """Public read-only Huie projections grouped like Sam's Individual Games."""
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
 import pandas as pd
 import streamlit as st
 
@@ -78,7 +81,7 @@ def _table(frame,key):
                  })
 
 
-def render(all_props):
+def render(all_props,espn_nba_boxscores=None,match_espn_player=None):
     st.title("🏀 Huie Projections · Individual Games")
     st.caption("All Player Props · Huie's independently calculated NBA projections vs the Reference line. Public read-only. Sam's projections are displayed for comparison only, not used to calculate Huie's.")
 
@@ -89,6 +92,15 @@ def render(all_props):
     if candidates.empty:
         st.warning("No player props with a recognized market and numeric Reference line were found in All Player Props.")
         return
+
+    # The selected results date must refer to the workbook being displayed.
+    # A date change alone does not load a different historical workbook.
+    pacific_today=datetime.now(ZoneInfo("America/Los_Angeles")).date()
+    selected_date=st.date_input("Huie projections game date",value=pacific_today,
+                                max_value=pacific_today,key="huie_projections_results_date",
+                                help="Choose the actual game date of the loaded All Player Props workbook.")
+    if selected_date!=pacific_today:
+        st.caption("Historical grading uses the currently loaded workbook, not an archived dated snapshot. Check that the workbook is from this selected date.")
 
     games=list(dict.fromkeys(candidates["Game"].dropna().astype(str).tolist()))
     game_choice=st.selectbox("Choose matchup",["All games"]+games,key="huie_game_choice")
@@ -101,6 +113,12 @@ def render(all_props):
     with st.spinner("Preparing independently verified Huie projections..."):
         try:
             history,failures=_historical_boxscores()
+            # Never incorporate game-day or later final box scores when
+            # reconstructing a prior-date Huie forecast.
+            history={key:[observation for observation in games
+                           if str(observation.get("date",""))<selected_date.isoformat()]
+                     for key,games in history.items()}
+            history={key:rows for key,rows in history.items() if rows}
         except Exception as exc:
             history={};failures=0
             st.warning("ESPN historical results unavailable; only verified stats already in the workbook can be used. "+str(exc))
@@ -134,6 +152,13 @@ def render(all_props):
                     st.warning("Opponent adjustments unavailable; unadjusted forecasts are shown. "+str(exc))
         else:
             st.caption("Opponent adjustments require an unambiguous ESPN player team and workbook matchup.")
+
+    if espn_nba_boxscores is not None and match_espn_player is not None:
+        from huie_daily_performance import render_summary
+        # Grade every Huie projection for the selected matchup scope, before
+        # the user-facing market, player, or OVER-only table filters are applied.
+        render_summary(data,espn_nba_boxscores,match_espn_player,selected_date)
+        st.divider()
 
     market_choices=sorted(data["Market"].dropna().unique().tolist())
     c1,c2=st.columns([2,2])
