@@ -2447,7 +2447,7 @@ elif section=="Live Prop Tracker":
     show_live_tracker()
 elif section=="🏀 Huie Projections":
     from huie_individual_games import render as render_huie_games
-    render_huie_games(sheets[allprops] if allprops else None)
+    render_huie_games(sheets[allprops] if allprops else None,espn_nba_boxscores,match_espn_player)
 elif section=="Individual Games":
     st.title("Individual Game Projections")
     if games:
