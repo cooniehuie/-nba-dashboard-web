@@ -582,6 +582,22 @@ def performance_graph(frame):
       .bk-bar-wrap{flex:0 0 36px;min-width:36px;max-width:36px}
       .bk-bar-wrap span{font-size:9px}
     }
+    /* Compact, screenshot-friendly two-chart layout on phones only. */
+    @media(max-width:750px){
+      .bk-hero{padding:11px 13px!important;margin:4px 0 8px!important;border-radius:15px!important}
+      .bk-kicker{font-size:9px!important;letter-spacing:.09em!important;line-height:1.2!important;white-space:nowrap}
+      .bk-grid{gap:5px!important}
+      .bk-big{font-size:36px!important;line-height:1.04!important}
+      .bk-muted{font-size:10px!important;line-height:1.2!important}
+      .bk-track{height:7px!important;margin:8px 0 4px!important}
+      .bk-stats{gap:20px!important;flex-wrap:nowrap!important;margin-top:5px!important}
+      .bk-stat strong{font-size:18px!important;line-height:1.1!important}
+      .bk-stat span{font-size:9px!important;line-height:1.15!important}
+      .bk-chart{height:93px!important;padding:4px 0 0!important;gap:5px!important}
+      .bk-bar-track{height:57px!important;flex:0 0 57px!important;border-radius:5px!important}
+      .bk-bar-wrap{flex:0 0 32px!important;min-width:32px!important;max-width:32px!important;gap:2px!important}
+      .bk-bar-wrap span,.bk-bar-wrap b{font-size:9px!important;line-height:1.15!important}
+    }
     </style>""",unsafe_allow_html=True)
     st.markdown(f"""<div class="bk-hero">
       <div class="bk-kicker">🏀 BANKROLL BUILDER · SAFE LINE HISTORY</div>
