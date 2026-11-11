@@ -16,6 +16,13 @@ class ContextTests(unittest.TestCase):
         self.assertEqual(injury_status("K. Thompson","",report)[0],"unlisted")
         self.assertEqual(parse_game("GSW at BOS"),("GSW","BOS"))
 
+    def test_full_name_daily_workbook_games_map_to_verified_nba_teams(self):
+        self.assertEqual(parse_game("Los Angeles Lakers @ Atlanta Hawks"),("LAL","ATL"))
+        self.assertEqual(parse_game("Cleveland Cavaliers @ Charlotte Hornets"),("CLE","CHA"))
+        self.assertEqual(parse_game("New Orleans Pelicans vs Golden State Warriors"),("NOP","GSW"))
+        self.assertEqual(parse_game("CLE@CHA"),("CLE","CHA"))
+        self.assertIsNone(parse_game("A Mystery Team @ Atlanta Hawks"))
+
     def test_confirmed_starter_not_projected(self):
         data={"boxscore":{"players":[{"team":{"abbreviation":"BOS"},
             "statistics":[{"athletes":[
