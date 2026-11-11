@@ -107,7 +107,7 @@ def render_summary(projections, espn_nba_boxscores, match_espn_player, selected_
     def live_summary():
         st.subheader("📊 Huie Projections Daily Hit Summary")
         st.caption("All Huie projections in the selected matchup scope · Final NBA results only · Auto-refreshes every 30 seconds while open")
-        st.caption("Selected NBA game date: **"+selected_date.strftime("%b %-d, %Y")+"**. The current workbook must be for this date; switching dates does not load an older workbook.")
+        st.caption("NBA game date: **"+selected_date.strftime("%b %-d, %Y")+"** · Results are graded only against the date-matched workbook and final NBA box scores.")
         if st.button("↻ Refresh box scores",key="huie_daily_refresh"):
             espn_nba_boxscores.clear()
             st.rerun(scope="fragment")
