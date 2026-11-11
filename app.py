@@ -2360,6 +2360,8 @@ if section=="Overview":
     with st.container(key="desktop_overview"):
         st.subheader("📈 Bankroll Builder Performance")
         performance_graph(bankroll_history_frame())
+        from bankroll_parlay_tracker import render_overview_parlay_pl
+        render_overview_parlay_pl(ROBINHOOD_CONFIRMED_BET_SETTLEMENTS)
         if st.button("View daily Bankroll Builder results",key="open_bankroll_performance"):
             st.info("Choose Bankroll Builder Performance in the sidebar to view daily results and date filters.")
         st.title("Daily NBA Projections")
@@ -2378,6 +2380,8 @@ if section=="Overview":
     with st.container(key="mobile_overview"):
         st.subheader("📈 Bankroll Builder Performance")
         performance_graph(bankroll_history_frame())
+        from bankroll_parlay_tracker import render_overview_parlay_pl
+        render_overview_parlay_pl(ROBINHOOD_CONFIRMED_BET_SETTLEMENTS)
         if st.button("View daily Bankroll Builder results",key="open_bankroll_performance_mobile",
                      on_click=lambda:st.session_state.update({"site_nav":"Bankroll Builder Performance"})):
             pass
