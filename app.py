@@ -306,6 +306,43 @@ def github_file(path, data=None):
 def saved_workbook():
     return github_file("latest.xlsx")
 
+@st.cache_data(ttl=300,show_spinner=False)
+def archived_huie_props(local_date):
+    """Use the matching PT day's private saved workbook, never today's latest.xlsx."""
+    from zoneinfo import ZoneInfo
+    import re
+    token,repo=storage_settings()
+    if not token or not repo:
+        return None,"Historical workbook storage isn't configured."
+    url="https://api.github.com/repos/"+repo+"/contents/history?per_page=1000"
+    headers={"Authorization":"Bearer "+token,"Accept":"application/vnd.github+json",
+             "X-GitHub-Api-Version":"2022-11-28","User-Agent":"Huie-Degen-Center"}
+    try:
+        request=urllib.request.Request(url,headers=headers)
+        with urllib.request.urlopen(request,timeout=20) as response:
+            files=json.load(response)
+        if not isinstance(files,list):return None,"Historical workbook index was unavailable."
+        eligible=[]
+        for item in files:
+            name=str(item.get("name",""))
+            matched=re.fullmatch(r"(\d{8})_(\d{6})\.xlsx",name)
+            if not matched:continue
+            utc_dt=datetime.strptime(matched.group(1)+matched.group(2),"%Y%m%d%H%M%S").replace(tzinfo=timezone.utc)
+            if utc_dt.astimezone(ZoneInfo("America/Los_Angeles")).date().isoformat()==local_date:
+                eligible.append((utc_dt,item.get("path")))
+        if not eligible:
+            return None,"No saved workbook exists for "+local_date+". The newer workbook cannot be used to grade older games."
+        archived_path=max(eligible,key=lambda t:t[0])[1]
+        contents=github_file(archived_path)
+        if not contents:return None,"The dated workbook was found but could not be read."
+        books=load_workbook(contents)
+        sheet_name=next((name for name in books if "all player props" in name.lower()),None)
+        if not sheet_name:return None,"The dated workbook has no All Player Props sheet."
+        return clean_sheet(books[sheet_name]),"Loaded the saved "+local_date+" projections workbook."
+    except Exception as exc:
+        return None,"Could not load saved historical projections ("+type(exc).__name__+")."
+
+
 
 # Historical daily totals from the user’s prior ChatGPT tracker. These are chat-reported, not independently box-score verified.
 BANKROLL_HISTORY = [
@@ -2447,7 +2484,7 @@ elif section=="Live Prop Tracker":
     show_live_tracker()
 elif section=="🏀 Huie Projections":
     from huie_individual_games import render as render_huie_games
-    render_huie_games(sheets[allprops] if allprops else None,espn_nba_boxscores,match_espn_player)
+    render_huie_games(sheets[allprops] if allprops else None,espn_nba_boxscores,match_espn_player,archived_huie_props)
 elif section=="Individual Games":
     st.title("Individual Game Projections")
     if games:
