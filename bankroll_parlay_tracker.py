@@ -19,12 +19,12 @@ def render_bankroll_parlays():
     a.metric("Invested",f"${invested:,.2f}")
     b.metric("Parlays",len(PARLAYS))
     c.metric("Legs",sum(len(p["legs"]) for p in PARLAYS))
-    d.metric("Potential gross payout",f"${payout:,.2f}")
-    st.caption(f"Maximum net profit if all win: ${payout-invested:,.2f}. Not realized profit.")
+    d.metric("Potential net profit",f"${payout-invested:,.2f}")
+    st.caption("Potential net profit = winning contract payouts minus total purchase costs (including fees). Not realized profit.")
     st.info("No settled results yet. Realized P/L and win-rate charts will appear after verified settlements are recorded.")
     for p in PARLAYS:
         with st.expander(f'{p["date"]} · {p["id"]} · {len(p["legs"])} legs · Pending · ${p["cost"]:.2f}'):
             st.caption(f'{p["contracts"]} YES contracts · Fees included in cost: ${p["fees"]:.2f} · Filled {p["filled_at"]} Pacific')
             legs=pd.DataFrame([{"Player":name,"Market":market,"Target":f"{target}+","Actual":"—","Status":"Unverified"} for name,market,target in p["legs"]])
             st.dataframe(legs,hide_index=True,use_container_width=True)
-            st.caption(f'Maximum gross payout ${p["contracts"]:.2f} · Maximum net profit ${p["contracts"]-p["cost"]:.2f}')
+            st.caption(f'Potential net profit +${p["contracts"]-p["cost"]:.2f} (if all legs win; cost includes fees)')
