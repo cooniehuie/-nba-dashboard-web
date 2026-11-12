@@ -1906,6 +1906,7 @@ ROBINHOOD_CONFIRMED_PAYOUTS=[
 ]
 
 def show_personal_bets():
+    from my_bets_absences import leg_absence_label
     st.title("💸 My Bets · Robinhood")
     from datetime import date
     available_days=[date(2026,11,11),date(2026,11,10),date(2026,11,9),date(2026,11,8),date(2026,11,7)]
@@ -2037,11 +2038,12 @@ def show_personal_bets():
                     game=player["game"] if player else None
                     state=game["state"] if game else "unknown"
                     if value is None:
-                        progress=("⚪ DNP (final)" if player and player.get("dnp") and state=="post"
-                                  else "⚪ Awaiting tipoff" if state=="pre"
-                                  else "🟡 Game live · stats pending" if player and state=="in"
-                                  else "⚪ Stats pending" if player
-                                  else "⚪ Unmatched / unavailable")
+                        absence=leg_absence_label(player)
+                        progress=(absence if absence else
+                                  "⚪ Awaiting tipoff" if state=="pre" else
+                                  "🟡 Game live · stats pending" if player and state=="in" else
+                                  "⚪ Stats pending" if player else
+                                  "⚪ Unmatched / unavailable")
                     elif t<0:
                         progress=("🔴 No lost" if value>=abs(t) else "🟢 No won (final)" if state=="post" else "🟡 No still possible")
                     elif value>=t:
@@ -2074,6 +2076,13 @@ def show_personal_bets():
                 t1,t2=st.tabs(["Player statistics","Combo progress"])
                 with t1:
                     stats_df=pd.DataFrame(rows)
+                    out_rows=stats_df[stats_df["Leg progress"].str.contains("DNP|OUT",case=False,regex=True,na=False)]
+                    if not out_rows.empty:
+                        st.caption(f"⚪ {len(out_rows)} prop target(s) have an ESPN-confirmed OUT/DNP report. "
+                                   "No unavailable stat is assumed to be zero.")
+                        with st.expander("View OUT / DNP players",expanded=False):
+                            st.dataframe(out_rows[["Player","Stat","Target","Game","Leg progress"]],
+                                         hide_index=True,use_container_width=True)
                     # Active games first, upcoming games second, completed games last.
                     # Keep the original tipoff ordering within each group.
                     status_order={"in":0,"pre":1,"post":2}
@@ -2091,7 +2100,7 @@ def show_personal_bets():
                 with t2:
                     responsive_dataframe(pd.DataFrame(combos),"mybets_combo_progress",preferred=["Reached","Progress","Unavailable legs"],hide_index=True,use_container_width=True,
                                  column_config={"Progress":st.column_config.ProgressColumn("Progress",min_value=0,max_value=1,format="%.0f%%")})
-                st.caption("An unavailable or unmatched player is never treated as zero or a lost leg. Reached thresholds are provisional until official market settlement.")
+                st.caption("OUT is shown only when ESPN confirms an absence for the scheduled game; DNP (final) requires completed-game confirmation. Missing players remain unverified. No DNP is automatically counted as a losing bet.")
         except Exception as exc:
             st.warning("NBA live data is temporarily unavailable. Your bets and settlement records are unaffected.")
             with st.expander("Connection details"):
@@ -2211,18 +2220,21 @@ def show_personal_bets():
                 if payout:
                     table_html.append('<tr><td>'+str(i)+'</td><td>'+esc(p)+'</td><td>Game winner</td><td>Yes</td><td>Settled</td><td>0</td><td>🟢 Won</td></tr>')
                     continue
-                if confirmed_bet:
-                    table_html.append('<tr><td>'+str(i)+'</td><td>'+esc(p)+'</td><td>'+esc(m)+'</td><td>'+esc(t)+'+</td><td>—</td><td>—</td><td>🟢 Settled by Robinhood</td></tr>')
-                    continue
                 matched_player=match_espn_player(p,overview_players,m)
+                if confirmed_bet:
+                    known_absence=leg_absence_label(matched_player)
+                    shown_progress=known_absence or "🟢 Settled by Robinhood"
+                    table_html.append('<tr><td>'+str(i)+'</td><td>'+esc(p)+'</td><td>'+esc(m)+'</td><td>'+esc(t)+'+</td><td>—</td><td>—</td><td>'+esc(shown_progress)+'</td></tr>')
+                    continue
                 actual=matched_player["stats"].get(m) if matched_player else None
                 state=matched_player["game"]["state"] if matched_player else "unknown"
                 if actual is None:
                     needed="—"
-                    leg_progress=("⚪ DNP (final)" if matched_player and matched_player.get("dnp") and state=="post"
-                                  else "⚪ Awaiting tipoff" if state=="pre"
-                                  else "⚪ Stats pending" if matched_player
-                                  else "⚪ Unmatched / unavailable")
+                    known_absence=leg_absence_label(matched_player)
+                    leg_progress=(known_absence if known_absence else
+                                  "⚪ Awaiting tipoff" if state=="pre" else
+                                  "⚪ Stats pending" if matched_player else
+                                  "⚪ Unmatched / unavailable")
                     actual_label="—"
                 else:
                     actual_label=str(actual)
