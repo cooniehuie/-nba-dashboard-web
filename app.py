@@ -1739,6 +1739,9 @@ ROBINHOOD_NOV9_BETS=[
 ]
 
 ROBINHOOD_NOV11_BETS=[
+("Nov 11 · Parlay 26",1489,6.3,99.96,6.15,[["D. Lillard","Threes",3],["T. Camara","Threes",2],["B. Podziemski","Threes",3],["Y. Lendeborg","Threes",2],["D. Bane","Threes",3]],"2026-11-11","17:40"),
+("Nov 11 · Parlay 25",342,27.4,98.47,4.76,[["S. Curry","Threes",4],["D. Bane","Threes",3],["D. Lillard","Threes",2],["B. Podziemski","Threes",1]],"2026-11-11","17:38"),
+("Nov 11 · Parlay 24",1466,6.4,99.98,6.16,[["S. Curry","Threes",5],["D. Bane","Threes",4],["D. Lillard","Threes",3],["B. Podziemski","Threes",2],["T. Camara","Threes",1]],"2026-11-11","17:37"),
 ("Nov 11 · Parlay 23",289,33.1,99.83,4.17,[["L. Doncic","Threes",3],["M. Porter Jr.","Threes",2],["S. Curry","Threes",3],["T. Camara","Threes",2],["D. Bane","Threes",2]],"2026-11-11","16:52"),
 ("Nov 11 · Parlay 22",1617,5.8,99.97,6.18,[["T. Camara","Threes",4],["D. Bane","Threes",4],["M. Porter Jr.","Threes",4]],"2026-11-11","16:48"),
 ("Nov 11 · Parlay 21",447,21.2,100,5.24,[["D. Bane","Threes",3],["M. Porter Jr.","Threes",3],["T. Camara","Threes",3]],"2026-11-11","16:46"),
