@@ -24,7 +24,8 @@ def render_bankroll_parlays(espn_nba_boxscores,match_espn_player,confirmed_settl
     daily_numbers={}
     for p in sorted(PARLAYS,key=lambda x:(x["date"],x["filled_at"])):
         day=p["date"]
-        daily_numbers.setdefault(day,{})[id(p)]=len(daily_numbers[day])+1
+        day_numbers=daily_numbers.setdefault(day,{})
+        day_numbers[id(p)]=len(day_numbers)+1
     for p in PARLAYS:
         date_label=pd.to_datetime(p["date"]).strftime("%m-%d-%y")
         number=daily_numbers[p["date"]][id(p)]
