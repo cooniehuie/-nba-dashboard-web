@@ -1779,6 +1779,14 @@ ROBINHOOD_NOV9_BETS=[
 ]
 
 ROBINHOOD_NOV12_BETS=[
+("Nov 12 · Parlay 15",1286,7.3,99.98,6.1,[["S. Diggs","Receptions",3],["A. Williams","Receptions",3],["I. Likely","Receptions",4],["R. White","Rush+Rec yds",40],["A. Ekeler","Rush+Rec yds",30],["C. Okonkwo","Receptions",4],["M. Nabers","Receptions",4]],"2026-11-12","15:50"),
+("Nov 12 · Parlay 14",1252,7.5,99.99,6.09,[["R. White","Rec yds",10],["WAS","Game winner",1],["R. White","Anytime TD",1],["J. Daniels","Pass yds",175],["J. McCarthy","Pass yds",150]],"2026-11-12","15:29"),
+("Nov 12 · Parlay 13",390,24.3,99.79,5.02,[["I. Quickley","Points",15],["J. Walter","Points",10],["J. Embiid","Rebounds",6],["T. Maxey","Threes",2]],"2026-11-12","15:21"),
+("Nov 12 · Parlay 12",247,39,99.98,3.65,[["R. Kalkbrenner","Rebounds",4],["J. Goodwin","Threes",1],["K. Maluach","Rebounds",4]],"2026-11-12","15:18"),
+("Nov 12 · Parlay 11",298,32.1,99.94,4.28,[["A. Dosunmu","Points",15],["P. Washington","Points",10],["C. Flagg","Points",20],["C. Flagg","Rebounds",4]],"2026-11-12","15:17"),
+("Nov 12 · Parlay 10",318,30,99.92,4.52,[["A. Davis","Points",20],["D. Robinson","Points",15],["A. Sarr","Rebounds",4]],"2026-11-12","15:14"),
+("Nov 12 · Parlay 9",274,35,99.89,3.99,[["R. White","Anytime TD",1]],"2026-11-12","15:02"),
+("Nov 12 · Parlay 8",301,32.1,100.94,4.32,[["C. Okonkwo","Receptions",3],["A. Williams","Receptions",3],["I. Likely","Receptions",4]],"2026-11-12","14:53"),
 ("Nov 12 · Parlay 7",340,28,99.97,4.77,[["D. Robinson","Threes",3],["L. Ball","Threes",2],["G. Allen","Threes",3],["T. Maxey","Threes",2]],"2026-11-12","12:52"),
 ("Nov 12 · Parlay 6",1401,6.68,99.67,6.11,[["G. Allen","Threes",4],["D. Robinson","Threes",4],["N. Reid","Threes",3],["L. Ball","Threes",3]],"2026-11-12","12:50"),
 ("Nov 12 · Parlay 5",1360,6.9,99.96,6.12,[["PHI","1st half by 3.5",1],["COL","Game winner",1],["UTA","Game winner",1],["WPG","Win by 1.5",0],["CBJ","Win by 1.5",0]],"2026-11-12","12:06"),
