@@ -2345,7 +2345,7 @@ with st.sidebar:
     else:
         st.caption("Read-only access. Only the administrator can upload or replace projections.")
     st.divider()
-    nav_options=["Overview","Bankroll Builder Performance","🔴 Bankroll Builder Live Tracking"]+(["💸 My Bets"] if is_admin else [])+["Bankroll Builder","🧪 Smart Parlay Builder & Model Lab","📊 Huie Parlay Performance","Model's Favorite Props","All Player Props","Three-Point Projections","Individual Games","🏀 Huie Projections"]
+    nav_options=["Overview","Bankroll Builder Performance","🔴 Bankroll Builder Live Tracking"]+(["💸 My Bets"] if is_admin else [])+["Bankroll Builder","🧪 Smart Parlay Builder & Model Lab","📊 Huie Parlay Performance","Model's Favorite Props","All Player Props","Three-Point Projections","Individual Games","🏀 Huie Projections","🏈 Huie NFL Projections"]
     section=st.radio("Navigate",nav_options,label_visibility="visible",key="site_nav")
     phone_view=st.toggle("📱 Preview phone cards on desktop",value=False,key="phone_view",help="Cards appear automatically on phones. Enable this to preview card layout on desktop.")
 
@@ -2590,6 +2590,10 @@ elif section=="Live Prop Tracker":
 elif section=="🏀 Huie Projections":
     from huie_individual_games import render as render_huie_games
     render_huie_games(sheets[allprops] if allprops else None,espn_nba_boxscores,match_espn_player,archived_huie_props)
+elif section=="🏈 Huie NFL Projections":
+    from huie_nfl_projections import render as render_huie_nfl
+    render_huie_nfl(storage_read=github_file,storage_write=github_file if is_admin else None,
+                    is_admin=is_admin)
 elif section=="Individual Games":
     st.title("Individual Game Projections")
     if games:
