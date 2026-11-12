@@ -226,7 +226,8 @@ def _baseline_rows(player,logs,game,team,opponent,opponent_id,defense_snapshot=N
                               defense_snapshot,opponent_id)
         workload=context["usage"]
         defense=context["defense"]
-        usage_active=market in (usage_markets or set())
+        usage_active=(market in (usage_markets or set()) and
+                      workload.get("notes")=="Verified workload × season efficiency")
         final=context["final"] if usage_active else round(
             estimate["projection"]*defense["factor"],2)
         rows.append({"Game":game,"Team":team,"Opponent":opponent,
@@ -248,8 +249,9 @@ def _baseline_rows(player,logs,game,team,opponent,opponent_id,defense_snapshot=N
                      "1+ TD games":(f'{estimate["hit_one"]}/{estimate["games"]}' if market=="Anytime TD" else "—"),
                      "Sample":estimate["confidence"],"Status":"Availability not verified",
                      "Player ID":player["id"],
-                     "Method":("Workload validated + defense (experimental)" if usage_active else
-                               "Baseline + defense (workload not validated)")})
+                     "Method":(("Verified workload + " if usage_active else "Player baseline + ")+
+                               ("experimental opponent defense" if defense["label"]!="Unavailable"
+                                else "no verified defensive adjustment"))})
     return rows
 
 def _default_players(roster):
@@ -430,10 +432,11 @@ def render(storage_read=None,storage_write=None,is_admin=False):
         [stored.get((str(row["Player ID"]),row["Market"]))
          for _,row in frame.iterrows()],errors="coerce")
     st.caption("Huie NFL v2: player-history baseline plus verified opponent defense (upcoming games only). Attempts/carries/targets adjust the final model only when held-out validation improves accuracy; all effects are disclosed below. Anytime TD means rushing + receiving TDs, **not passing TDs**. Reference lines require administrator input.")
-    a,b,c=st.columns(3)
+    a,b,c,d=st.columns(4)
     a.metric("Players with projections",frame["Player"].nunique())
     b.metric("NFL stat projections",int(frame["Huie projection"].notna().sum()))
-    c.metric("Reference lines available",int(frame["Reference line"].notna().sum()))
+    c.metric("Context-adjusted",int(((frame["Huie projection"]-frame["Baseline"]).abs()>0.01).sum()))
+    d.metric("Reference lines",int(frame["Reference line"].notna().sum()))
     choices=list(MARKETS)
     selected_markets=st.multiselect("Markets",choices,default=choices,key="huie_nfl_markets")
     visible=frame[frame["Market"].isin(selected_markets)].copy()
@@ -474,11 +477,9 @@ def render(storage_read=None,storage_write=None,is_admin=False):
             "⚪ AT LINE" if baseline is not None and line is not None and baseline==line else
             "—"
         )
-    columns=["Player","Team","Opponent","Position","Market","Huie projection","Reference line",
-             "Model side","Baseline","Workload projection","Expected volume","Volume trend %",
-             "Def. adjustment %","Matchup","Opp allowed/game","League allowed/game",
-             "TD chance %","Last game","2 games ago","3 games ago","Season avg",
-             "Games","1+ TD games","Sample","Status"]
+    columns=["Player","Team","Opponent","Market","Huie projection","Reference line",
+             "Model side","Baseline","Def. adjustment %","Matchup",
+             "Expected volume","TD chance %","Status"]
     st.dataframe(visible[columns],hide_index=True,use_container_width=True,
                  column_config={"Huie projection":st.column_config.NumberColumn("Huie projection",format="%.1f"),
                                 "Reference line":st.column_config.NumberColumn("Reference line",format="%.1f")})
@@ -486,5 +487,10 @@ def render(storage_read=None,storage_write=None,is_admin=False):
         st.download_button("Download Huie NFL projections CSV",visible.to_csv(index=False),
                            file_name=f"huie_nfl_{season}_espnweek_{week}.csv",
                            mime="text/csv",key="huie_nfl_download")
-        st.dataframe(visible[["Player","Market","Games","Method","Expected volume","Volume trend %","Def. adjustment %","Opp allowed/game","League allowed/game","Status"]],hide_index=True,use_container_width=True)
+        st.dataframe(visible[["Player","Market","Games","Method","Workload projection",
+                                   "Last game","2 games ago","3 games ago","Season avg","1+ TD games",
+                                   "Expected volume","Volume trend %","Def. adjustment %","Matchup",
+                                   "Def. games","Opp allowed/game","League allowed/game",
+                                   "TD chance %","Sample","Status"]],
+                     hide_index=True,use_container_width=True)
     st.caption("NFL v2 limitations: matchup effects are capped experimental heuristics, not calibrated betting probabilities. Workload updates activate only after a positive chronological MAE check. Opponent defense is season-normalized and never used in retrospective projections. Weather, snap counts, market prices and game-day injury verification are not yet modeled; missing feeds fall back to player history. Three observed games per stat are required.")
