@@ -2013,7 +2013,10 @@ def show_personal_bets():
         from datetime import date
         track_date=selected_day
         if st.button("↻ Refresh NBA stats",key="refresh_nba_stats"):
+            from my_bets_absences import current_injury_reports
             espn_nba_boxscores.clear()
+            espn_nfl_boxscores.clear()
+            current_injury_reports.clear()
         try:
             games,players=espn_nba_boxscores(track_date.strftime("%Y%m%d"))
             nfl_games,nfl_players=espn_nfl_boxscores(track_date.strftime("%Y%m%d"))
@@ -2070,8 +2073,12 @@ def show_personal_bets():
                 for name,qty,price,legs in all_bets:
                     values=[actuals.get((p,m,int(t))) for p,m,t in legs]
                     hit=sum(v is not None and ((v<abs(int(t)) and (match_espn_player(p,players,m) or {}).get("game",{}).get("state")=="post") if t<0 else v>=int(t)) for v,(p,m,t) in zip(values,legs))
-                    unknown=sum(v is None for v in values)
+                    out_or_dnp=sum(bool(leg_absence_label(match_espn_player(p,players,m)))
+                                   for p,m,t in legs)
+                    unknown=sum(v is None and not leg_absence_label(match_espn_player(p,players,m))
+                                for v,(p,m,t) in zip(values,legs))
                     combos.append({"Combo":labels.get(name,name),"Reached":str(hit)+"/"+str(len(legs)),
+                                   "OUT / DNP legs":out_or_dnp,
                                    "Unavailable legs":unknown,"Progress":hit/len(legs) if legs else 0})
                 t1,t2=st.tabs(["Player statistics","Combo progress"])
                 with t1:
@@ -2098,7 +2105,7 @@ def show_personal_bets():
                     ).drop(columns=["_game_priority","_sort_time"])
                     responsive_dataframe(stats_df,"mybets_live_stats",preferred=["Stat","Target","Actual","Needed"],hide_index=True,use_container_width=True)
                 with t2:
-                    responsive_dataframe(pd.DataFrame(combos),"mybets_combo_progress",preferred=["Reached","Progress","Unavailable legs"],hide_index=True,use_container_width=True,
+                    responsive_dataframe(pd.DataFrame(combos),"mybets_combo_progress",preferred=["Reached","OUT / DNP legs","Progress","Unavailable legs"],hide_index=True,use_container_width=True,
                                  column_config={"Progress":st.column_config.ProgressColumn("Progress",min_value=0,max_value=1,format="%.0f%%")})
                 st.caption("OUT is shown only when ESPN confirms an absence for the scheduled game; DNP (final) requires completed-game confirmation. Missing players remain unverified. No DNP is automatically counted as a losing bet.")
         except Exception as exc:
