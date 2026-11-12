@@ -303,7 +303,7 @@ def render(storage_read=None,storage_write=None,is_admin=False):
     chosen=st.multiselect("Players to project (ESPN rosters; starter status not guaranteed)",
                           list(identities),default=defaults,
                           format_func=lambda pid:f'{identities[pid]["name"]} · {identities[pid]["team"]} {identities[pid]["position"]}',
-                          key="huie_nfl_players")
+                          key="huie_nfl_players_"+selected["id"])
     if len(chosen)>40:
         st.warning("Select 40 players or fewer to keep the box-score requests manageable.")
         return
@@ -352,7 +352,7 @@ def render(storage_read=None,storage_write=None,is_admin=False):
         return
     if is_admin:
         st.caption("Admin: enter actual Robinhood/reference thresholds in the Reference line column. No odds are inferred.")
-        edited=st.data_editor(visible,hide_index=True,use_container_width=True,key="huie_nfl_line_editor",
+        edited=st.data_editor(visible,hide_index=True,use_container_width=True,key="huie_nfl_line_editor_"+selected["id"],
                               disabled=[col for col in visible.columns if col!="Reference line"],
                               column_config={"Reference line":st.column_config.NumberColumn("Reference line",min_value=0.0,step=0.5,format="%.1f"),
                                              "Player ID":None,"Method":None})
