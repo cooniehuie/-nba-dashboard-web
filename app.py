@@ -1458,6 +1458,30 @@ def show_bulk_bet_import():
                         except Exception as exc:st.error("Unable to save positions: "+str(exc))
 
 
+def espn_matchup_score(event):
+    """Display ESPN's reported away/home score once play has started."""
+    status=(event.get("status") or {}).get("type") or {}
+    if status.get("state") not in ("in","post"):
+        return ""
+    competitions=event.get("competitions") or []
+    competitors=(competitions[0].get("competitors") or []) if competitions else []
+    by_side={}
+    for competitor in competitors:
+        side=competitor.get("homeAway")
+        team=competitor.get("team") or {}
+        abbreviation=str(team.get("abbreviation") or "").strip().upper()
+        score=competitor.get("score")
+        if isinstance(score,dict):
+            score=score.get("displayValue",score.get("value"))
+        score=str(score).strip() if score is not None else ""
+        if side in ("home","away") and abbreviation and score.isdigit():
+            by_side[side]=(abbreviation,score)
+    if "away" not in by_side or "home" not in by_side:
+        return ""
+    away,home=by_side["away"],by_side["home"]
+    return f"{away[0]} {away[1]} – {home[0]} {home[1]}"
+
+
 @st.cache_data(ttl=30,show_spinner=False)
 def espn_nba_boxscores(date_string):
     import unicodedata
@@ -1476,7 +1500,8 @@ def espn_nba_boxscores(date_string):
         game={"id":eid,"name":event.get("shortName",event.get("name","Game")),
               "start_utc":event.get("date",""),
               "state":status.get("type",{}).get("state","unknown"),
-              "detail":status.get("type",{}).get("shortDetail",status.get("type",{}).get("detail",""))}
+              "detail":status.get("type",{}).get("shortDetail",status.get("type",{}).get("detail","")),
+              "score_line":espn_matchup_score(event)}
         games.append(game)
         try:
             summary=fetch("https://site.api.espn.com/apis/site/v2/sports/basketball/nba/summary?event="+str(eid))
@@ -1530,7 +1555,8 @@ def espn_nfl_boxscores(date_string):
     for event in scoreboard.get("events",[]):
         status=event.get("status",{}).get("type",{})
         game={"name":event.get("shortName",event.get("name","NFL")),"start_utc":event.get("date",""),
-              "state":status.get("state","unknown"),"detail":status.get("shortDetail",status.get("detail",""))}
+              "state":status.get("state","unknown"),"detail":status.get("shortDetail",status.get("detail","")),
+              "score_line":espn_matchup_score(event)}
         games.append(game)
         # Preserve a live-game association for known bet players even before
         # ESPN includes them in a statistical box-score category. Never infer
@@ -1982,7 +2008,9 @@ def show_personal_bets():
                 st.info("No NBA games found for this date. Choose another date or retry later.")
             else:
                 games.sort(key=lambda g:g.get("start_utc","") or "9999")
-                st.caption("Games (earliest first): "+" · ".join(g["name"]+" ("+g["detail"]+")" for g in games))
+                st.caption("Games (earliest first): "+" · ".join(
+                    g["name"]+" ("+g["detail"]+(" · "+g["score_line"] if g.get("score_line") else "")+")"
+                    for g in games))
                 if any(g.get("boxscore_error") for g in games):
                     st.warning("Some box scores were unavailable. Missing stats are shown as unavailable, not zero.")
                 unique_props=sorted({(p,m,int(t)) for _,_,_,legs in all_bets for p,m,t in legs})
@@ -2020,7 +2048,7 @@ def show_personal_bets():
                                  "Game time":tipoff,"_sort_time":start_time or "9999",
                                  "Needed":(max(0,abs(t)-value) if t<0 else max(0,t-value)) if value is not None else None,
                                  "Game":game["name"] if game else "Unmatched",
-                                 "Clock / Status":game["detail"] if game else "Unavailable",
+                                 "Clock / Status":((game["detail"]+" · "+game["score_line"]) if game.get("score_line") else game["detail"]) if game else "Unavailable",
                                  "Leg progress":progress})
                 combos=[]
                 for name,qty,price,legs in all_bets:
