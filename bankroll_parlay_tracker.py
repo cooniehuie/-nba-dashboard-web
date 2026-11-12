@@ -4,6 +4,9 @@ import html
 import streamlit as st
 
 PARLAYS = [
+ {"date":"2026-11-11","id":"5-Leg Threes","contracts":327,"cost":99.09,"fees":4.62,"filled_at":"07:49","my_bets":"Nov 11 · Parlay 1","legs":[("E. Mobley","Threes",1),("M. Thomas","Threes",1),("C. Coward","Threes",1),("L. Doncic","Threes",3),("C. Spencer","Threes",1)]},
+ {"date":"2026-11-11","id":"Rebounds + Assists","contracts":221,"cost":98.91,"fees":3.30,"filled_at":"07:54","my_bets":"Nov 11 · Parlay 2","legs":[("A. Drummond","Rebounds",4),("P. Siakam","Rebounds",4),("F. Wagner","Rebounds",4),("D. Mitchell","Assists",4)]},
+ {"date":"2026-11-11","id":"4-Leg Assists","contracts":238,"cost":99.68,"fees":3.53,"filled_at":"07:57","my_bets":"Nov 11 · Parlay 3","legs":[("P. Siakam","Assists",2),("A. Nembhard","Assists",6),("C. Boozer","Assists",4),("D. Green","Assists",4)]},
  {"date":"2026-11-10","id":"Assists","contracts":286,"cost":99.26,"fees":4.13,"filled_at":"09:10","my_bets":"Nov 10 · Parlay 3","legs":[("K. Wagler","Assists",2),("C. Gillespie","Assists",2),("F. Wagner","Assists",6),("D. Acuff Jr.","Assists",6)]},
  {"date":"2026-11-10","id":"Three-Pointers","contracts":246,"cost":99.82,"fees":3.63,"filled_at":"09:04","my_bets":"Nov 10 · Parlay 2","legs":[("A. Simons","Threes",1),("D. Jones Jr.","Threes",1),("L. Markkanen","Threes",2),("D. Bane","Threes",2)]},
  {"date":"2026-11-10","id":"Rebounds","contracts":346,"cost":99.98,"fees":4.83,"filled_at":"09:02","my_bets":"Nov 10 · Parlay 1","legs":[("A. Drummond","Rebounds",4),("W. Carter Jr.","Rebounds",8),("A. Black","Rebounds",4),("I. Hartenstein","Rebounds",8)]}
