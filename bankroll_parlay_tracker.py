@@ -19,9 +19,17 @@ def render_bankroll_parlays(espn_nba_boxscores,match_espn_player,confirmed_settl
     bets=[]
     # Stable purchase snapshots: one record per actual Robinhood order.
     # The same bets may appear in My Bets; do not add these totals again.
-    for index,p in enumerate(PARLAYS,1):
+    # Number display labels independently for each date, in purchase-time order.
+    # Preserve original IDs and My Bets keys for settlement matching.
+    daily_numbers={}
+    for p in sorted(PARLAYS,key=lambda x:(x["date"],x["filled_at"])):
+        day=p["date"]
+        daily_numbers.setdefault(day,{})[id(p)]=len(daily_numbers[day])+1
+    for p in PARLAYS:
+        date_label=pd.to_datetime(p["date"]).strftime("%m-%d-%y")
+        number=daily_numbers[p["date"]][id(p)]
         bets.append({"date":p["date"],"id":p.get("event_id",p["id"]),
-                     "label":"Bankroll Parlay "+str(index)+" · "+p["id"],
+                     "label":f"({date_label}) Parlay {number} · {p['id']}",
                      "quantity":p["contracts"],"cost":p["cost"],"fees":p["fees"],
                      "time":p["filled_at"],"legs":p["legs"],
                      "my_bets":p.get("my_bets","")})
