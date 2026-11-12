@@ -195,6 +195,45 @@ def anytime_touchdown_probability(games):
     return round(100*(wins+1)/(len(vals)+2),1)
 
 
+def validate_usage_model(player_logs,forecast_func,market_map,min_examples=12,min_players=3):
+    """Chronological held-out MAE check: all training games precede prediction date.
+
+    Defense changes are not evaluated here because ESPN season-to-date opponent
+    statistics are not historical snapshots. If evidence is weak, keep a clearly
+    labeled experimental adjustment rather than claiming a validated improvement.
+    """
+    by_market={}
+    player_count={}
+    for pid,games in player_logs.items():
+        for market in market_map.get(pid,()):
+            for i in range(5,len(games)):
+                actual=numeric((games[i].get("stats") or {}).get(market))
+                if actual is None:continue
+                before=games[:i]
+                original=forecast_func(before,market)
+                if not original:continue
+                base=numeric(original.get("projection"))
+                if base is None:continue
+                enhanced=projection_from_usage(before,market,base)
+                if enhanced.get("notes")!="Verified workload × season efficiency":
+                    continue
+                candidate=numeric(enhanced.get("estimate"))
+                if candidate is None:continue
+                by_market.setdefault(market,[]).append((abs(base-actual),abs(candidate-actual)))
+                player_count.setdefault(market,set()).add(pid)
+    summary={}
+    for market,errors in by_market.items():
+        base_mae=sum(e[0] for e in errors)/len(errors)
+        usage_mae=sum(e[1] for e in errors)/len(errors)
+        sufficient=len(errors)>=min_examples and len(player_count.get(market,set()))>=min_players
+        passed=bool(sufficient and usage_mae<base_mae*.99)
+        summary[market]={"examples":len(errors),"players":len(player_count.get(market,set())),
+                         "base_mae":round(base_mae,2),"usage_mae":round(usage_mae,2),
+                         "validated":sufficient,"use_usage":passed,
+                         "delta_pct":round((1-usage_mae/base_mae)*100,1) if base_mae else None}
+    return summary
+
+
 def apply_context(baseline,games,market,position,defense_snapshot=None,opponent_id=None):
     """Combine individual baseline, verified usage and league-normalized defense."""
     volume=projection_from_usage(games,market,baseline)
