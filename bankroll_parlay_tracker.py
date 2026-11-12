@@ -204,6 +204,7 @@ def render_overview_parlay_pl(settlements, bankroll_history=None, espn_nba_boxsc
       <div class="bkpl-stats">
       <div class="bkpl-stat"><strong>${:,.2f}</strong><span>STARTING BALANCE</span></div>
       <div class="bkpl-stat"><strong>${:,.2f}</strong><span>CURRENT BALANCE</span></div>
+      <div class="bkpl-stat"><strong>{:+.1f}%</strong><span>BANKROLL GROWTH</span></div>
       <div class="bkpl-stat"><strong>{}</strong><span>PARLAYS</span></div>
       <div class="bkpl-stat"><strong>{}</strong><span>WINS</span></div>
       <div class="bkpl-stat"><strong>{}</strong><span>LOSSES</span></div>
@@ -211,7 +212,7 @@ def render_overview_parlay_pl(settlements, bankroll_history=None, espn_nba_boxsc
       <div><div class="bkpl-muted">DAILY REALIZED P/L</div>
       <div class="bkpl-chart">{}</div></div></div></div>'''.format(
         total_label,len(confirmed),100*len(confirmed)/len(frame) if len(frame) else 0,
-        BANKROLL_CYCLE_STARTING_BALANCE,BANKROLL_CYCLE_STARTING_BALANCE+total,len(frame),won,lost,pending,"".join(bars))
+        BANKROLL_CYCLE_STARTING_BALANCE,BANKROLL_CYCLE_STARTING_BALANCE+total,(total/BANKROLL_CYCLE_STARTING_BALANCE*100) if BANKROLL_CYCLE_STARTING_BALANCE else 0,len(frame),won,lost,pending,"".join(bars))
     st.markdown(markup,unsafe_allow_html=True)
     with st.expander("Individual parlay results",expanded=False):
         st.dataframe(frame,hide_index=True,use_container_width=True)
