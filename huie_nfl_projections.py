@@ -193,9 +193,9 @@ def _forecast(games,market):
     # Shrink recent form to the full season; stronger shrink for small samples.
     weight=0.65 if n>=6 else 0.4
     estimate=weight*recency+(1-weight)*season_mean
-    # Use only data-supported rate (no opponent, injury, or sportsbook guess).
-    if market=="Anytime TD":
-        estimate=max(0,estimate)
+    # Rates/counts cannot meaningfully be negative even if an occasional
+    # player posts a negative rushing-yard total in a single game.
+    estimate=max(0.0,estimate)
     return {"projection":round(estimate,2),"games":n,
             "last_three":list(reversed(rec)),
             "season_avg":round(season_mean,2),
