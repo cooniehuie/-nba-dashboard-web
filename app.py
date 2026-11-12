@@ -1485,6 +1485,7 @@ def espn_matchup_score(event):
 @st.cache_data(ttl=30,show_spinner=False)
 def espn_nba_boxscores(date_string):
     import unicodedata
+    from my_bets_absences import add_confirmed_absences, game_reported_absences
     def fetch(url):
         req=urllib.request.Request(url,headers={"User-Agent":"Mozilla/5.0 (compatible; HuieDashboard/1.0)","Accept":"application/json"})
         with urllib.request.urlopen(req,timeout=12) as response:
@@ -1493,18 +1494,23 @@ def espn_nba_boxscores(date_string):
     events=scoreboard.get("events",[])
     players=[]
     games=[]
+    absence_reports=[]
     for event in events:
         eid=event.get("id")
         comp=(event.get("competitions") or [{}])[0]
         status=event.get("status",{})
+        competitors=(comp.get("competitors") or [])
         game={"id":eid,"name":event.get("shortName",event.get("name","Game")),
               "start_utc":event.get("date",""),
               "state":status.get("type",{}).get("state","unknown"),
               "detail":status.get("type",{}).get("shortDetail",status.get("type",{}).get("detail","")),
-              "score_line":espn_matchup_score(event)}
+              "score_line":espn_matchup_score(event),
+              "team_codes":{str(c.get("team",{}).get("abbreviation") or "").upper() for c in competitors},
+              "team_ids":{str(c.get("team",{}).get("id") or "") for c in competitors}}
         games.append(game)
         try:
             summary=fetch("https://site.api.espn.com/apis/site/v2/sports/basketball/nba/summary?event="+str(eid))
+            absence_reports.extend(game_reported_absences(summary,game,"NBA"))
             for team in summary.get("boxscore",{}).get("players",[]):
                 for group in team.get("statistics",[]):
                     labels=[str(x).upper() for x in group.get("labels",[])]
@@ -1539,11 +1545,13 @@ def espn_nba_boxscores(date_string):
                                         "jersey":str(athlete_info.get("jersey") or athlete.get("jersey") or "").strip()})
         except Exception:
             game["boxscore_error"]=True
+    add_confirmed_absences(games,players,"NBA",absence_reports,date_string)
     return games,players
 
 @st.cache_data(ttl=30,show_spinner=False)
 def espn_nfl_boxscores(date_string):
     """Read NFL rushing, receiving, passing and TD statistics without guessing missing values."""
+    from my_bets_absences import add_confirmed_absences, game_reported_absences
     from datetime import datetime as dt
     from zoneinfo import ZoneInfo
     def fetch(url):
@@ -1552,11 +1560,15 @@ def espn_nfl_boxscores(date_string):
     scoreboard=fetch("https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?dates="+date_string)
     games=[]
     players=[]
+    absence_reports=[]
     for event in scoreboard.get("events",[]):
         status=event.get("status",{}).get("type",{})
-        game={"name":event.get("shortName",event.get("name","NFL")),"start_utc":event.get("date",""),
+        competitors=(event.get("competitions") or [{}])[0].get("competitors") or []
+        game={"id":str(event.get("id") or ""),"name":event.get("shortName",event.get("name","NFL")),"start_utc":event.get("date",""),
               "state":status.get("state","unknown"),"detail":status.get("shortDetail",status.get("detail","")),
-              "score_line":espn_matchup_score(event)}
+              "score_line":espn_matchup_score(event),
+              "team_codes":{str(c.get("team",{}).get("abbreviation") or "").upper() for c in competitors},
+              "team_ids":{str(c.get("team",{}).get("id") or "") for c in competitors}}
         games.append(game)
         # Preserve a live-game association for known bet players even before
         # ESPN includes them in a statistical box-score category. Never infer
@@ -1569,6 +1581,7 @@ def espn_nfl_boxscores(date_string):
                                 "jersey":"","sport":"NFL","game_only":True})
         try:
             summary=fetch("https://site.api.espn.com/apis/site/v2/sports/football/nfl/summary?event="+str(event["id"]))
+            absence_reports.extend(game_reported_absences(summary,game,"NFL"))
             for team in summary.get("boxscore",{}).get("players",[]):
                 for category in team.get("statistics",[]):
                     kind=str(category.get("name","")).lower()
@@ -1620,6 +1633,7 @@ def espn_nfl_boxscores(date_string):
                         p["stats"]["Rush+Rec yds"]=(rush or 0)+(rec or 0)
         except Exception:
             game["boxscore_error"]=True
+    add_confirmed_absences(games,players,"NFL",absence_reports,date_string)
     return games,players
 
 def match_espn_player(short_name,players,market=None):
