@@ -14,7 +14,7 @@ from zoneinfo import ZoneInfo
 
 import pandas as pd
 import streamlit as st
-from huie_nfl_matchups import apply_context,league_defensive_snapshot
+from huie_nfl_matchups import apply_context,league_defensive_snapshot,validate_usage_model
 
 SITE="https://site.api.espn.com/apis/site/v2/sports/football/nfl/"
 WEB="https://site.web.api.espn.com/apis/common/v3/sports/football/nfl/"
@@ -215,7 +215,7 @@ def _available_markets(position):
 
 
 def _baseline_rows(player,logs,game,team,opponent,opponent_id,defense_snapshot=None,
-                   usage_enabled=True):
+                   usage_markets=None):
     rows=[]
     for market in _available_markets(player["position"]):
         estimate=_forecast(logs,market)
@@ -226,7 +226,8 @@ def _baseline_rows(player,logs,game,team,opponent,opponent_id,defense_snapshot=N
                               defense_snapshot,opponent_id)
         workload=context["usage"]
         defense=context["defense"]
-        final=context["final"] if usage_enabled else round(
+        usage_active=market in (usage_markets or set())
+        final=context["final"] if usage_active else round(
             estimate["projection"]*defense["factor"],2)
         rows.append({"Game":game,"Team":team,"Opponent":opponent,
                      "Player":player["name"],"Position":player["position"],
@@ -247,8 +248,8 @@ def _baseline_rows(player,logs,game,team,opponent,opponent_id,defense_snapshot=N
                      "1+ TD games":(f'{estimate["hit_one"]}/{estimate["games"]}' if market=="Anytime TD" else "—"),
                      "Sample":estimate["confidence"],"Status":"Availability not verified",
                      "Player ID":player["id"],
-                     "Method":("History + workload + defense" if usage_enabled else
-                               "History + defense (workload did not validate)")})
+                     "Method":("Workload validated + defense (experimental)" if usage_active else
+                               "Baseline + defense (workload not validated)")})
     return rows
 
 def _default_players(roster):
@@ -380,6 +381,30 @@ def render(storage_read=None,storage_write=None,is_admin=False):
                    f"{snapshot['total']} NFL teams. Neutral = league average; adjustment capped at ±12%.")
     lookup={p["team"]:next((other for other in teams if other["abbr"]!=p["team"]),None)
             for p in identities.values()}
+    # Use only earlier games to compare model errors; only activate
+    # workload adjustment when its held-out MAE beats the baseline.
+    permitted={pid:_available_markets(identities[pid]["position"]) for pid in chosen}
+    validation=validate_usage_model(player_results,_forecast,permitted)
+    usage_markets={market for market,v in validation.items()
+                   if v.get("validated") and v.get("use_usage")}
+    if validation:
+        details=[]
+        for market in MARKETS:
+            v=validation.get(market)
+            if not v:continue
+            details.append({"Market":market,"Held-out games":v["examples"],
+                            "Distinct players":v["players"],
+                            "Baseline MAE":v["base_mae"],
+                            "Usage MAE":v["usage_mae"],
+                            "MAE improvement %":v["delta_pct"],
+                            "Workload active":bool(market in usage_markets),
+                            "Validated sample":v["validated"]})
+        if details:
+            with st.expander("NFL workload model · chronological validation",expanded=False):
+                st.dataframe(pd.DataFrame(details),hide_index=True,use_container_width=True)
+                st.caption("Workload adjustments are enabled only when >=12 held-out observations "
+                           "from >=3 players show at least a 1% reduction in mean absolute error. "
+                           "All training games precede each evaluated game.")
     rows=[]
     for pid in chosen:
         player=identities[pid]
@@ -387,7 +412,7 @@ def render(storage_read=None,storage_write=None,is_admin=False):
         rows.extend(_baseline_rows(player,player_results.get(pid,[]),
                                    selected["game"],player["team"],
                                    other.get("abbr","—"),other.get("id"),
-                                   snapshot))
+                                   snapshot,usage_markets))
     if failures:
         st.warning(f'{len(failures)} player game logs could not be retrieved. Missing projections were not imputed.')
         with st.expander("Unavailable player feeds"):
@@ -404,7 +429,7 @@ def render(storage_read=None,storage_write=None,is_admin=False):
     frame["Reference line"]=pd.to_numeric(
         [stored.get((str(row["Player ID"]),row["Market"]))
          for _,row in frame.iterrows()],errors="coerce")
-    st.caption("Huie NFL v2: player history + verified touches/targets/attempts + opponent season defense (upcoming games only). Baseline and each adjustment are visible below. Anytime TD means rushing + receiving TDs, **not passing TDs**. Roster status is not a confirmed injury report. Reference lines must be entered by the administrator.")
+    st.caption("Huie NFL v2: player-history baseline plus verified opponent defense (upcoming games only). Attempts/carries/targets adjust the final model only when held-out validation improves accuracy; all effects are disclosed below. Anytime TD means rushing + receiving TDs, **not passing TDs**. Reference lines require administrator input.")
     a,b,c=st.columns(3)
     a.metric("Players with projections",frame["Player"].nunique())
     b.metric("NFL stat projections",int(frame["Huie projection"].notna().sum()))
@@ -417,17 +442,18 @@ def render(storage_read=None,storage_write=None,is_admin=False):
         return
     if is_admin:
         st.caption("Admin: enter actual Robinhood/reference thresholds in the Reference line column. No odds are inferred.")
-        edited=st.data_editor(visible,hide_index=True,use_container_width=True,key="huie_nfl_line_editor_"+selected["id"],
-                              disabled=[col for col in visible.columns if col!="Reference line"],
-                              column_config={"Reference line":st.column_config.NumberColumn("Reference line",min_value=0.0,step=0.5,format="%.1f"),
-                                             "Player ID":None,"Method":None})
-        visible=edited.copy()
+        edit_cols=["Player","Market","Huie projection","Baseline","Reference line","Model side"]
+        edited=st.data_editor(visible[edit_cols].copy(),hide_index=True,use_container_width=True,
+                              key="huie_nfl_line_editor_"+selected["id"],
+                              disabled=[col for col in edit_cols if col!="Reference line"],
+                              column_config={"Reference line":st.column_config.NumberColumn("Reference line",min_value=0.0,step=0.5,format="%.1f")})
+        visible["Reference line"]=pd.to_numeric(edited["Reference line"],errors="coerce")
         if st.button("💾 Save NFL reference lines",key="huie_nfl_save_lines",type="primary"):
             if storage_write is None:
                 st.error("Private storage isn't configured.")
             else:
                 lines=dict(stored)
-                for _,row in edited.iterrows():
+                for _,row in visible.iterrows():
                     key=(str(row["Player ID"]),row["Market"])
                     newval=_num(row["Reference line"])
                     if newval is None:lines.pop(key,None)
@@ -461,4 +487,4 @@ def render(storage_read=None,storage_write=None,is_admin=False):
                            file_name=f"huie_nfl_{season}_espnweek_{week}.csv",
                            mime="text/csv",key="huie_nfl_download")
         st.dataframe(visible[["Player","Market","Games","Method","Expected volume","Volume trend %","Def. adjustment %","Opp allowed/game","League allowed/game","Status"]],hide_index=True,use_container_width=True)
-    st.caption("NFL v2 limitations: opponent matchup effects and workload weights are conservative, experimental heuristics—not historically calibrated probabilities or guaranteed betting edges. Defense is normalized to current league averages, never applied to prior games. Weather, snap counts and confirmed game-day availability are not yet used; missing feeds revert to player history. Three observed games per stat are required.")
+    st.caption("NFL v2 limitations: matchup effects are capped experimental heuristics, not calibrated betting probabilities. Workload updates activate only after a positive chronological MAE check. Opponent defense is season-normalized and never used in retrospective projections. Weather, snap counts, market prices and game-day injury verification are not yet modeled; missing feeds fall back to player history. Three observed games per stat are required.")
