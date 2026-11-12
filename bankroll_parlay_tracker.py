@@ -8,6 +8,10 @@ import streamlit as st
 BANKROLL_CYCLE_STARTING_BALANCE = 398.85
 
 PARLAYS = [
+ {"date":"2026-11-12","id":"Threes + Assists","contracts":226,"cost":99.87,"fees":3.37,"filled_at":"11:35","my_bets":"Nov 12 · Parlay 1","legs":[("G. Allen","Threes",3),("J. Goodwin","Threes",1),("C. Gillespie","Assists",2)]},
+ {"date":"2026-11-12","id":"3-Leg Rebounds","contracts":207,"cost":99.77,"fees":3.1,"filled_at":"11:41","my_bets":"Nov 12 · Parlay 2","legs":[("A. Thompson","Rebounds",6),("R. Barrett","Rebounds",4),("R. Gobert","Rebounds",8)]},
+ {"date":"2026-11-12","id":"Rebounds + Assists","contracts":225,"cost":98.78,"fees":3.35,"filled_at":"11:46","my_bets":"Nov 12 · Parlay 3","legs":[("M. Diabate","Rebounds",6),("C. Murray-Boyles","Rebounds",4),("P. Reed","Rebounds",4),("I. Quickley","Assists",4)]},
+ {"date":"2026-11-12","id":"Points + Assists","contracts":238,"cost":98.67,"fees":3.52,"filled_at":"11:50","my_bets":"Nov 12 · Parlay 4","legs":[("K. George","Points",10),("D. Robinson","Points",10),("I. Quickley","Points",10),("J. Embiid","Assists",2),("J. McDaniels","Assists",2)]},
  {"date":"2026-11-11","id":"5-Leg Threes","contracts":327,"cost":99.09,"fees":4.62,"filled_at":"07:49","my_bets":"Nov 11 · Parlay 1","legs":[("E. Mobley","Threes",1),("M. Thomas","Threes",1),("C. Coward","Threes",1),("L. Doncic","Threes",3),("C. Spencer","Threes",1)]},
  {"date":"2026-11-11","id":"Rebounds + Assists","contracts":221,"cost":98.91,"fees":3.30,"filled_at":"07:54","my_bets":"Nov 11 · Parlay 2","legs":[("A. Drummond","Rebounds",4),("P. Siakam","Rebounds",4),("F. Wagner","Rebounds",4),("D. Mitchell","Assists",4)]},
  {"date":"2026-11-11","id":"4-Leg Assists","contracts":238,"cost":99.68,"fees":3.53,"filled_at":"07:57","my_bets":"Nov 11 · Parlay 3","legs":[("P. Siakam","Assists",2),("A. Nembhard","Assists",6),("C. Boozer","Assists",4),("D. Green","Assists",4)]},
