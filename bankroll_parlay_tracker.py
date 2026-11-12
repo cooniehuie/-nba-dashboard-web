@@ -3,6 +3,10 @@ import pandas as pd
 import html
 import streamlit as st
 
+# Original Nov 10 bankroll funding; reinvested winnings do not increase this baseline.
+# Start a new cycle only after the bankroll is depleted and new funding is recorded.
+BANKROLL_CYCLE_STARTING_BALANCE = 398.85
+
 PARLAYS = [
  {"date":"2026-11-11","id":"5-Leg Threes","contracts":327,"cost":99.09,"fees":4.62,"filled_at":"07:49","my_bets":"Nov 11 · Parlay 1","legs":[("E. Mobley","Threes",1),("M. Thomas","Threes",1),("C. Coward","Threes",1),("L. Doncic","Threes",3),("C. Spencer","Threes",1)]},
  {"date":"2026-11-11","id":"Rebounds + Assists","contracts":221,"cost":98.91,"fees":3.30,"filled_at":"07:54","my_bets":"Nov 11 · Parlay 2","legs":[("A. Drummond","Rebounds",4),("P. Siakam","Rebounds",4),("F. Wagner","Rebounds",4),("D. Mitchell","Assists",4)]},
@@ -207,7 +211,7 @@ def render_overview_parlay_pl(settlements, bankroll_history=None, espn_nba_boxsc
       <div><div class="bkpl-muted">DAILY REALIZED P/L</div>
       <div class="bkpl-chart">{}</div></div></div></div>'''.format(
         total_label,len(confirmed),100*len(confirmed)/len(frame) if len(frame) else 0,
-        invested,invested+total,len(frame),won,lost,pending,"".join(bars))
+        BANKROLL_CYCLE_STARTING_BALANCE,BANKROLL_CYCLE_STARTING_BALANCE+total,len(frame),won,lost,pending,"".join(bars))
     st.markdown(markup,unsafe_allow_html=True)
     with st.expander("Individual parlay results",expanded=False):
         st.dataframe(frame,hide_index=True,use_container_width=True)
