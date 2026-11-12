@@ -144,7 +144,10 @@ def render_overview_parlay_pl(settlements, bankroll_history=None, espn_nba_boxsc
             height=max(5,100*abs(value)/magnitude)
             color="#34d399" if value>=0 else "#fb7185"
             amount="${:+,.2f}".format(value)
-        bars.append('<div class="bkpl-bar-wrap"><div class="bkpl-bar-track"><div class="bkpl-bar" style="height:{:.1f}%;background:{}"></div></div><span>{}</span><b>{}</b></div>'.format(height,color,label,amount))
+        day_rows=frame[frame["Date"]==date]
+        day_wins=int((day_rows["Realized P/L"]>0).sum())
+        day_total=len(day_rows)
+        bars.append('<div class="bkpl-bar-wrap"><div class="bkpl-bar-track"><div class="bkpl-bar" style="height:{:.1f}%;background:{}"></div></div><span>{}</span><b>{}</b><span class="bkpl-record">{} / {} won</span></div>'.format(height,color,label,amount,day_wins,day_total))
     total_label="${:+,.2f}".format(total) if len(confirmed) else "Pending"
     st.markdown("""<style>
     .bkpl-hero{border-radius:22px;padding:26px 30px;background:linear-gradient(125deg,#0f172a,#172554 62%,#0e7490);color:#fff;box-shadow:0 16px 35px #0f172a20;margin:14px 0 22px}
@@ -157,12 +160,13 @@ def render_overview_parlay_pl(settlements, bankroll_history=None, espn_nba_boxsc
     .bkpl-stat span{font-size:12px;color:#cbd5e1}
     .bkpl-track{height:12px;border-radius:30px;background:#ffffff30;overflow:hidden;margin:16px 0 7px}
     .bkpl-fill{height:100%;background:linear-gradient(90deg,#34d399,#a7f3d0);border-radius:30px}
-    .bkpl-chart{display:flex;align-items:end;gap:7px;height:170px;padding-top:12px}
+    .bkpl-chart{display:flex;align-items:end;gap:7px;height:188px;padding-top:12px}
     .bkpl-bar-wrap{flex:1;min-width:0;text-align:center;display:flex;flex-direction:column;align-items:center;gap:5px;height:100%}
     .bkpl-bar-track{width:100%;height:118px;display:flex;align-items:end;border-radius:7px;background:#ffffff14;overflow:hidden}
     .bkpl-bar{width:100%;border-radius:6px 6px 0 0}
     .bkpl-bar-wrap span{font-size:10px;color:#cbd5e1;white-space:nowrap}
     .bkpl-bar-wrap b{font-size:10px;color:white;white-space:nowrap}
+    .bkpl-record{font-size:10px;color:#cbd5e1;white-space:nowrap}
     @media(max-width:750px){
       .bkpl-hero{width:100%;max-width:100%;min-width:0;box-sizing:border-box;padding:16px;overflow:hidden}
       .bkpl-grid{grid-template-columns:minmax(0,1fr);gap:12px;min-width:0;max-width:100%}
@@ -183,7 +187,7 @@ def render_overview_parlay_pl(settlements, bankroll_history=None, espn_nba_boxsc
       .bkpl-stat{min-width:0}
       .bkpl-stat strong{font-size:16px!important;line-height:1.1!important;white-space:nowrap}
       .bkpl-stat span{font-size:8px!important;line-height:1.15!important}
-      .bkpl-chart{height:93px!important;padding:4px 0 0!important;gap:5px!important}
+      .bkpl-chart{height:108px!important;padding:4px 0 0!important;gap:5px!important}
       .bkpl-bar-track{height:57px!important;flex:0 0 57px!important;border-radius:5px!important}
       .bkpl-bar-wrap{flex:0 0 66px!important;min-width:66px!important;max-width:66px!important;gap:2px!important}
       .bkpl-bar-wrap span,.bkpl-bar-wrap b{font-size:9px!important;line-height:1.15!important}
