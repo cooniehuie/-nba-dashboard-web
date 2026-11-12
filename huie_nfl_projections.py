@@ -259,6 +259,12 @@ def render(storage_read=None,storage_write=None,is_admin=False):
     except Exception:
         default_week=1
         st.warning("Could not detect the NFL's current schedule week from ESPN. Choose the schedule index below.")
+    if st.button("↻ Refresh NFL schedule and player stats",key="huie_nfl_force_refresh"):
+        _current_week.clear()
+        _schedule.clear()
+        _roster.clear()
+        _gamelog.clear()
+        st.rerun()
     a,b=st.columns([1,2])
     season=int(a.selectbox("NFL season",[season,season-1],key="huie_nfl_season"))
     week=int(b.selectbox("ESPN schedule week",list(range(1,19)),
@@ -337,8 +343,9 @@ def render(storage_read=None,storage_write=None,is_admin=False):
     if storage_read:
         try:stored=_parse_stored_lines(storage_read(path))
         except Exception:st.caption("Saved reference lines are unavailable; no values were guessed.")
-    frame["Reference line"]=[stored.get((str(row["Player ID"]),row["Market"]))
-                             for _,row in frame.iterrows()]
+    frame["Reference line"]=pd.to_numeric(
+        [stored.get((str(row["Player ID"]),row["Market"]))
+         for _,row in frame.iterrows()],errors="coerce")
     st.caption("Huie uses a recency-weighted, season-shrunk baseline. Anytime TD counts rushing + receiving touchdowns, **not passing TDs**. Reference lines must be entered by the administrator; no sportsbook prices are assumed.")
     a,b,c=st.columns(3)
     a.metric("Players with projections",frame["Player"].nunique())
