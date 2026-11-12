@@ -215,17 +215,18 @@ def _baseline_rows(player,logs,game,team):
     for market in _available_markets(player["position"]):
         estimate=_forecast(logs,market)
         if estimate is None:continue
-        # A clearly OUT player is not presented as a playable projection.
+        # A roster field is not a dated game-day injury confirmation. Roster
+        # statuses can be stale or refer to a prior week. Never suppress a
+        # valid historical projection or label OUT from this field alone.
         status=player.get("report","")
-        is_out=bool(re.search(r"\b(out|inactive|injured reserve|ir|suspended)\b",status.lower()))
         rows.append({"Game":game,"Team":team,"Player":player["name"],"Position":player["position"],
-                     "Market":market,"Huie projection":None if is_out else estimate["projection"],
+                     "Market":market,"Huie projection":estimate["projection"],
                      "Reference line":None,"Model side":"—",
                      "Last game":estimate["last_three"][0],"2 games ago":estimate["last_three"][1],
                      "3 games ago":estimate["last_three"][2],
                      "Season avg":estimate["season_avg"],"Games":estimate["games"],
                      "1+ TD games":(f'{estimate["hit_one"]}/{estimate["games"]}' if market=="Anytime TD" else "—"),
-                     "Sample":estimate["confidence"],"Status":"OUT (reported)" if is_out else (status or "Not verified"),
+                     "Sample":estimate["confidence"],"Status":"Availability not verified",
                      "Player ID":player["id"],"Method":estimate["method"]})
     return rows
 
@@ -346,7 +347,7 @@ def render(storage_read=None,storage_write=None,is_admin=False):
     frame["Reference line"]=pd.to_numeric(
         [stored.get((str(row["Player ID"]),row["Market"]))
          for _,row in frame.iterrows()],errors="coerce")
-    st.caption("Huie uses a recency-weighted, season-shrunk baseline. Anytime TD counts rushing + receiving touchdowns, **not passing TDs**. Reference lines must be entered by the administrator; no sportsbook prices are assumed.")
+    st.caption("Huie uses a recency-weighted, season-shrunk baseline. Anytime TD counts rushing + receiving touchdowns, **not passing TDs**. Roster statuses do not establish game-day availability; this tab does not mark players OUT without a confirmed game-specific report. Reference lines must be entered by the administrator.")
     a,b,c=st.columns(3)
     a.metric("Players with projections",frame["Player"].nunique())
     b.metric("NFL stat projections",int(frame["Huie projection"].notna().sum()))
