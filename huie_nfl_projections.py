@@ -254,11 +254,37 @@ def _baseline_rows(player,logs,game,team,opponent,opponent_id,defense_snapshot=N
                                 else "no verified defensive adjustment"))})
     return rows
 
-def _default_players(roster):
+@st.cache_data(ttl=3600,show_spinner=False)
+def _depth_chart_qb1(team_id):
+    """Select ESPN's first depth-chart QB, not the first surname alphabetically."""
+    raw=_fetch(SITE+"teams/"+str(team_id)+"/depthcharts")
+    charts=raw.get("depthchart") or raw.get("depthCharts") or []
+    for chart in charts:
+        positions=chart.get("positions") or {}
+        qb=positions.get("qb") or positions.get("quarterback") or positions.get("QB") or {}
+        athletes=qb.get("athletes") or []
+        if athletes:
+            athlete=athletes[0].get("athlete") or athletes[0]
+            athlete_id=str(athlete.get("id") or "")
+            if athlete_id.isdigit():
+                return athlete_id
+    return None
+
+
+def _default_players(roster,qb1_id=None):
     grouped={pos:[p for p in roster if p["position"]==pos] for pos in OFFENSE}
-    # These are roster entries, NOT claims that selected players are starters.
-    return [p["id"] for pos,limit in [("QB",1),("RB",2),("WR",3),("TE",2)]
-            for p in grouped[pos][:limit]]
+    # Roster list still includes all QBs for manual selection. Prefer ESPN QB1.
+    qbs=grouped["QB"]
+    preferred=[p for p in qbs if p["id"]==qb1_id]
+    if preferred:
+        qb_defaults=preferred[:1]
+    else:
+        # Include two QBs on a missing depth chart; avoid alphabetically
+        # selecting only an unrelated QB3 over the real starter.
+        qb_defaults=qbs[:2]
+    other=[p["id"] for pos,limit in [("RB",2),("WR",3),("TE",2)]
+           for p in grouped[pos][:limit]]
+    return [p["id"] for p in qb_defaults]+other
 
 
 def _parse_stored_lines(data):
@@ -287,6 +313,7 @@ def render(storage_read=None,storage_write=None,is_admin=False):
         _current_week.clear()
         _schedule.clear()
         _roster.clear()
+        _depth_chart_qb1.clear()
         _gamelog.clear()
         league_defensive_snapshot.clear()
         st.rerun()
@@ -330,11 +357,30 @@ def render(storage_read=None,storage_write=None,is_admin=False):
         return
     rosters=sorted(rosters,key=lambda p:(p["team"],OFFENSE.index(p["position"]),p["name"]))
     identities={p["id"]:p for p in rosters}
-    defaults=[pid for team in teams for pid in _default_players([p for p in rosters if p["team"]==team["abbr"]])]
-    chosen=st.multiselect("Players to project (ESPN rosters; starter status not guaranteed)",
+    qb1={}
+    for team in teams:
+        try:qb1[team["id"]]=_depth_chart_qb1(team["id"])
+        except Exception:qb1[team["id"]]=None
+    defaults=[pid for team in teams
+              for pid in _default_players(
+                  [p for p in rosters if p["team"]==team["abbr"]],
+                  qb1.get(team["id"]))]
+    qb1_ids=[qb1.get(team["id"]) for team in teams
+             if qb1.get(team["id"]) in identities]
+    multikey="huie_nfl_players_"+selected["id"]
+    if st.button("🏈 Include both depth-chart QB1s",key="huie_nfl_add_qb1_"+selected["id"],
+                 help="Include ESPN's QB1 for each team without discarding your existing selections."):
+        already=list(st.session_state.get(multikey,defaults))
+        st.session_state[multikey]=list(dict.fromkeys(already+qb1_ids))
+    preferred_names=[identities[pid]["name"]+" ("+identities[pid]["team"]+")"
+                     for pid in qb1_ids]
+    if preferred_names:
+        st.caption("ESPN depth-chart QB1: "+", ".join(preferred_names)+
+                   " · QB1 is not a confirmed game-day starter.")
+    chosen=st.multiselect("Players to project (search all ESPN roster players)",
                           list(identities),default=defaults,
                           format_func=lambda pid:f'{identities[pid]["name"]} · {identities[pid]["team"]} {identities[pid]["position"]}',
-                          key="huie_nfl_players_"+selected["id"])
+                          key=multikey)
     if len(chosen)>40:
         st.warning("Select 40 players or fewer to keep the box-score requests manageable.")
         return
@@ -415,6 +461,12 @@ def render(storage_read=None,storage_write=None,is_admin=False):
                                    selected["game"],player["team"],
                                    other.get("abbr","—"),other.get("id"),
                                    snapshot,usage_markets))
+    projected={row["Player ID"] for row in rows}
+    missing_selected=[identities[pid]["name"] for pid in chosen if pid not in projected]
+    if missing_selected:
+        st.caption("Selected players without projections (fewer than 3 usable games or unavailable data): "+
+                   ", ".join(missing_selected[:20])+
+                   (" and others" if len(missing_selected)>20 else ""))
     if failures:
         st.warning(f'{len(failures)} player game logs could not be retrieved. Missing projections were not imputed.')
         with st.expander("Unavailable player feeds"):
