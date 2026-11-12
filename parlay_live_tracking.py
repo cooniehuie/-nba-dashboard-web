@@ -91,7 +91,20 @@ def render_live_parlays(bets, espn_nba_boxscores, match_espn_player, settlements
         # Unsettled in-progress first; game-completed and settled combos last.
         summaries.sort(key=lambda x:(2 if x["settled"] else 1 if x["misses"] or x["hits"]==len(x["rows"]) else 0,
                                      x["bet"].get("time",x["bet"].get("filled_at","")),x["bet"]["label"]))
+        dates=sorted({item["bet"]["date"] for item in summaries},reverse=True)
+        if len(dates)>1:
+            selected_date=st.selectbox(
+                "Parlay history by date",
+                options=dates,
+                format_func=lambda d: datetime.strptime(d,"%Y-%m-%d").strftime("%b %d, %Y"),
+                key=prefix+"_history_date",
+            )
+            st.caption(f"Showing {sum(item['bet']['date']==selected_date for item in summaries)} parlays for the selected date")
+        else:
+            selected_date=dates[0] if dates else None
         for item in summaries:
+            if item["bet"]["date"]!=selected_date:
+                continue
             b=item["bet"]
             with st.expander(f'{b["label"]} · {item["status"]} · {item["hits"]}/{len(b["legs"])} reached',expanded=not item["settled"]):
                 st.caption(f'{b["date"]} · {b.get("time",b.get("filled_at",""))} PT · {b["quantity"]:,} contracts · Cost ${b["cost"]:.2f} (fees included) · Max profit +${b["quantity"]-b["cost"]:,.2f}')
