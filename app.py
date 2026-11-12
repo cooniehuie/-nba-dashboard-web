@@ -1779,6 +1779,8 @@ ROBINHOOD_NOV9_BETS=[
 ]
 
 ROBINHOOD_NOV12_BETS=[
+("Nov 12 · Parlay 7",340,28,99.97,4.77,[["D. Robinson","Threes",3],["L. Ball","Threes",2],["G. Allen","Threes",3],["T. Maxey","Threes",2]],"2026-11-12","12:52"),
+("Nov 12 · Parlay 6",1401,6.68,99.67,6.11,[["G. Allen","Threes",4],["D. Robinson","Threes",4],["N. Reid","Threes",3],["L. Ball","Threes",3]],"2026-11-12","12:50"),
 ("Nov 12 · Parlay 5",1360,6.9,99.96,6.12,[["PHI","1st half by 3.5",1],["COL","Game winner",1],["UTA","Game winner",1],["WPG","Win by 1.5",0],["CBJ","Win by 1.5",0]],"2026-11-12","12:06"),
 ("Nov 12 · Parlay 4",238,39.98,98.67,3.52,[["K. George","Points",10],["D. Robinson","Points",10],["I. Quickley","Points",10],["J. Embiid","Assists",2],["J. McDaniels","Assists",2]],"2026-11-12","11:50"),
 ("Nov 12 · Parlay 3",225,42.41,98.78,3.35,[["M. Diabate","Rebounds",6],["C. Murray-Boyles","Rebounds",4],["P. Reed","Rebounds",4],["I. Quickley","Assists",4]],"2026-11-12","11:46"),
