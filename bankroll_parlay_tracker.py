@@ -157,6 +157,10 @@ def render_overview_parlay_pl(settlements, bankroll_history=None, espn_nba_boxsc
     .bkpl-hero{border-radius:22px;padding:26px 30px;background:linear-gradient(125deg,#0f172a,#172554 62%,#0e7490);color:#fff;box-shadow:0 16px 35px #0f172a20;margin:14px 0 22px}
     .bkpl-kicker{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:#93c5fd;font-weight:700}
     .bkpl-grid{display:grid;grid-template-columns:1.2fr 1fr;gap:24px;align-items:center}
+    .bkpl-headline{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+    .bkpl-growth{display:flex;flex-direction:column;gap:3px}
+    .bkpl-growth strong{font-size:clamp(22px,2.6vw,36px);color:#a7f3d0;line-height:1.1}
+    .bkpl-growth span{font-size:10px;letter-spacing:.09em;color:#cbd5e1}
     .bkpl-big{font-size:clamp(48px,6vw,82px);font-weight:850;line-height:1.12;letter-spacing:-.05em}
     .bkpl-muted{color:#cbd5e1;font-size:13px}
     .bkpl-stats{display:flex;gap:20px;flex-wrap:wrap;margin-top:18px}
@@ -198,21 +202,20 @@ def render_overview_parlay_pl(settlements, bankroll_history=None, espn_nba_boxsc
     }
     </style>""",unsafe_allow_html=True)
     markup='''<div class="bkpl-hero"><div class="bkpl-kicker">🏀 BANKROLL BUILDER · PARLAY P/L HISTORY</div>
-      <div class="bkpl-grid"><div><div class="bkpl-big">{}</div>
+      <div class="bkpl-grid"><div><div class="bkpl-headline"><div class="bkpl-big">{}</div><div class="bkpl-growth"><strong>{:+.1f}%</strong><span>BANKROLL GROWTH</span></div></div>
       <div class="bkpl-muted">Realized P/L · {} graded parlays</div>
       <div class="bkpl-track"><div class="bkpl-fill" style="width:{:.1f}%"></div></div>
       <div class="bkpl-stats">
       <div class="bkpl-stat"><strong>${:,.2f}</strong><span>STARTING BALANCE</span></div>
       <div class="bkpl-stat"><strong>${:,.2f}</strong><span>CURRENT BALANCE</span></div>
-      <div class="bkpl-stat"><strong>{:+.1f}%</strong><span>BANKROLL GROWTH</span></div>
       <div class="bkpl-stat"><strong>{}</strong><span>PARLAYS</span></div>
       <div class="bkpl-stat"><strong>{}</strong><span>WINS</span></div>
       <div class="bkpl-stat"><strong>{}</strong><span>LOSSES</span></div>
       <div class="bkpl-stat"><strong>{}</strong><span>PENDING</span></div></div></div>
       <div><div class="bkpl-muted">DAILY REALIZED P/L</div>
       <div class="bkpl-chart">{}</div></div></div></div>'''.format(
-        total_label,len(confirmed),100*len(confirmed)/len(frame) if len(frame) else 0,
-        BANKROLL_CYCLE_STARTING_BALANCE,BANKROLL_CYCLE_STARTING_BALANCE+total,(total/BANKROLL_CYCLE_STARTING_BALANCE*100) if BANKROLL_CYCLE_STARTING_BALANCE else 0,len(frame),won,lost,pending,"".join(bars))
+        total_label,(total/BANKROLL_CYCLE_STARTING_BALANCE*100) if BANKROLL_CYCLE_STARTING_BALANCE else 0,len(confirmed),100*len(confirmed)/len(frame) if len(frame) else 0,
+        BANKROLL_CYCLE_STARTING_BALANCE,BANKROLL_CYCLE_STARTING_BALANCE+total,len(frame),won,lost,pending,"".join(bars))
     st.markdown(markup,unsafe_allow_html=True)
     with st.expander("Individual parlay results",expanded=False):
         st.dataframe(frame,hide_index=True,use_container_width=True)
