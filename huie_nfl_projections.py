@@ -14,6 +14,7 @@ from zoneinfo import ZoneInfo
 
 import pandas as pd
 import streamlit as st
+from huie_nfl_matchups import apply_context,league_defensive_snapshot
 
 SITE="https://site.api.espn.com/apis/site/v2/sports/football/nfl/"
 WEB="https://site.web.api.espn.com/apis/common/v3/sports/football/nfl/"
@@ -152,6 +153,9 @@ def parse_gamelog(raw,cutoff_iso):
                     ("Rushing yards","rushing","YDS"),
                     ("Receiving yards","receiving","YDS"),
                     ("Receptions","receiving","REC"),
+                    ("Pass attempts","passing","ATT"),
+                    ("Rush attempts","rushing","CAR"),
+                    ("Targets","receiving","TGTS"),
                 ):
                     span=spans.get(catname)
                     if not span:continue
@@ -210,26 +214,42 @@ def _available_markets(position):
     return ("Receiving yards","Receptions","Anytime TD")
 
 
-def _baseline_rows(player,logs,game,team):
+def _baseline_rows(player,logs,game,team,opponent,opponent_id,defense_snapshot=None,
+                   usage_enabled=True):
     rows=[]
     for market in _available_markets(player["position"]):
         estimate=_forecast(logs,market)
         if estimate is None:continue
-        # A roster field is not a dated game-day injury confirmation. Roster
-        # statuses can be stale or refer to a prior week. Never suppress a
-        # valid historical projection or label OUT from this field alone.
-        status=player.get("report","")
-        rows.append({"Game":game,"Team":team,"Player":player["name"],"Position":player["position"],
-                     "Market":market,"Huie projection":estimate["projection"],
+        # Historical games are strictly before matchup kickoff (_gamelog).
+        # The season-to-date defensive snapshot is used only for upcoming games.
+        context=apply_context(estimate["projection"],logs,market,player["position"],
+                              defense_snapshot,opponent_id)
+        workload=context["usage"]
+        defense=context["defense"]
+        final=context["final"] if usage_enabled else round(
+            estimate["projection"]*defense["factor"],2)
+        rows.append({"Game":game,"Team":team,"Opponent":opponent,
+                     "Player":player["name"],"Position":player["position"],
+                     "Market":market,"Huie projection":final,
+                     "Baseline":estimate["projection"],
+                     "Workload projection":workload["estimate"],
+                     "Expected volume":workload["volume"],
+                     "Volume trend %":workload["trend"],
+                     "Def. adjustment %":round((defense["factor"]-1)*100,1),
+                     "Opp allowed/game":defense["defense_allowed"],
+                     "League allowed/game":defense["league_allowed"],
+                     "Matchup":defense["label"],"Def. games":defense["sample"],
+                     "TD chance %":context["td_probability"],
                      "Reference line":None,"Model side":"—",
                      "Last game":estimate["last_three"][0],"2 games ago":estimate["last_three"][1],
                      "3 games ago":estimate["last_three"][2],
                      "Season avg":estimate["season_avg"],"Games":estimate["games"],
                      "1+ TD games":(f'{estimate["hit_one"]}/{estimate["games"]}' if market=="Anytime TD" else "—"),
                      "Sample":estimate["confidence"],"Status":"Availability not verified",
-                     "Player ID":player["id"],"Method":estimate["method"]})
+                     "Player ID":player["id"],
+                     "Method":("History + workload + defense" if usage_enabled else
+                               "History + defense (workload did not validate)")})
     return rows
-
 
 def _default_players(roster):
     grouped={pos:[p for p in roster if p["position"]==pos] for pos in OFFENSE}
@@ -265,6 +285,7 @@ def render(storage_read=None,storage_write=None,is_admin=False):
         _schedule.clear()
         _roster.clear()
         _gamelog.clear()
+        league_defensive_snapshot.clear()
         st.rerun()
     a,b=st.columns([1,2])
     season=int(a.selectbox("NFL season",[season,season-1],key="huie_nfl_season"))
@@ -326,11 +347,47 @@ def render(storage_read=None,storage_write=None,is_admin=False):
                 pid=futures[future]
                 try:player_results[pid]=future.result()
                 except Exception as exc:failures.append((pid,type(exc).__name__))
+    # ESPN's team statistics endpoint exposes current season-to-date totals,
+    # not a historical "as of" snapshot. Never use its current totals when
+    # grading an already started or completed NFL game.
+    matchup_upcoming=False
+    try:
+        kickoff=datetime.fromisoformat(selected["date"].replace("Z","+00:00"))
+        from datetime import timezone
+        matchup_upcoming=selected.get("state")=="pre" and kickoff>datetime.now(timezone.utc)
+    except (TypeError,ValueError):
+        pass
+    use_defense=st.checkbox("Adjust projections for verified opponent defense",
+                            value=True,key="huie_nfl_defense_"+selected["id"],
+                            help="Uses current season-to-date opponent allowances, normalized to league rates. "
+                                 "Disabled for games that have started, to avoid look-ahead bias.")
+    snapshot=None
+    if use_defense and matchup_upcoming:
+        with st.spinner("Checking opponent defensive allowance against the NFL average..."):
+            try:
+                snapshot=league_defensive_snapshot(season)
+                if snapshot.get("coverage",0)<24:
+                    st.warning("NFL defensive coverage is too incomplete to adjust projections. "
+                               "Baseline/verified usage only.")
+            except Exception as exc:
+                st.warning("NFL defensive stats unavailable ("+type(exc).__name__+"). "
+                           "Baseline/verified usage only.")
+    elif use_defense and not matchup_upcoming:
+        st.caption("Opponent defense adjustment is disabled for started or historical games: "
+                   "ESPN's season totals would include later results.")
+    if snapshot and snapshot.get("coverage",0)>=24:
+        st.caption(f"Opponent defense: verified team season stats for {snapshot['coverage']} / "
+                   f"{snapshot['total']} NFL teams. Neutral = league average; adjustment capped at ±12%.")
+    lookup={p["team"]:next((other for other in teams if other["abbr"]!=p["team"]),None)
+            for p in identities.values()}
     rows=[]
     for pid in chosen:
         player=identities[pid]
+        other=lookup.get(player["team"]) or {}
         rows.extend(_baseline_rows(player,player_results.get(pid,[]),
-                                   selected["game"],player["team"]))
+                                   selected["game"],player["team"],
+                                   other.get("abbr","—"),other.get("id"),
+                                   snapshot))
     if failures:
         st.warning(f'{len(failures)} player game logs could not be retrieved. Missing projections were not imputed.')
         with st.expander("Unavailable player feeds"):
@@ -347,7 +404,7 @@ def render(storage_read=None,storage_write=None,is_admin=False):
     frame["Reference line"]=pd.to_numeric(
         [stored.get((str(row["Player ID"]),row["Market"]))
          for _,row in frame.iterrows()],errors="coerce")
-    st.caption("Huie uses a recency-weighted, season-shrunk baseline. Anytime TD counts rushing + receiving touchdowns, **not passing TDs**. Roster statuses do not establish game-day availability; this tab does not mark players OUT without a confirmed game-specific report. Reference lines must be entered by the administrator.")
+    st.caption("Huie NFL v2: player history + verified touches/targets/attempts + opponent season defense (upcoming games only). Baseline and each adjustment are visible below. Anytime TD means rushing + receiving TDs, **not passing TDs**. Roster status is not a confirmed injury report. Reference lines must be entered by the administrator.")
     a,b,c=st.columns(3)
     a.metric("Players with projections",frame["Player"].nunique())
     b.metric("NFL stat projections",int(frame["Huie projection"].notna().sum()))
@@ -391,8 +448,10 @@ def render(storage_read=None,storage_write=None,is_admin=False):
             "⚪ AT LINE" if baseline is not None and line is not None and baseline==line else
             "—"
         )
-    columns=["Player","Team","Position","Market","Huie projection","Reference line",
-             "Model side","Last game","2 games ago","3 games ago","Season avg",
+    columns=["Player","Team","Opponent","Position","Market","Huie projection","Reference line",
+             "Model side","Baseline","Workload projection","Expected volume","Volume trend %",
+             "Def. adjustment %","Matchup","Opp allowed/game","League allowed/game",
+             "TD chance %","Last game","2 games ago","3 games ago","Season avg",
              "Games","1+ TD games","Sample","Status"]
     st.dataframe(visible[columns],hide_index=True,use_container_width=True,
                  column_config={"Huie projection":st.column_config.NumberColumn("Huie projection",format="%.1f"),
@@ -401,5 +460,5 @@ def render(storage_read=None,storage_write=None,is_admin=False):
         st.download_button("Download Huie NFL projections CSV",visible.to_csv(index=False),
                            file_name=f"huie_nfl_{season}_espnweek_{week}.csv",
                            mime="text/csv",key="huie_nfl_download")
-        st.dataframe(visible[["Player","Market","Games","Method","Status"]],hide_index=True,use_container_width=True)
-    st.caption("Limitations: This baseline does not yet adjust for opponent defense, injuries, changes in workload, or implied odds. A higher projection alone is not a validated betting edge. Players with fewer than 3 recorded games per stat are omitted.")
+        st.dataframe(visible[["Player","Market","Games","Method","Expected volume","Volume trend %","Def. adjustment %","Opp allowed/game","League allowed/game","Status"]],hide_index=True,use_container_width=True)
+    st.caption("NFL v2 limitations: opponent matchup effects and workload weights are conservative, experimental heuristics—not historically calibrated probabilities or guaranteed betting edges. Defense is normalized to current league averages, never applied to prior games. Weather, snap counts and confirmed game-day availability are not yet used; missing feeds revert to player history. Three observed games per stat are required.")
