@@ -8,6 +8,8 @@ import streamlit as st
 BANKROLL_CYCLE_STARTING_BALANCE = 398.85
 
 PARLAYS = [
+ {"date":"2026-11-13","id":"4-Leg Assists","contracts":231,"cost":99.99,"fees":3.43,"filled_at":"10:53","event_id":"e9f9a22a-3940-4b6d-b412-e19a4fed50b6","my_bets":"Nov 13 · Parlay 3","legs":[("C. Boozer","Assists",4),("F. Wagner","Assists",6),("A. Black","Assists",2),("J. Johnson","Assists",4)]},
+ {"date":"2026-11-13","id":"Rebounds + Assists","contracts":266,"cost":99.56,"fees":3.88,"filled_at":"10:56","event_id":"72d6bdf1-b0a3-4dd4-ae62-8f4fe0cec4b4","my_bets":"Nov 13 · Parlay 4","legs":[("C. Boozer","Rebounds",8),("D. Mitchell","Assists",4),("T. Jerome","Assists",4),("J. Giddey","Assists",6)]},
  {"date":"2026-11-12","id":"Threes + Assists","contracts":226,"cost":99.87,"fees":3.37,"filled_at":"11:35","my_bets":"Nov 12 · Parlay 1","legs":[("G. Allen","Threes",3),("J. Goodwin","Threes",1),("C. Gillespie","Assists",2)]},
  {"date":"2026-11-12","id":"3-Leg Rebounds","contracts":207,"cost":99.77,"fees":3.1,"filled_at":"11:41","my_bets":"Nov 12 · Parlay 2","legs":[("A. Thompson","Rebounds",6),("R. Barrett","Rebounds",4),("R. Gobert","Rebounds",8)]},
  {"date":"2026-11-12","id":"Rebounds + Assists","contracts":225,"cost":98.78,"fees":3.35,"filled_at":"11:46","my_bets":"Nov 12 · Parlay 3","legs":[("M. Diabate","Rebounds",6),("C. Murray-Boyles","Rebounds",4),("P. Reed","Rebounds",4),("I. Quickley","Assists",4)]},
