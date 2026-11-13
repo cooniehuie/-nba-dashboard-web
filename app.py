@@ -2196,6 +2196,9 @@ def show_personal_bets():
             overview_players=[]
             overview_error=True
         if overview_error:st.caption("Box-score feed unavailable; missing values remain unverified.")
+        if selected_day.isoformat()=="2026-11-12":
+            st.caption("NFL live stats: ESPN may omit players even when active. Missing data does not mean DNP or a lost leg.")
+            st.link_button("↗ Washington–Giants live box score (CBS)", "https://www.cbssports.com/nfl/gametracker/boxscore/NFL_20261112_WAS@NYG/")
         import html
         def esc(value):return html.escape(str(value),quote=True)
         table_html=['''<style>
@@ -2309,7 +2312,7 @@ def show_personal_bets():
                     leg_progress=(known_absence if known_absence else
                                   "⚪ Awaiting tipoff" if state=="pre" else
                                   "⚪ Stats pending" if matched_player else
-                                  "⚪ Unmatched / unavailable")
+                                  "⚪ NFL stats feed unavailable" if m in ("Pass yds","Pass TDs","Rush yds","Rec yds","Rush+Rec yds","Anytime TD","Receptions") else "⚪ Unmatched / unavailable")
                     actual_label="—"
                 else:
                     actual_label=str(actual)
