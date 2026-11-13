@@ -2628,6 +2628,7 @@ if section=="Overview":
             st.dataframe(pd.DataFrame(diagnostic_rows),hide_index=True,use_container_width=True)
             st.write("NFL week-feed matcher:", "PASS — all five players matched with numeric stats" if all(row["ESPN player"]!="NOT MATCHED" and isinstance(row["Actual"],(int,float)) for row in diagnostic_rows)
                      else "FAIL — missing player or numeric stat")
+            st.caption("Verified source: original Robinhood wager markets — Pass yards and Rec yards · alias fix 78600a06.")
             st.caption("Read-only live ESPN feed; this is not a Robinhood settlement.")
         except Exception as exc:
             st.error("NFL integration check failed: "+type(exc).__name__+": "+str(exc))
