@@ -1779,6 +1779,7 @@ ROBINHOOD_NOV9_BETS=[
 ]
 
 ROBINHOOD_NOV12_BETS=[
+("Nov 12 · Parlay 19",331,28.8,100.00,4.67,[["P. Washington","Threes",1],["A. Dosunmu","Threes",1],["D. Booker","Threes",1],["J. Goodwin","Threes",1],["C. Gillespie","Threes",1],["J. Kuminga","Threes",1]],"2026-11-12","16:47"),
 ("Nov 12 · Parlay 18",1286,7.3,99.98,6.1,[["G. Allen","Threes",4],["C. Gillespie","Threes",3],["N. Reid","Threes",3]],"2026-11-12","16:40"),
 ("Nov 12 · Parlay 17",356,26.7,99.94,4.89,[["G. Allen","Threes",3],["C. Gillespie","Threes",2],["N. Reid","Threes",2]],"2026-11-12","16:39"),
 ("Nov 12 · Parlay 16",1189,7.9,99.99,6.06,[["J. McCarthy","Pass yards",200],["J. Daniels","Pass yards",200],["I. Likely","Rec yards",50],["S. Diggs","Rec yards",40],["M. Nabers","Receptions",5]],"2026-11-12","16:15"),
