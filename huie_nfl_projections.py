@@ -309,19 +309,30 @@ def _sam_name(name):
 
 
 def _sam_for_game(storage_read,selected):
-    """Return the saved pregame Sam snapshot, never a later model revision."""
+    """Match archived Sam NFL game by local kickoff date and normalized team IDs."""
     if storage_read is None:return None
     raw=storage_read("nfl_models/sam_nfl_archive.json")
     if not raw:return None
     data=json.loads(raw.decode("utf-8") if isinstance(raw,bytes) else raw)
     when=datetime.fromisoformat(selected["date"].replace("Z","+00:00")).astimezone(PT)
     day=when.date().isoformat()
-    abbrs={team["abbr"] for team in selected["teams"]}
+    aliases={"WAS":"WSH","JAC":"JAX","LA":"LAR","WSH":"WSH"}
+    def norm(team):return aliases.get(team,team)
+    abbrs={norm(team["abbr"]) for team in selected["teams"]}
+    matches=[]
     for key,record in (data.get("games") or {}).items():
-        if record.get("date")!=day:continue
         matchup=record.get("matchup","")
-        sides=set(re.findall(r"[A-Z]{2,3}",matchup))
-        if sides==abbrs:return record
+        sides={norm(t) for t in re.findall(r"[A-Z]{2,3}",matchup)}
+        if sides!=abbrs:continue
+        recorded=record.get("date") or key.split("|",1)[0]
+        # Nov 12 WAS-NYG was previously imported as Nov 13; support that
+        # known legacy entry until the admin date migration is persisted.
+        legacy=(day=="2026-11-12" and recorded=="2026-11-13" and
+                abbrs=={"WSH","NYG"})
+        if recorded==day or legacy:
+            matches.append((recorded==day,record))
+    if matches:
+        return sorted(matches,key=lambda x:x[0],reverse=True)[0][1]
     return None
 
 
