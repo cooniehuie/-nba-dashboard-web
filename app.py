@@ -2604,7 +2604,7 @@ if section=="Overview":
     if str(st.query_params.get("verify_nfl",""))=="1":
         st.subheader("NFL tracking integration check · November 12")
         try:
-            diagnostic_games,diagnostic_players=espn_nfl_boxscores("20261112")
+            diagnostic_games,diagnostic_players=espn_nfl_week_boxscores("20261112")
             diagnostic_rows=[]
             for short,market in [("J. McCarthy","Pass yds"),("J. Daniels","Pass yds"),
                                  ("I. Likely","Rec yds"),("S. Diggs","Rec yds"),
@@ -2614,7 +2614,7 @@ if section=="Overview":
                     "ESPN player":matched.get("name","") if matched else "NOT MATCHED",
                     "Actual":matched.get("stats",{}).get(market) if matched else None})
             st.dataframe(pd.DataFrame(diagnostic_rows),hide_index=True,use_container_width=True)
-            st.write("NFL matcher:", "PASS — all five players matched" if all(row["ESPN player"]!="NOT MATCHED" for row in diagnostic_rows)
+            st.write("NFL week-feed matcher:", "PASS — all five players matched" if all(row["ESPN player"]!="NOT MATCHED" for row in diagnostic_rows)
                      else "FAIL — unmatched players remain")
             st.caption("Read-only live ESPN feed; this is not a Robinhood settlement.")
         except Exception as exc:
