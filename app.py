@@ -2355,7 +2355,7 @@ with st.sidebar:
     else:
         st.caption("Read-only access. Only the administrator can upload or replace projections.")
     st.divider()
-    nav_options=["Overview","Bankroll Builder Performance","🔴 Bankroll Builder Live Tracking"]+(["💸 My Bets"] if is_admin else [])+["Bankroll Builder","🧪 Smart Parlay Builder & Model Lab","Model's Favorite Props","All Player Props","Three-Point Projections","Individual Games","🏀 Huie Projections","🏈 Huie NFL Projections"]
+    nav_options=["Overview","Bankroll Builder Performance","🔴 Bankroll Builder Live Tracking"]+(["💸 My Bets"] if is_admin else [])+["Bankroll Builder","🧪 Smart Parlay Builder & Model Lab","Model's Favorite Props","All Player Props","Three-Point Projections","Individual Games","🏀 Huie Projections","🏈 Huie NFL Projections","🏈 NFL Model"]
     section=st.radio("Navigate",nav_options,label_visibility="visible",key="site_nav")
     phone_view=st.toggle("📱 Preview phone cards on desktop",value=False,key="phone_view",help="Cards appear automatically on phones. Enable this to preview card layout on desktop.")
 
@@ -2604,6 +2604,10 @@ elif section=="🏈 Huie NFL Projections":
     from huie_nfl_projections import render as render_huie_nfl
     render_huie_nfl(storage_read=github_file,storage_write=github_file if is_admin else None,
                     is_admin=is_admin)
+elif section=="🏈 NFL Model":
+    from nfl_model_tab import render as render_nfl_model
+    render_nfl_model(storage_read=github_file,storage_write=github_file if is_admin else None,
+                     is_admin=is_admin)
 elif section=="Individual Games":
     st.title("Individual Game Projections")
     if games:
