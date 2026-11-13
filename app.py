@@ -2599,6 +2599,26 @@ def show_table(name, allow_filters=True, key_suffix=""):
 
 if section=="Overview":
     st.caption("App build · 2026-11-12e · NFL tracker diagnostic release")
+    # Public, read-only ESPN integration check activated only by ?verify_nfl=1.
+    # Does not expose wagers, credentials, or private My Bets details.
+    if str(st.query_params.get("verify_nfl",""))=="1":
+        st.subheader("NFL tracking integration check · November 12")
+        try:
+            diagnostic_games,diagnostic_players=espn_nfl_boxscores("20261112")
+            diagnostic_rows=[]
+            for short,market in [("J. McCarthy","Pass yds"),("J. Daniels","Pass yds"),
+                                 ("I. Likely","Rec yds"),("S. Diggs","Rec yds"),
+                                 ("M. Nabers","Receptions")]:
+                matched=match_espn_player(short,diagnostic_players,market)
+                diagnostic_rows.append({"Prop":short+" / "+market,
+                    "ESPN player":matched.get("name","") if matched else "NOT MATCHED",
+                    "Actual":matched.get("stats",{}).get(market) if matched else None})
+            st.dataframe(pd.DataFrame(diagnostic_rows),hide_index=True,use_container_width=True)
+            st.write("NFL matcher:", "PASS — all five players matched" if all(row["ESPN player"]!="NOT MATCHED" for row in diagnostic_rows)
+                     else "FAIL — unmatched players remain")
+            st.caption("Read-only live ESPN feed; this is not a Robinhood settlement.")
+        except Exception as exc:
+            st.error("NFL integration check failed: "+type(exc).__name__+": "+str(exc))
     # Keep Overview and the dedicated performance page on the same archived results.
     # Only authenticated admins can write completed daily snapshots.
     if is_admin:
