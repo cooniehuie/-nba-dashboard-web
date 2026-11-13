@@ -1779,6 +1779,7 @@ ROBINHOOD_NOV9_BETS=[
 ]
 
 ROBINHOOD_NOV12_BETS=[
+("Nov 12 · Parlay 16",1189,7.9,99.99,6.06,[["J. McCarthy","Pass yards",200],["J. Daniels","Pass yards",200],["I. Likely","Rec yards",50],["S. Diggs","Rec yards",40],["M. Nabers","Receptions",5]],"2026-11-12","16:15"),
 ("Nov 12 · Parlay 15",1286,7.3,99.98,6.1,[["S. Diggs","Receptions",3],["A. Williams","Receptions",3],["I. Likely","Receptions",4],["R. White","Rush+Rec yds",40],["A. Ekeler","Rush+Rec yds",30],["C. Okonkwo","Receptions",4],["M. Nabers","Receptions",4]],"2026-11-12","15:50"),
 ("Nov 12 · Parlay 14",1252,7.5,99.99,6.09,[["R. White","Rec yds",10],["WAS","Game winner",1],["R. White","Anytime TD",1],["J. Daniels","Pass yds",175],["J. McCarthy","Pass yds",150]],"2026-11-12","15:29"),
 ("Nov 12 · Parlay 13",390,24.3,99.79,5.02,[["I. Quickley","Points",15],["J. Walter","Points",10],["J. Embiid","Rebounds",6],["T. Maxey","Threes",2]],"2026-11-12","15:21"),
