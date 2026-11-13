@@ -2598,7 +2598,6 @@ def show_table(name, allow_filters=True, key_suffix=""):
     st.download_button("Download filtered CSV",df.to_csv(index=False).encode("utf-8"),file_name="nba_"+name.lower().replace(" ","_")+".csv",mime="text/csv",key="download_"+name+key_suffix)
 
 if section=="Overview":
-    st.caption("App build · 2026-11-12e · NFL tracker diagnostic release")
     # Public, read-only ESPN integration check activated only by ?verify_nfl=1.
     # Does not expose wagers, credentials, or private My Bets details.
     if str(st.query_params.get("verify_nfl",""))=="1":
