@@ -65,6 +65,22 @@ def render(storage_read,storage_write=None,is_admin=False):
         if not isinstance(archive.get("games"),dict):raise ValueError("Invalid NFL archive")
     except Exception as exc:
         st.error("Could not read NFL archive: "+str(exc));return
+    # Correct the Nov 12 WAS@NYG import accidentally dated Nov 13.
+    # Only migrate this exact known matchup; never overwrite another snapshot.
+    wrong="2026-11-13|WAS @ NYG"
+    right="2026-11-12|WAS @ NYG"
+    if is_admin and storage_write and wrong in archive["games"] and right not in archive["games"]:
+        corrected=dict(archive["games"][wrong])
+        corrected["date"]="2026-11-12"
+        updated={**archive,"games":dict(archive["games"])}
+        del updated["games"][wrong]
+        updated["games"][right]=corrected
+        try:
+            storage_write(PATH,json.dumps(updated,ensure_ascii=False,indent=2).encode())
+            archive=updated
+            st.success("Corrected WAS @ NYG model date to 11-12-26.")
+        except Exception as exc:
+            st.warning("Could not save corrected date: "+str(exc))
     if is_admin and storage_write:
         with st.expander("Upload Sam NFL game HTML",expanded=not bool(archive["games"])):
             upload=st.file_uploader("Original NFL player props HTML",type=["html","htm"],key="sam_nfl_html_upload")
@@ -92,7 +108,7 @@ def render(storage_read,storage_write=None,is_admin=False):
     if not archive["games"]:
         st.info("No saved NFL models yet. Admins can upload original Sam NFL HTML directly—no Excel needed.")
         return
-    key=st.selectbox("Saved NFL game",sorted(archive["games"],reverse=True),key="sam_nfl_saved_game")
+    key=st.selectbox("Saved NFL game",sorted(archive["games"],reverse=True),format_func=lambda k: datetime.strptime(k.split("|",1)[0],"%Y-%m-%d").strftime("%m-%d-%y")+" · "+k.split("|",1)[1],key="sam_nfl_saved_game")
     record=archive["games"][key];frame=pd.DataFrame(record["rows"])
     if frame.empty:return
     frame["Model side"]=frame.apply(lambda r:
