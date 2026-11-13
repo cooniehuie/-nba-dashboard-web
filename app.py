@@ -1602,12 +1602,18 @@ def espn_nfl_boxscores(date_string):
                             return None
                         values={}
                         if kind=="passing":
-                            values["Pass yds"]=numeric(["YDS","PASS YDS"])
+                            yards=numeric(["YDS","PASS YDS"])
+                            values["Pass yds"]=yards
+                            values["Pass yards"]=yards
                             values["Pass TDs"]=numeric(["TD","TDS","PASS TD"])
                         elif kind=="rushing":
-                            values["Rush yds"]=numeric(["YDS","RUSH YDS"])
+                            yards=numeric(["YDS","RUSH YDS"])
+                            values["Rush yds"]=yards
+                            values["Rush yards"]=yards
                         elif kind=="receiving":
-                            values["Rec yds"]=numeric(["YDS","REC YDS"])
+                            yards=numeric(["YDS","REC YDS"])
+                            values["Rec yds"]=yards
+                            values["Rec yards"]=yards
                             values["Receptions"]=numeric(["REC","RECEPTIONS"])
                         # Total touchdowns from rushing and receiving; do not double-count player rows.
                         if kind in ("rushing","receiving"):
@@ -1632,6 +1638,7 @@ def espn_nfl_boxscores(date_string):
                     rec=p["stats"].get("Rec yds")
                     if rush is not None or rec is not None:
                         p["stats"]["Rush+Rec yds"]=(rush or 0)+(rec or 0)
+                        p["stats"]["Rush+Rec yards"]=p["stats"]["Rush+Rec yds"]
         except Exception:
             game["boxscore_error"]=True
     add_confirmed_absences(games,players,"NFL",absence_reports,date_string)
@@ -1676,7 +1683,7 @@ def match_espn_player(short_name,players,market=None):
         return " ".join("".join(ch if ch.isalnum() else " " for ch in value).split())
     parts=norm(short_name).split()
     if market:
-        sport="NFL" if market in ("Pass yds","Pass TDs","Rush yds","Rec yds","Rush+Rec yds","Anytime TD","Receptions") else "NBA"
+        sport="NFL" if market in ("Pass yds","Pass yards","Pass TDs","Rush yds","Rush yards","Rec yds","Rec yards","Rush+Rec yds","Rush+Rec yards","Anytime TD","Receptions") else "NBA"
         players=[p for p in players if p.get("sport","NBA")==sport]
     if len(parts)<2:return None
     # Robinhood's Nov 9 A. Thompson rebound leg refers to Ausar Thompson.
@@ -1692,7 +1699,7 @@ def match_espn_player(short_name,players,market=None):
     first=parts[0]
     surname=parts[1:]
     # Robinhood P. Washington refers to ESPN's PJ Washington (Jr.).
-    if market not in ("Pass yds","Pass TDs","Rush yds","Rec yds","Rush+Rec yds","Anytime TD","Receptions") and parts==["p","washington"]:
+    if market not in ("Pass yds","Pass yards","Pass TDs","Rush yds","Rush yards","Rec yds","Rec yards","Rush+Rec yds","Rush+Rec yards","Anytime TD","Receptions") and parts==["p","washington"]:
         candidates=[]
         for athlete in players:
             full=norm(athlete.get("name","")).split()
@@ -1723,7 +1730,7 @@ def match_espn_player(short_name,players,market=None):
             matches.append(player)
     # Known NFL initials must be checked before accepting a unique but wrong
     # surname match (e.g. Jameson Williams instead of Javonte Williams).
-    if market in ("Pass yds","Pass TDs","Rush yds","Rec yds","Rush+Rec yds","Anytime TD","Receptions"):
+    if market in ("Pass yds","Pass yards","Pass TDs","Rush yds","Rush yards","Rec yds","Rec yards","Rush+Rec yds","Rush+Rec yards","Anytime TD","Receptions"):
         nfl_first={"g smith":{"geno"},"j williams":{"javonte"},"k williams":{"kyren"},
                    "j mccarthy":{"jj","jonathan"},
                    "d robinson":{"demarcus","demarcus"}}
@@ -1741,13 +1748,13 @@ def match_espn_player(short_name,players,market=None):
     # ESPN lists J.J. McCarthy as JJ McCarthy; normalized "jj" does not
     # start with Robinhood's one-letter "j". Resolve the known NFL alias
     # against a unique athlete rather than leaving an active QB unmatched.
-    if market in ("Pass yds","Pass TDs","Rush yds","Rec yds","Rush+Rec yds","Anytime TD","Receptions") and parts==["j","mccarthy"]:
+    if market in ("Pass yds","Pass yards","Pass TDs","Rush yds","Rush yards","Rec yds","Rec yards","Rush+Rec yds","Rush+Rec yards","Anytime TD","Receptions") and parts==["j","mccarthy"]:
         candidates=[p for p in players if norm(p.get("name","")).split()[:2] in
                     (["jj","mccarthy"],["jonathan","mccarthy"])]
         if len(candidates)==1:return candidates[0]
     # NFL player-specific disambiguation: Kyren Williams versus other K. Williams.
     # Keep J. Williams unresolved if multiple players share the abbreviation.
-    if market in ("Pass yds","Pass TDs","Rush yds","Rec yds","Rush+Rec yds","Anytime TD","Receptions"):
+    if market in ("Pass yds","Pass yards","Pass TDs","Rush yds","Rush yards","Rec yds","Rec yards","Rush+Rec yds","Rush+Rec yards","Anytime TD","Receptions"):
         nfl_aliases={
             "g smith":{"geno"},
             "k williams":{"kyren"},
@@ -2331,7 +2338,7 @@ def show_personal_bets():
                     leg_progress=(known_absence if known_absence else
                                   "⚪ Awaiting tipoff" if state=="pre" else
                                   "⚪ Stats pending" if matched_player else
-                                  "⚪ NFL stats feed unavailable" if m in ("Pass yds","Pass TDs","Rush yds","Rec yds","Rush+Rec yds","Anytime TD","Receptions") else "⚪ Unmatched / unavailable")
+                                  "⚪ NFL stats feed unavailable" if m in ("Pass yds","Pass yards","Pass TDs","Rush yds","Rush yards","Rec yds","Rec yards","Rush+Rec yds","Rush+Rec yards","Anytime TD","Receptions") else "⚪ Unmatched / unavailable")
                     actual_label="—"
                 else:
                     actual_label=str(actual)
@@ -2605,13 +2612,19 @@ if section=="Overview":
         try:
             diagnostic_games,diagnostic_players=espn_nfl_week_boxscores("20261112")
             diagnostic_rows=[]
-            for short,market in [("J. McCarthy","Pass yds"),("J. Daniels","Pass yds"),
-                                 ("I. Likely","Rec yds"),("S. Diggs","Rec yds"),
-                                 ("M. Nabers","Receptions")]:
+            # Test the REAL stored wager labels, not hand-written ESPN market
+            # names. Previously this check passed while My Bets still failed.
+            parlay16=next(b for b in ROBINHOOD_NOV12_BETS if b[0]=="Nov 12 · Parlay 16")
+            for short,market,target in parlay16[5]:
                 matched=match_espn_player(short,diagnostic_players,market)
+                actual=matched.get("stats",{}).get(market) if matched else None
                 diagnostic_rows.append({"Prop":short+" / "+market,
                     "ESPN player":matched.get("name","") if matched else "NOT MATCHED",
-                    "Actual":matched.get("stats",{}).get(market) if matched else None})
+                    "Target":target,"Actual":actual,
+                    "Needed":max(0,target-actual) if isinstance(actual,(int,float)) else None,
+                    "Status":"Reached" if isinstance(actual,(int,float)) and actual>=target
+                             else "In progress" if isinstance(actual,(int,float))
+                             else "UNMATCHED / MISSING"})
             st.dataframe(pd.DataFrame(diagnostic_rows),hide_index=True,use_container_width=True)
             st.write("NFL week-feed matcher:", "PASS — all five players matched with numeric stats" if all(row["ESPN player"]!="NOT MATCHED" and isinstance(row["Actual"],(int,float)) for row in diagnostic_rows)
                      else "FAIL — missing player or numeric stat")
