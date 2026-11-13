@@ -1684,6 +1684,11 @@ def match_espn_player(short_name,players,market=None):
             return True
         if surname and surname[-1] not in suffixes and actual and actual[-1] in suffixes:
             return actual[:-1]==surname or strip_particles(actual[:-1])==surname
+        # Model workbooks may include Jr. even when ESPN omits it (Paul Reed Jr.
+        # vs Paul Reed). Match only if the remaining name is identical; the
+        # caller still requires a unique athlete to avoid false positives.
+        if surname and surname[-1] in suffixes and actual and actual[-1] not in suffixes:
+            return actual==surname[:-1] or strip_particles(actual)==strip_particles(surname[:-1])
         return False
     matches=[]
     for player in players:
