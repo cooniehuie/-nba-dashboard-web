@@ -2455,6 +2455,18 @@ except Exception as exc:
     st.error(f"Could not read Excel workbook: {exc}")
     st.stop()
 sheets={name:clean_sheet(df) for name,df in raw_sheets.items()}
+# Screenshot-sourced manual Bankroll Builder list, Nov 13, 2026.
+# No workbook/game matchups or independent model projections were supplied.
+MANUAL_BANKROLL_DATE="2026-11-13"
+MANUAL_BANKROLL_ROWS=[["Meleek Thomas","OVER 2.5 fg3m","2+ fg3m",-218,85],["Peyton Watson","OVER 2.5 ast","2+ ast",-275,77],["Alex Caruso","OVER 3.5 reb","2+ reb",-530,90],["Cameron Boozer","OVER 4.5 ast","4+ ast",-425,89],["Franz Wagner","OVER 7.5 ast","6+ ast",-375,41],["Desmond Bane","OVER 3.5 fg3m","3+ fg3m",-275,59],["Cam Spencer","OVER 4.5 ast","3+ ast",-560,86],["Aaron Wiggins","OVER 2.5 fg3m","2+ fg3m",-260,47],["Anthony Black","OVER 4.5 ast","3+ ast",-591,67],["Cameron Boozer","OVER 9.5 reb","8+ reb",-310,77],["Cam Spencer","OVER 2.5 reb","2+ reb",-300,72],["Donovan Mitchell","OVER 4.5 reb","3+ reb",-501,90],["Jalen Johnson","OVER 6.5 ast","5+ ast",-435,74],["Keyonte George","OVER 3.5 reb","3+ reb",-300,68],["Cam Spencer","OVER 1.5 fg3m","1+ fg3m",-390,85],["Jrue Holiday","OVER 2.5 fg3m","2+ fg3m",-280,72],["Mario Hezonja","OVER 4.5 reb","3+ reb",-560,91],["Donovan Mitchell","OVER 5.5 ast","4+ ast",-550,59],["Josh Giddey","OVER 8.5 ast","7+ ast",-375,73],["Ty Jerome","OVER 5.5 ast","4+ ast",-410,68]]
+from zoneinfo import ZoneInfo as _BankrollZoneInfo
+if datetime.now(_BankrollZoneInfo("America/Los_Angeles")).date().isoformat()==MANUAL_BANKROLL_DATE:
+    manual_frame=pd.DataFrame(MANUAL_BANKROLL_ROWS,columns=["Player","Our play","Safer line","Price","Hit rate"])
+    manual_frame["Market"]=manual_frame["Safer line"].map(lambda s: "Threes" if "fg3m" in s else ("Assists" if "ast" in s else "Rebounds"))
+    manual_frame["Hit rate"]=manual_frame["Hit rate"].map(lambda x:f"{x}%")
+    manual_frame["Source"]="Manual screenshot · Nov 13"
+    bankroll_name=next((n for n in sheets if "bankroll" in n.lower()),"Bankroll Builder")
+    sheets[bankroll_name]=manual_frame
 names=list(sheets)
 def find_sheet(*terms):
     return next((n for n in names if any(t.lower() in n.lower() for t in terms)),None)
