@@ -1232,6 +1232,7 @@ def show_bankroll_live_tracker(embedded=False):
         if st.button("↻ Refresh",key=prefix+"_refresh"):
             espn_nba_boxscores.clear()
             espn_nfl_boxscores.clear()
+            espn_nfl_week_boxscores.clear()
             st.rerun()
     render_bankroll_live()
 
@@ -1636,6 +1637,31 @@ def espn_nfl_boxscores(date_string):
     add_confirmed_absences(games,players,"NFL",absence_reports,date_string)
     return games,players
 
+
+@st.cache_data(ttl=60,show_spinner=False)
+def espn_nfl_week_boxscores(purchase_date):
+    """Track NFL wagers across their game week, not just their purchase day.
+
+    ESPN's date-filtered scoreboard omits Sunday/Monday games for Thursday
+    purchases. Do not manufacture stats for scheduled or unavailable players.
+    """
+    from datetime import datetime as dt, timedelta
+    start=dt.strptime(purchase_date,"%Y%m%d").date()
+    games=[]
+    players=[]
+    seen_games=set()
+    for offset in range(5):
+        day=(start+timedelta(days=offset)).strftime("%Y%m%d")
+        try:
+            day_games,day_players=espn_nfl_boxscores(day)
+        except Exception:
+            continue
+        ids={str(g.get("id")) for g in day_games if str(g.get("id")) not in seen_games}
+        games.extend(g for g in day_games if str(g.get("id")) in ids)
+        players.extend(p for p in day_players if str(p.get("game",{}).get("id")) in ids)
+        seen_games.update(ids)
+    return games,players
+
 def match_espn_player(short_name,players,market=None):
     """Match Robinhood initials to ESPN athletes without confusing same-surname players."""
     import re
@@ -1981,7 +2007,7 @@ def show_personal_bets():
             selected_day=st.session_state.get("my_bets_selected_date",date(2026,11,8))
             try:
                 _,pnl_players=espn_nba_boxscores(selected_day.strftime("%Y%m%d"))
-                _,nfl_players=espn_nfl_boxscores(selected_day.strftime("%Y%m%d"))
+                _,nfl_players=espn_nfl_week_boxscores(selected_day.strftime("%Y%m%d"))
                 pnl_players+=nfl_players
             except Exception:
                 pnl_players=[]
@@ -2054,7 +2080,7 @@ def show_personal_bets():
             current_injury_reports.clear()
         try:
             games,players=espn_nba_boxscores(track_date.strftime("%Y%m%d"))
-            nfl_games,nfl_players=espn_nfl_boxscores(track_date.strftime("%Y%m%d"))
+            nfl_games,nfl_players=espn_nfl_week_boxscores(track_date.strftime("%Y%m%d"))
             games+=nfl_games
             players+=nfl_players
             if not games:
