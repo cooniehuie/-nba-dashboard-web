@@ -2187,15 +2187,34 @@ def show_personal_bets():
         st.caption("Tap a parlay to see live Actual, Needed, and Leg progress. Uses the game date selected above.")
         from datetime import date
         selected_day=st.session_state.get("my_bets_selected_date",date(2026,11,8))
+        overview_players=[]
+        nfl_players=[]
+        overview_errors=[]
         try:
-            _,overview_players=espn_nba_boxscores(selected_day.strftime("%Y%m%d"))
+            _,nba_players=espn_nba_boxscores(selected_day.strftime("%Y%m%d"))
+            overview_players.extend(nba_players)
+        except Exception as exc:
+            overview_errors.append("NBA: "+type(exc).__name__+": "+str(exc))
+        try:
             _,nfl_players=espn_nfl_week_boxscores(selected_day.strftime("%Y%m%d"))
-            overview_players+=nfl_players
-            overview_error=False
-        except Exception:
-            overview_players=[]
-            overview_error=True
-        if overview_error:st.caption("Box-score feed unavailable; missing values remain unverified.")
+            overview_players.extend(nfl_players)
+        except Exception as exc:
+            overview_errors.append("NFL: "+type(exc).__name__+": "+str(exc))
+        if overview_errors:
+            st.caption("One or more box-score feeds are unavailable; missing values remain unverified.")
+        # Version marker and live source diagnostics help distinguish ESPN
+        # feed/matching failures from a stale Streamlit deployment.
+        with st.expander("NFL tracking diagnostics · build 2026-11-12d",expanded=False):
+            st.caption("If this build label is missing, Streamlit has not loaded the current code.")
+            st.write("NFL box-score athletes loaded:",len(nfl_players))
+            if overview_errors:st.code("\\n".join(overview_errors))
+            for short,market in [("J. McCarthy","Pass yds"),("J. Daniels","Pass yds"),
+                                 ("I. Likely","Rec yds"),("S. Diggs","Rec yds"),
+                                 ("M. Nabers","Receptions")]:
+                match=match_espn_player(short,overview_players,market)
+                st.write(short,"→",match.get("name") if match else "Not in parsed feed",
+                         "·",match.get("stats",{}).get(market,"Stats pending") if match else "—")
+
         if selected_day.isoformat()=="2026-11-12":
             st.caption("NFL live stats: ESPN may omit players even when active. Missing data does not mean DNP or a lost leg.")
             st.link_button("↗ Washington–Giants live box score (CBS)", "https://www.cbssports.com/nfl/gametracker/boxscore/NFL_20261112_WAS@NYG/")
