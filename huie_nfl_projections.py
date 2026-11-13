@@ -299,9 +299,64 @@ def _parse_stored_lines(data):
         return {}
 
 
+def _sam_market(market):
+    return {"Passing yards":"Passing yards","Rushing yards":"Rushing yards",
+            "Receiving yards":"Receiving yards","Receptions":"Receptions"}.get(market)
+
+
+def _sam_name(name):
+    return re.sub(r"[^a-z0-9]","",str(name).lower())
+
+
+def _sam_for_game(storage_read,selected):
+    """Return the saved pregame Sam snapshot, never a later model revision."""
+    if storage_read is None:return None
+    raw=storage_read("nfl_models/sam_nfl_archive.json")
+    if not raw:return None
+    data=json.loads(raw.decode("utf-8") if isinstance(raw,bytes) else raw)
+    when=datetime.fromisoformat(selected["date"].replace("Z","+00:00")).astimezone(PT)
+    day=when.date().isoformat()
+    abbrs={team["abbr"] for team in selected["teams"]}
+    for key,record in (data.get("games") or {}).items():
+        if record.get("date")!=day:continue
+        matchup=record.get("matchup","")
+        sides=set(re.findall(r"[A-Z]{2,3}",matchup))
+        if sides==abbrs:return record
+    return None
+
+
+def _sam_comparison(frame,record):
+    sam=pd.DataFrame(record.get("rows") or [])
+    if sam.empty:return frame
+    sam=sam[sam["Market"].map(_sam_market).notna()].copy()
+    if sam.empty:return frame
+    sam["Market"]=sam["Market"].map(_sam_market)
+    sam["Sam projection"]=pd.to_numeric(sam["Sam projection"],errors="coerce")
+    sam["Sam reference line"]=pd.to_numeric(sam["Reference line"],errors="coerce")
+    sam["matchkey"]=sam["Player"].map(_sam_name)+"|"+sam["Market"]
+    sam=sam.drop_duplicates("matchkey")
+    out=frame.copy()
+    out["matchkey"]=out["Player"].map(_sam_name)+"|"+out["Market"]
+    out=out.merge(sam[["matchkey","Sam projection","Sam reference line"]],
+                  on="matchkey",how="left",validate="many_to_one").drop(columns="matchkey")
+    # Never overwrite an admin-entered reference line with Sam's line.
+    out["Reference line"]=out["Reference line"].combine_first(out["Sam reference line"])
+    out["Sam side"]=out.apply(lambda r:
+        "🟢 OVER" if pd.notna(r["Sam projection"]) and pd.notna(r["Reference line"]) and r["Sam projection"]>r["Reference line"] else
+        "🔴 UNDER" if pd.notna(r["Sam projection"]) and pd.notna(r["Reference line"]) and r["Sam projection"]<r["Reference line"] else
+        "⚪ AT LINE" if pd.notna(r["Sam projection"]) and pd.notna(r["Reference line"]) and r["Sam projection"]==r["Reference line"] else "—",axis=1)
+    out["Both models agree"]=out.apply(lambda r:
+        "✅ OVER" if pd.notna(r["Sam projection"]) and pd.notna(r["Reference line"]) and
+                    r["Sam projection"]>r["Reference line"] and r["Huie projection"]>r["Reference line"] else
+        "✅ UNDER" if pd.notna(r["Sam projection"]) and pd.notna(r["Reference line"]) and
+                     r["Sam projection"]<r["Reference line"] and r["Huie projection"]<r["Reference line"] else
+        "—",axis=1)
+    return out
+
+
 def render(storage_read=None,storage_write=None,is_admin=False):
     st.title("🏈 Huie NFL Projections")
-    st.caption("Independent NFL prop model · ESPN regular-season game logs · No Sam/NBA projections used.")
+    st.caption("Independent Huie NFL forecasts, compared against archived Sam NFL projections when available. Sam values never train or alter Huie forecasts.")
     today=datetime.now(PT).date()
     season=today.year if today.month>=8 else today.year-1
     try:
@@ -483,6 +538,17 @@ def render(storage_read=None,storage_write=None,is_admin=False):
     frame["Reference line"]=pd.to_numeric(
         [stored.get((str(row["Player ID"]),row["Market"]))
          for _,row in frame.iterrows()],errors="coerce")
+    sam_record=None
+    if storage_read:
+        try:sam_record=_sam_for_game(storage_read,selected)
+        except Exception as exc:st.warning("Sam NFL archive unavailable ("+type(exc).__name__+").")
+    if sam_record:
+        frame=_sam_comparison(frame,sam_record)
+        st.caption("Sam NFL snapshot: "+sam_record.get("date","")+" · "+
+                   sam_record.get("matchup","")+
+                   ". Reference lines are filled from Sam only where no manually saved line exists.")
+    else:
+        st.caption("No saved Sam NFL model for this matchup and Pacific game date. Upload its HTML in 🏈 NFL Model to enable comparison.")
     st.caption("Huie NFL v2: player-history baseline plus verified opponent defense (upcoming games only). Attempts/carries/targets adjust the final model only when held-out validation improves accuracy; all effects are disclosed below. Anytime TD means rushing + receiving TDs, **not passing TDs**. Reference lines require administrator input.")
     a,b,c,d=st.columns(4)
     a.metric("Players with projections",frame["Player"].nunique())
@@ -529,9 +595,19 @@ def render(storage_read=None,storage_write=None,is_admin=False):
             "⚪ AT LINE" if baseline is not None and line is not None and baseline==line else
             "—"
         )
-    columns=["Player","Team","Opponent","Market","Huie projection","Reference line",
-             "Model side","Baseline","Def. adjustment %","Matchup",
-             "Expected volume","TD chance %","Status"]
+    columns=["Player","Team","Opponent","Market","Huie projection"]
+    if sam_record:
+        columns+=["Sam projection"]
+    columns+=["Reference line","Model side"]
+    if sam_record:
+        columns+=["Sam side","Both models agree"]
+    columns+=["Baseline","Def. adjustment %","Matchup",
+              "Expected volume","TD chance %","Status"]
+    if sam_record:
+        st.metric("Props where both models favor the same side",
+                  int(visible["Both models agree"].str.startswith("✅").sum()))
+        st.caption("Comparison includes only players selected above with sufficient ESPN game history. "
+                   "An agreement is a directional signal, not a verified betting edge.")
     st.dataframe(visible[columns],hide_index=True,use_container_width=True,
                  column_config={"Huie projection":st.column_config.NumberColumn("Huie projection",format="%.1f"),
                                 "Reference line":st.column_config.NumberColumn("Reference line",format="%.1f")})
