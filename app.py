@@ -1824,6 +1824,15 @@ ROBINHOOD_NOV9_BETS=[
 ]
 
 ROBINHOOD_NOV13_BETS=[
+("Nov 13 · Parlay 23",235,40.9,99.60,3.49,[["A. Mitchell","Points",15],["I. Hartenstein","Rebounds",8],["J. McCain","Points",10]],"2026-11-13","15:06"),
+("Nov 13 · Parlay 22",225,42.8,99.65,3.35,[["T. Camara","Points",10],["J. Holiday","Points",10],["D. Avdija","Assists",4]],"2026-11-13","15:02"),
+("Nov 13 · Parlay 21",216,44.8,100.00,3.23,[["Y. Lendeborg","Points",15],["D. Green","Assists",4],["B. Podziemski","Assists",2],["Y. Lendeborg","Rebounds",4],["V. Wembanyama","Threes",1],["Y. Lendeborg","Threes",1]],"2026-11-13","15:01"),
+("Nov 13 · Parlay 20",231,41.66,99.68,3.43,[["F. VanVleet","Points",10],["J. Smith Jr.","Points",10],["A. Bailey","Points",10]],"2026-11-13","14:59"),
+("Nov 13 · Parlay 19",235,40.9,99.60,3.49,[["J. Wells","Points",10],["T. Jerome","Points",15],["C. Boozer","Assists",4]],"2026-11-13","14:58"),
+("Nov 13 · Parlay 18",226,42.7,99.87,3.37,[["O. Okongwu","Rebounds",6],["J. Giddey","Assists",6],["D. Daniels","Assists",4],["N. Alexander-Walker","Threes",2],["D. Daniels","Rebounds",4]],"2026-11-13","14:56"),
+("Nov 13 · Parlay 17",229,42.1,99.82,3.41,[["J. Harden","Points",15],["M. Thomas","Points",10]],"2026-11-13","14:55"),
+("Nov 13 · Parlay 16",239,40,99.15,3.54,[["A. Black","Points",10],["F. Wagner","Points",20],["W. Carter Jr.","Rebounds",6],["J. Jaquez Jr.","Points",10]],"2026-11-13","14:53"),
+("Nov 13 · Parlay 15",250,38.4,99.68,3.68,[["A. Nembhard","Points",10],["A. Drummond","Rebounds",6],["P. Siakam","Points",15]],"2026-11-13","14:52"),
 ("Nov 13 · Parlay 14",227,42.4,99.63,3.38,[["Y. Lendeborg","Points",15],["S. Gilgeous-Alexander","Points",25],["A. Black","Points",10],["D. Lillard","Points",15]],"2026-11-13","14:49"),
 ("Nov 13 · Parlay 13",1380,6.8,99.97,6.13,[["A. Black","Points",15],["Y. Lendeborg","Points",20],["T. Camara","Points",10],["D. Lillard","Points",20],["M. Thomas","Points",10],["C. Coward","Points",10]],"2026-11-13","14:47"),
 ("Nov 13 · Parlay 12",1322,7.05,99.25,6.07,[["M. Thomas","Threes",2],["K. Thompson","Threes",2],["D. Bane","Threes",2],["N. Alexander-Walker","Threes",2],["T. Jerome","Threes",2],["Y. Lendeborg","Threes",2],["B. Podziemski","Threes",2],["D. Acuff Jr.","Threes",2],["J. Holiday","Threes",2]],"2026-11-13","14:32"),
