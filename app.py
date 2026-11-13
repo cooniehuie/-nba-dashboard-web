@@ -1824,6 +1824,8 @@ ROBINHOOD_NOV9_BETS=[
 ]
 
 ROBINHOOD_NOV13_BETS=[
+("Nov 13 · Parlay 14",227,42.4,99.63,3.38,[["Y. Lendeborg","Points",15],["S. Gilgeous-Alexander","Points",25],["A. Black","Points",10],["D. Lillard","Points",15]],"2026-11-13","14:49"),
+("Nov 13 · Parlay 13",1380,6.8,99.97,6.13,[["A. Black","Points",15],["Y. Lendeborg","Points",20],["T. Camara","Points",10],["D. Lillard","Points",20],["M. Thomas","Points",10],["C. Coward","Points",10]],"2026-11-13","14:47"),
 ("Nov 13 · Parlay 12",1322,7.05,99.25,6.07,[["M. Thomas","Threes",2],["K. Thompson","Threes",2],["D. Bane","Threes",2],["N. Alexander-Walker","Threes",2],["T. Jerome","Threes",2],["Y. Lendeborg","Threes",2],["B. Podziemski","Threes",2],["D. Acuff Jr.","Threes",2],["J. Holiday","Threes",2]],"2026-11-13","14:32"),
 ("Nov 13 · Parlay 11",1235,7.59,99.87,6.07,[["D. Mitchell","Assists",6],["S. Bey","Threes",2],["A. Bailey","Rebounds",6],["R. Williams III","Rebounds",6],["D. Acuff Jr.","Points",15]],"2026-11-13","14:26"),
 ("Nov 13 · Parlay 10",887,10.6,99.91,5.89,[["K. Thompson","Threes",4],["D. Bane","Threes",4],["N. Alexander-Walker","Threes",4]],"2026-11-13","14:16"),
