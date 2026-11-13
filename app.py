@@ -2215,12 +2215,15 @@ def show_personal_bets():
             st.caption("If this build label is missing, Streamlit has not loaded the current code.")
             st.write("NFL box-score athletes loaded:",len(nfl_players))
             if overview_errors:st.code("\\n".join(overview_errors))
-            for short,market in [("J. McCarthy","Pass yds"),("J. Daniels","Pass yds"),
-                                 ("I. Likely","Rec yds"),("S. Diggs","Rec yds"),
-                                 ("M. Nabers","Receptions")]:
-                match=match_espn_player(short,overview_players,market)
-                st.write(short,"→",match.get("name") if match else "Not in parsed feed",
-                         "·",match.get("stats",{}).get(market,"Stats pending") if match else "—")
+            parlay16=next((b for b in ROBINHOOD_NOV12_BETS if b[0]=="Nov 12 · Parlay 16"),None)
+            if selected_day.isoformat()=="2026-11-12" and parlay16:
+                st.caption("Checks exact Robinhood wager labels (Pass yards / Rec yards), not abbreviated ESPN keys.")
+                for short,market,target in parlay16[5]:
+                    match=match_espn_player(short,overview_players,market)
+                    actual=match.get("stats",{}).get(market) if match else None
+                    st.write(short,market,str(target)+"+","→",
+                             match.get("name") if match else "Not in parsed feed",
+                             "· Actual:",actual if actual is not None else "Unverified")
 
         if selected_day.isoformat()=="2026-11-12":
             st.caption("NFL live stats: ESPN may omit players even when active. Missing data does not mean DNP or a lost leg.")
@@ -2605,33 +2608,6 @@ def show_table(name, allow_filters=True, key_suffix=""):
     st.download_button("Download filtered CSV",df.to_csv(index=False).encode("utf-8"),file_name="nba_"+name.lower().replace(" ","_")+".csv",mime="text/csv",key="download_"+name+key_suffix)
 
 if section=="Overview":
-    # Public, read-only ESPN integration check activated only by ?verify_nfl=1.
-    # Does not expose wagers, credentials, or private My Bets details.
-    if str(st.query_params.get("verify_nfl",""))=="1":
-        st.subheader("NFL tracking integration check · November 12")
-        try:
-            diagnostic_games,diagnostic_players=espn_nfl_week_boxscores("20261112")
-            diagnostic_rows=[]
-            # Test the REAL stored wager labels, not hand-written ESPN market
-            # names. Previously this check passed while My Bets still failed.
-            parlay16=next(b for b in ROBINHOOD_NOV12_BETS if b[0]=="Nov 12 · Parlay 16")
-            for short,market,target in parlay16[5]:
-                matched=match_espn_player(short,diagnostic_players,market)
-                actual=matched.get("stats",{}).get(market) if matched else None
-                diagnostic_rows.append({"Prop":short+" / "+market,
-                    "ESPN player":matched.get("name","") if matched else "NOT MATCHED",
-                    "Target":target,"Actual":actual,
-                    "Needed":max(0,target-actual) if isinstance(actual,(int,float)) else None,
-                    "Status":"Reached" if isinstance(actual,(int,float)) and actual>=target
-                             else "In progress" if isinstance(actual,(int,float))
-                             else "UNMATCHED / MISSING"})
-            st.dataframe(pd.DataFrame(diagnostic_rows),hide_index=True,use_container_width=True)
-            st.write("NFL week-feed matcher:", "PASS — all five players matched with numeric stats" if all(row["ESPN player"]!="NOT MATCHED" and isinstance(row["Actual"],(int,float)) for row in diagnostic_rows)
-                     else "FAIL — missing player or numeric stat")
-            st.caption("Verified source: original Robinhood wager markets — Pass yards and Rec yards · alias fix 78600a06.")
-            st.caption("Read-only live ESPN feed; this is not a Robinhood settlement.")
-        except Exception as exc:
-            st.error("NFL integration check failed: "+type(exc).__name__+": "+str(exc))
     # Keep Overview and the dedicated performance page on the same archived results.
     # Only authenticated admins can write completed daily snapshots.
     if is_admin:
