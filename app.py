@@ -1823,6 +1823,19 @@ ROBINHOOD_NOV9_BETS=[
 ("Nov 9 · Parlay 1",343,27.1,99.78,6.83,[["E. Mobley","Threes",1],["J. Harden","Threes",2],["A. Wiggins","Threes",2],["N. Alexander-Walker","Threes",2]],"2026-11-09","09:36"),
 ]
 
+ROBINHOOD_NOV13_BETS=[
+("Nov 13 · Parlay 10",887,10.6,99.91,5.89,[["K. Thompson","Threes",4],["D. Bane","Threes",4],["N. Alexander-Walker","Threes",4]],"2026-11-13","14:16"),
+("Nov 13 · Parlay 9",300,31.9,100.00,4.30,[["D. Bane","Threes",3],["K. Thompson","Threes",3],["N. Alexander-Walker","Threes",3]],"2026-11-13","14:15"),
+("Nov 13 · Parlay 8",2465,3.8,99.98,6.31,[["M. Thomas","Threes",3],["A. Black","Threes",3],["Y. Lendeborg","Threes",3]],"2026-11-13","12:24"),
+("Nov 13 · Parlay 7",409,23.05,99.34,5.08,[["D. Mitchell","Threes",3],["K. Thompson","Threes",3],["M. Thomas","Threes",2]],"2026-11-13","12:20"),
+("Nov 13 · Parlay 6",1235,7.6,99.93,6.07,[["D. Bane","Threes",5],["A. Black","Threes",3]],"2026-11-13","12:19"),
+("Nov 13 · Parlay 5",417,22.7,99.78,5.12,[["D. Bane","Threes",4],["A. Black","Threes",2]],"2026-11-13","12:18"),
+("Nov 13 · Parlay 4",266,35.97,99.56,3.88,[["C. Boozer","Rebounds",8],["D. Mitchell","Assists",4],["T. Jerome","Assists",4],["J. Giddey","Assists",6]],"2026-11-13","10:56"),
+("Nov 13 · Parlay 3",231,41.8,99.99,3.43,[["C. Boozer","Assists",4],["F. Wagner","Assists",6],["A. Black","Assists",2],["J. Johnson","Assists",4]],"2026-11-13","10:53"),
+("Nov 13 · Parlay 2",224,43.1,99.88,3.34,[["C. Spencer","Threes",1],["A. Wiggins","Threes",2],["M. Thomas","Threes",1]],"2026-11-13","10:48"),
+("Nov 13 · Parlay 1",349,27.2,99.77,4.84,[["M. Thomas","Threes",2],["D. Bane","Threes",3],["J. Holiday","Threes",2]],"2026-11-13","10:32"),
+]
+
 ROBINHOOD_NOV12_BETS=[
 ("Nov 12 · Parlay 19",331,28.8,100.00,4.67,[["P. Washington","Threes",1],["A. Dosunmu","Threes",1],["D. Booker","Threes",1],["J. Goodwin","Threes",1],["C. Gillespie","Threes",1],["J. Kuminga","Threes",1]],"2026-11-12","16:47"),
 ("Nov 12 · Parlay 18",1286,7.3,99.98,6.1,[["G. Allen","Threes",4],["C. Gillespie","Threes",3],["N. Reid","Threes",3]],"2026-11-12","16:40"),
@@ -1984,14 +1997,14 @@ def show_personal_bets():
     from my_bets_absences import leg_absence_label
     st.title("💸 My Bets · Robinhood")
     from datetime import date
-    available_days=[date(2026,11,12),date(2026,11,11),date(2026,11,10),date(2026,11,9),date(2026,11,8),date(2026,11,7)]
+    available_days=[date(2026,11,13),date(2026,11,12),date(2026,11,11),date(2026,11,10),date(2026,11,9),date(2026,11,8),date(2026,11,7)]
     selected_day=st.selectbox("Bet date",available_days,format_func=lambda d:d.strftime("%B %-d, %Y"),key="my_bets_selected_date")
     st.caption("Daily bet tracking · Historical bets and settlement records are retained separately.")
     imported=imported_bet_rows()
     # Keep original November 7 settlement IDs intact; date selection never overwrites records.
     historical=list(reversed(ROBINHOOD_NOV7_BETS))
     current=list(reversed(ROBINHOOD_NOV8_BETS))
-    dated_bets=(historical if selected_day==date(2026,11,7) else current if selected_day==date(2026,11,8) else list(reversed(ROBINHOOD_NOV9_BETS)) if selected_day==date(2026,11,9) else list(reversed(ROBINHOOD_NOV10_BETS)) if selected_day==date(2026,11,10) else list(reversed(ROBINHOOD_NOV11_BETS)) if selected_day==date(2026,11,11) else list(reversed(ROBINHOOD_NOV12_BETS)))
+    dated_bets=(historical if selected_day==date(2026,11,7) else current if selected_day==date(2026,11,8) else list(reversed(ROBINHOOD_NOV9_BETS)) if selected_day==date(2026,11,9) else list(reversed(ROBINHOOD_NOV10_BETS)) if selected_day==date(2026,11,10) else list(reversed(ROBINHOOD_NOV11_BETS)) if selected_day==date(2026,11,11) else list(reversed(ROBINHOOD_NOV12_BETS)) if selected_day==date(2026,11,12) else list(reversed(ROBINHOOD_NOV13_BETS)))
     all_bets=[(name,qty,price,legs) for name,qty,price,cost,fees,legs,*_ in dated_bets]
     for i,item in enumerate(imported,1):
         if str(item.get("date",""))==selected_day.isoformat():
