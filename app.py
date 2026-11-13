@@ -1738,6 +1738,13 @@ def match_espn_player(short_name,players,market=None):
             if len(candidates)==1:return candidates[0]
             return None
     if len(matches)==1:return matches[0]
+    # ESPN lists J.J. McCarthy as JJ McCarthy; normalized "jj" does not
+    # start with Robinhood's one-letter "j". Resolve the known NFL alias
+    # against a unique athlete rather than leaving an active QB unmatched.
+    if market in ("Pass yds","Pass TDs","Rush yds","Rec yds","Rush+Rec yds","Anytime TD","Receptions") and parts==["j","mccarthy"]:
+        candidates=[p for p in players if norm(p.get("name","")).split()[:2] in
+                    (["jj","mccarthy"],["jonathan","mccarthy"])]
+        if len(candidates)==1:return candidates[0]
     # NFL player-specific disambiguation: Kyren Williams versus other K. Williams.
     # Keep J. Williams unresolved if multiple players share the abbreviation.
     if market in ("Pass yds","Pass TDs","Rush yds","Rec yds","Rush+Rec yds","Anytime TD","Receptions"):
@@ -2182,7 +2189,7 @@ def show_personal_bets():
         selected_day=st.session_state.get("my_bets_selected_date",date(2026,11,8))
         try:
             _,overview_players=espn_nba_boxscores(selected_day.strftime("%Y%m%d"))
-            _,nfl_players=espn_nfl_boxscores(selected_day.strftime("%Y%m%d"))
+            _,nfl_players=espn_nfl_week_boxscores(selected_day.strftime("%Y%m%d"))
             overview_players+=nfl_players
             overview_error=False
         except Exception:
