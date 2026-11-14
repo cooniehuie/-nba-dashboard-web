@@ -1848,6 +1848,15 @@ ROBINHOOD_NOV9_BETS=[
 ]
 
 ROBINHOOD_NOV14_BETS=[
+("Nov 14 · Parlay 13",247,39,99.98,3.65,[["J. Fears","Assists",4],["D. Robinson","Points",10],["J. Grant","Threes",1],["R. Gobert","Rebounds",8]],"2026-11-14","15:03"),
+("Nov 14 · Parlay 12",1489,6.3,99.96,6.15,[["D. Robinson","Points",15],["Z. Williamson","Rebounds",6],["A. Dosunmu","Threes",2],["R. Gobert","Rebounds",10],["A. Thompson","Rebounds",6]],"2026-11-14","14:55"),
+("Nov 14 · Parlay 11",804,11.7,99.89,5.82,[["M. Thomas","Threes",2],["D. Jenkins","Threes",2],["J. Wells","Threes",2],["A. Dosunmu","Threes",2]],"2026-11-14","13:25"),
+("Nov 14 · Parlay 10",239,40.3,99.86,3.54,[["A. Dosunmu","Points",15],["J. Giddey","Assists",6],["R. Gobert","Rebounds",8],["J. McDaniels","Rebounds",4]],"2026-11-14","11:08"),
+("Nov 14 · Parlay 9",280,34.17,99.74,4.06,[["J. Murray","Points",15],["Z. Williamson","Points",15],["J. Fears","Assists",4],["DEN","Game winner",1],["S. Bey","Assists",2]],"2026-11-14","11:04"),
+("Nov 14 · Parlay 8",228,42.3,99.84,3.4,[["C. Cunningham","Points",20],["B. Adebayo","Points",15],["D. Robinson","Points",10]],"2026-11-14","10:53"),
+("Nov 14 · Parlay 7",218,44.2,99.61,3.25,[["C. Coward","Rebounds",6],["T. Jerome","Points",15],["M. Porter Jr.","Rebounds",4],["M. Porter Jr.","Points",15]],"2026-11-14","10:51"),
+("Nov 14 · Parlay 6",1286,6.97,95.42,5.84,[["M. Thomas","Threes",2],["D. Robinson","Threes",4],["L. Ball","Threes",4],["J. Murray","Threes",3],["J. Grant","Threes",1]],"2026-11-14","10:09"),
+("Nov 14 · Parlay 5",202,47.8,99.58,3.02,[["M. Thomas","Threes",1],["L. Ball","Threes",3],["K. Thompson","Threes",2],["J. Wells","Threes",1]],"2026-11-14","10:04"),
 ("Nov 14 · Parlay 4",241,39.65,99.12,3.56,[["J. Fears","Assists",4],["N. Marshall","Assists",2],["A. Thompson","Assists",2],["J. McDaniels","Assists",2],["J. Kuminga","Assists",2]],"2026-11-14","09:55"),
 ("Nov 14 · Parlay 3",209,46.3,99.90,3.13,[["R. Gobert","Rebounds",8],["J. Kuminga","Rebounds",4],["A. Thompson","Rebounds",6]],"2026-11-14","09:53"),
 ("Nov 14 · Parlay 2",242,39.8,99.90,3.58,[["T. Shannon Jr.","Threes",1],["A. Dosunmu","Threes",1],["D. Robinson","Threes",3]],"2026-11-14","09:52"),
