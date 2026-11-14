@@ -8,6 +8,10 @@ import streamlit as st
 BANKROLL_CYCLE_STARTING_BALANCE = 398.85
 
 PARLAYS = [
+{"date":"2026-11-14","id":"5-Leg Assists","contracts":241,"cost":99.12,"fees":3.56,"filled_at":"09:55","my_bets":"Nov 14 · Parlay 4","legs":[["J. Fears","Assists",4],["N. Marshall","Assists",2],["A. Thompson","Assists",2],["J. McDaniels","Assists",2],["J. Kuminga","Assists",2]]},
+{"date":"2026-11-14","id":"3-Leg Rebounds","contracts":209,"cost":99.9,"fees":3.13,"filled_at":"09:53","my_bets":"Nov 14 · Parlay 3","legs":[["R. Gobert","Rebounds",8],["J. Kuminga","Rebounds",4],["A. Thompson","Rebounds",6]]},
+{"date":"2026-11-14","id":"3-Leg Threes","contracts":242,"cost":99.9,"fees":3.58,"filled_at":"09:52","my_bets":"Nov 14 · Parlay 2","legs":[["T. Shannon Jr.","Threes",1],["A. Dosunmu","Threes",1],["D. Robinson","Threes",3]]},
+{"date":"2026-11-14","id":"Points + Grant Threes","contracts":209,"cost":99.69,"fees":3.13,"filled_at":"09:51","my_bets":"Nov 14 · Parlay 1","legs":[["Z. Williamson","Points",15],["A. Dosunmu","Points",10],["D. Robinson","Points",10],["J. Grant","Threes",1]]},
  {"date":"2026-11-13","id":"3-Leg Threes · Spencer / Wiggins / Thomas","contracts":224,"cost":99.88,"fees":3.34,"filled_at":"10:48","event_id":"f9cb124c-3c15-4163-9afe-b415843b6064","my_bets":"Nov 13 · Parlay 2","legs":[("C. Spencer","Threes",1),("A. Wiggins","Threes",2),("M. Thomas","Threes",1)]},
  {"date":"2026-11-13","id":"3-Leg Threes · Thomas / Bane / Holiday","contracts":349,"cost":99.77,"fees":4.84,"filled_at":"10:32","event_id":"4d1c46b3-9287-45c1-85e4-9e6ebd0348b1","my_bets":"Nov 13 · Parlay 1","legs":[("M. Thomas","Threes",2),("D. Bane","Threes",3),("J. Holiday","Threes",2)]},
  {"date":"2026-11-13","id":"4-Leg Assists","contracts":231,"cost":99.99,"fees":3.43,"filled_at":"10:53","event_id":"e9f9a22a-3940-4b6d-b412-e19a4fed50b6","my_bets":"Nov 13 · Parlay 3","legs":[("C. Boozer","Assists",4),("F. Wagner","Assists",6),("A. Black","Assists",2),("J. Johnson","Assists",4)]},
