@@ -1824,6 +1824,8 @@ ROBINHOOD_NOV9_BETS=[
 ]
 
 ROBINHOOD_NOV13_BETS=[
+("Nov 13 · Parlay 28",364,26.1,99.93,4.93,[["Y. Lendeborg","Threes",2],["B. Podziemski","Threes",2],["D. Acuff Jr.","Threes",2],["T. Camara","Threes",2]],"2026-11-13","17:19"),
+("Nov 13 · Parlay 27",1875,5.0,99.99,6.24,[["D. Acuff Jr.","Threes",3],["B. Podziemski","Threes",3],["T. Camara","Threes",3],["Y. Lendeborg","Threes",3]],"2026-11-13","17:19"),
 ("Nov 13 · Parlay 26",1380,6.8,99.97,6.13,[["S. Gilgeous-Alexander","Points",30],["D. Acuff Jr.","Points",30],["V. Wembanyama","Points",30]],"2026-11-13","17:09"),
 ("Nov 13 · Parlay 25",371,25.6,99.93,4.95,[["V. Wembanyama","Points",25],["D. Acuff Jr.","Points",25],["S. Gilgeous-Alexander","Points",25]],"2026-11-13","17:08"),
 ("Nov 13 · Parlay 24",1189,7.9,99.99,6.06,[["K. Thompson","Threes",4],["D. Bane","Threes",4],["N. Alexander-Walker","Threes",4],["D. Acuff Jr.","Threes",2],["M. Thomas","Threes",1]],"2026-11-13","15:13"),
