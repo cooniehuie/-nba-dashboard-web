@@ -1686,6 +1686,14 @@ def match_espn_player(short_name,players,market=None):
         sport="NFL" if market in ("Pass yds","Pass yards","Pass TDs","Rush yds","Rush yards","Rec yds","Rec yards","Rush+Rec yds","Rush+Rec yards","Anytime TD","Receptions") else "NBA"
         players=[p for p in players if p.get("sport","NBA")==sport]
     if len(parts)<2:return None
+    # Robinhood J. Smith Jr. refers to Jabari Smith Jr. (Houston).
+    # ESPN may omit the suffix or spell the full name differently.
+    if parts in (["j","smith","jr"],["j","smith"] ) and market in ("Threes","Points","Rebounds","Assists"):
+        jabari=[p for p in players if norm(p.get("name","")).split() in (["jabari","smith","jr"],["jabari","smith"])]
+        rockets=[p for p in jabari if str(p.get("team","")).upper()=="HOU"]
+        if len(rockets)==1:return rockets[0]
+        if len(jabari)==1:return jabari[0]
+        return None
     # D. Mitchell in Robinhood NBA bets is Donovan Mitchell (CLE), not Davion Mitchell.
     # Prefer the Cleveland athlete to prevent ambiguous initial/surname matches.
     if parts==["d","mitchell"] and market in ("Threes","Points","Rebounds","Assists"):
