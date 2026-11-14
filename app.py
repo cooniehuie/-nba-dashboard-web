@@ -1961,6 +1961,7 @@ ROBINHOOD_NOV10_BETS=[
 ]
 
 ROBINHOOD_CONFIRMED_BET_SETTLEMENTS={
+    "Nov 13 · Parlay 23":{"date":"2026-11-13","time":"22:26","settlement_date":"2026-11-13","status":"Won","settlement_price":0.67,"quantity":235,"payout":157.45,"realized_profit":61.34,"event_id":"6216789a-0f6a-45f4-aef1-b28e4599f81a","note":"Robinhood-confirmed 3-leg combo payout; original Nov 13 purchase and fees preserved. A. Mitchell 15+ points, I. Hartenstein 8+ rebounds, J. McCain 10+ points."},
     "Nov 12 · Parlay 5":{"date":"2026-11-12","time":"17:25","settlement_date":"2026-11-12","status":"Loss","settlement_price":0.0,"quantity":1360,"payout":0.0,"realized_profit":-93.84,"event_id":"3a55c6e2-c360-4d73-aa43-b84c4366f365","note":"Robinhood-confirmed zero payout and $93.84 realized loss; original $99.96 purchase cost including $6.12 fees preserved."},
     "Nov 11 · Parlay 5":{"date":"2026-11-11","time":"07:11","settlement_date":"2026-11-12","status":"Won","settlement_price":0.562,"quantity":471,"payout":264.70,"realized_profit":170.03,"event_id":"8150472a-b00b-4164-bd7b-362ffc56a7f1","note":"Robinhood-confirmed payout on Nov 12 for Nov 11 purchase; original purchase and fees preserved."},
     "Nov 11 · Parlay 3":{"date":"2026-11-11","time":"21:47","settlement_date":"2026-11-11","status":"Won","settlement_price":1.0,"quantity":238,"payout":238.00,"realized_profit":141.85,"event_id":"005621d4-884c-422f-92e1-fad5be5de8ec","note":"Robinhood-confirmed full-contract payout; original purchase and fees preserved. Shared with Bankroll Builder Parlay Tracker."},
