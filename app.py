@@ -1686,10 +1686,12 @@ def match_espn_player(short_name,players,market=None):
         sport="NFL" if market in ("Pass yds","Pass yards","Pass TDs","Rush yds","Rush yards","Rec yds","Rec yards","Rush+Rec yds","Rush+Rec yards","Anytime TD","Receptions") else "NBA"
         players=[p for p in players if p.get("sport","NBA")==sport]
     if len(parts)<2:return None
-    # Robinhood A. Wiggins threes legs refer to Aaron Wiggins (OKC), not Andrew Wiggins (MIA).
-    # Both NBA players share the initial and surname, so prefer the exact first name.
+    # Robinhood A. Wiggins legs refer to Aaron Wiggins; prefer the Atlanta player
+    # when the ESPN feed contains multiple athletes with that name/initial.
     if parts==["a","wiggins"] and market in ("Threes","Points","Rebounds","Assists"):
         aaron=[p for p in players if norm(p.get("name","")).split()==["aaron","wiggins"]]
+        hawks=[p for p in aaron if str(p.get("team","")).upper()=="ATL"]
+        if len(hawks)==1:return hawks[0]
         if len(aaron)==1:return aaron[0]
         return None
     # Robinhood's Nov 9 A. Thompson rebound leg refers to Ausar Thompson.
