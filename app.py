@@ -193,7 +193,7 @@ def load_workbook(contents):
 
 def clean_sheet(raw):
     if raw.empty:return pd.DataFrame()
-    keywords=("player","tipoff","market","reference line","model projection","our play","safer line","play","away","home")
+    keywords=("player","tipoff","market","reference line","model projection","our play","safer line","safe line","play","away","home")
     best=(-1,0)
     for idx in range(min(15,len(raw))):
         cells=[str(v).strip().lower() for v in raw.iloc[idx].values if pd.notna(v)]
@@ -460,7 +460,7 @@ def grade_bankroll_sheet(frame,game_date):
     import re
     from zoneinfo import ZoneInfo
     playercol=lookup(frame,"Player")
-    linecol=lookup(frame,"Safer line")
+    linecol=lookup(frame,"Safer line","Safe line","Safe alternate line","Alternate line")
     gamecol=lookup(frame,"Game")
     marketcol=lookup(frame,"Market","Stat")
     if not playercol or not linecol:return []
