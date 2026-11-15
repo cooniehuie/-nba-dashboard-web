@@ -1850,6 +1850,8 @@ ROBINHOOD_NOV9_BETS=[
 ]
 
 ROBINHOOD_NOV15_BETS=[
+# Grouped under Nov 15 at user request; actual Robinhood purchase was Nov 14 at 23:20 PT. Tracking time 00:00 is a date-group sort placeholder, not purchase time.
+("Nov 15 · Parlay 8",725,13.0,99.99,5.74,[["C. Lamb","Anytime TD",1],["G. Kittle","Anytime TD",1],["J. Williams","Anytime TD",1]],"2026-11-15","00:00"),
 ("Nov 15 · Parlay 7",227,42.4,99.63,3.38,[["J. Johnson","Assists",6],["D. Daniels","Assists",4],["N. Marshall","Assists",2],["K. George","Assists",4]],"2026-11-15","11:39"),
 ("Nov 15 · Parlay 6",256,37.5,99.76,3.76,[["T. Eason","Rebounds",4],["K. Durant","Rebounds",4],["A. Bailey","Rebounds",4],["C. Flagg","Assists",4]],"2026-11-15","11:38"),
 ("Nov 15 · Parlay 5",229,42.1,99.82,3.41,[["C. Flagg","Rebounds",4],["A. Sengun","Rebounds",8],["O. Okongwu","Rebounds",6]],"2026-11-15","11:35"),
@@ -1860,7 +1862,6 @@ ROBINHOOD_NOV15_BETS=[
 ]
 
 ROBINHOOD_NOV14_BETS=[
-("Nov 14 · Parlay 14",725,13.0,99.99,5.74,[["C. Lamb","Anytime TD",1],["G. Kittle","Anytime TD",1],["J. Williams","Anytime TD",1]],"2026-11-14","23:20"),
 ("Nov 14 · Parlay 13",247,39,99.98,3.65,[["J. Fears","Assists",4],["D. Robinson","Points",10],["J. Grant","Threes",1],["R. Gobert","Rebounds",8]],"2026-11-14","15:03"),
 ("Nov 14 · Parlay 12",1489,6.3,99.96,6.15,[["D. Robinson","Points",15],["Z. Williamson","Rebounds",6],["A. Dosunmu","Threes",2],["R. Gobert","Rebounds",10],["A. Thompson","Rebounds",6]],"2026-11-14","14:55"),
 ("Nov 14 · Parlay 11",804,11.7,99.89,5.82,[["M. Thomas","Threes",2],["D. Jenkins","Threes",2],["J. Wells","Threes",2],["A. Dosunmu","Threes",2]],"2026-11-14","13:25"),
