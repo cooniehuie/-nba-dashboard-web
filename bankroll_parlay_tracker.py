@@ -8,6 +8,7 @@ import streamlit as st
 BANKROLL_CYCLE_STARTING_BALANCE = 398.85
 
 PARLAYS = [
+{"date":"2026-11-15","id":"4-Leg Rebounds + Assists · Brown / Maxey / Siakam / Kessler","contracts":253,"cost":99.86,"fees":3.72,"filled_at":"09:54","event_id":"84c62eb5-5955-4075-8010-ff288c30e8d2","my_bets":"Nov 15 · Parlay 3","legs":[["J. Brown","Rebounds",4],["T. Maxey","Assists",4],["P. Siakam","Rebounds",4],["W. Kessler","Rebounds",10]]},
 {"date":"2026-11-15","id":"4-Leg Assists · Johnson / Daniels / Marshall / George","contracts":227,"cost":99.63,"fees":3.38,"filled_at":"11:39","my_bets":"Nov 15 · Parlay 7","legs":[["J. Johnson","Assists",6],["D. Daniels","Assists",4],["N. Marshall","Assists",2],["K. George","Assists",4]]},
 {"date":"2026-11-15","id":"4-Leg Rebounds + Assists · Eason / Durant / Bailey / Flagg","contracts":256,"cost":99.76,"fees":3.76,"filled_at":"11:38","my_bets":"Nov 15 · Parlay 6","legs":[["T. Eason","Rebounds",4],["K. Durant","Rebounds",4],["A. Bailey","Rebounds",4],["C. Flagg","Assists",4]]},
 {"date":"2026-11-15","id":"3-Leg Rebounds · Flagg / Sengun / Okongwu","contracts":229,"cost":99.82,"fees":3.41,"filled_at":"11:35","my_bets":"Nov 15 · Parlay 5","legs":[["C. Flagg","Rebounds",4],["A. Sengun","Rebounds",8],["O. Okongwu","Rebounds",6]]},
