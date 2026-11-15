@@ -1850,6 +1850,9 @@ ROBINHOOD_NOV9_BETS=[
 ]
 
 ROBINHOOD_NOV15_BETS=[
+("Nov 15 · Parlay 11",1443,6.5,99.94,6.15,[["J. Smith-Njigba","Rec yds",100],["T. Tucker","Receptions",3],["K. Black","Rush yds",40],["D. Meyers","Receptions",2]],"2026-11-15","12:04"),
+("Nov 15 · Parlay 10",321,29.7,99.89,4.55,[["T. Tucker","Receptions",2],["K. Black","Rush yds",25],["J. Smith-Njigba","Rec yds",60],["M. Stafford","Pass yds",150]],"2026-11-15","12:02"),
+("Nov 15 · Parlay 9",1269,7.4,100.00,6.09,[["M. Stafford","Pass yds",175],["J. Warren","Rush yds",60],["T. Tucker","Rec yds",20],["K. Black","Rush yds",30],["C. Lamb","Receptions",7],["J. Smith-Njigba","Receptions",5]],"2026-11-15","11:55"),
 # Grouped under Nov 15 at user request; actual Robinhood purchase was Nov 14 at 23:20 PT. Tracking time 00:00 is a date-group sort placeholder, not purchase time.
 ("Nov 15 · Parlay 8",725,13.0,99.99,5.74,[["C. Lamb","Anytime TD",1],["G. Kittle","Anytime TD",1],["J. Williams","Anytime TD",1]],"2026-11-15","00:00"),
 ("Nov 15 · Parlay 7",227,42.4,99.63,3.38,[["J. Johnson","Assists",6],["D. Daniels","Assists",4],["N. Marshall","Assists",2],["K. George","Assists",4]],"2026-11-15","11:39"),
