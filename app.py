@@ -1871,6 +1871,7 @@ ROBINHOOD_NOV15_BETS=[
 ]
 
 ROBINHOOD_NOV14_BETS=[
+("Nov 14 · Parlay 14",1705,5.5,99.99,6.22,[["DET","Game winner",1],["JAX","Game winner",1],["BUF","Game winner",1],["GB","Game winner",1],["LAR","Game winner",1],["SEA","Game winner",1],["SF","Game winner",1],["CIN","Game winner",1]],"2026-11-14","18:41"),
 ("Nov 14 · Parlay 13",247,39,99.98,3.65,[["J. Fears","Assists",4],["D. Robinson","Points",10],["J. Grant","Threes",1],["R. Gobert","Rebounds",8]],"2026-11-14","15:03"),
 ("Nov 14 · Parlay 12",1489,6.3,99.96,6.15,[["D. Robinson","Points",15],["Z. Williamson","Rebounds",6],["A. Dosunmu","Threes",2],["R. Gobert","Rebounds",10],["A. Thompson","Rebounds",6]],"2026-11-14","14:55"),
 ("Nov 14 · Parlay 11",804,11.7,99.89,5.82,[["M. Thomas","Threes",2],["D. Jenkins","Threes",2],["J. Wells","Threes",2],["A. Dosunmu","Threes",2]],"2026-11-14","13:25"),
