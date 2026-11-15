@@ -1023,7 +1023,9 @@ def show_bankroll_live_tracker(embedded=False):
     sidecol=lookup(frame,"Model side")
     modelcol=lookup(frame,"Model projection","Reference line")
     if not all([playercol,linecol]):
-        st.warning("The Bankroll Builder sheet needs Player and Safe line columns for tracking. Found columns: "+", ".join(map(str,frame.columns))")
+        st.warning("The Bankroll Builder sheet needs Player and Safe line columns for tracking.")
+        if is_admin:
+            st.text("Detected headers: " + ", ".join(map(str, frame.columns)))
         return
     # Snapshot today's selections on an admin visit, before a new daily upload replaces them.
     if is_admin and not embedded:
