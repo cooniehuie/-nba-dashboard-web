@@ -2510,7 +2510,52 @@ with st.sidebar:
     phone_view=st.toggle("📱 Preview phone cards on desktop",value=False,key="phone_view",help="Cards appear automatically on phones. Enable this to preview card layout on desktop.")
 
 with st.container(key="mobile_top_header"):
-    st.markdown("""<div class="mobile-site-head"><div><b>🏀 Huie's Degen Center</b><small>NBA models &amp; player tracking</small></div><span class="mobile-live-dot">● NBA</span></div>""",unsafe_allow_html=True)
+    sport="NFL" if section in ("🏈 Huie NFL Projections","🏈 NFL Model") else "NBA"
+    icon="🏈" if sport=="NFL" else "🏀"
+    st.markdown(f"""<div class="mobile-site-head"><div><b>{icon} Huie's Degen Center</b><small>{sport} models &amp; player tracking</small></div><span class="mobile-live-dot">● {sport}</span></div>""",unsafe_allow_html=True)
+
+# Touch-friendly phone navigation; the original desktop sidebar is unchanged.
+def navigate_phone(destination):
+    st.session_state["site_nav"]=destination
+
+def render_phone_nav():
+    with st.container(key="mobile_bottom_nav"):
+        # Favorites is available in More. The three key pages use their full labels.
+        shortcuts=[("Home","Overview"),
+                   ("Live Tracker","🔴 Bankroll Builder Live Tracking"),
+                   ("Bankroll Builder","Bankroll Builder")]
+        if is_admin:
+            shortcuts.append(("Bets","💸 My Bets"))
+        columns=st.columns(len(shortcuts)+1)
+        for i,(label,destination) in enumerate(shortcuts):
+            with columns[i]:
+                st.button(label,key="phone_nav_"+str(i),use_container_width=True,
+                          type="primary" if section==destination else "secondary",
+                          on_click=navigate_phone,args=(destination,))
+        with columns[-1]:
+            with st.popover("More",use_container_width=True):
+                st.caption("Navigate to another page")
+                for j,destination in enumerate(nav_options):
+                    st.button(destination,key="phone_more_"+str(j),use_container_width=True,
+                              type="primary" if section==destination else "secondary",
+                              on_click=navigate_phone,args=(destination,))
+                st.caption("Uploads, sign-out and admin settings remain in the sidebar.")
+
+
+# NFL reads ESPN and the NFL HTML archive, not an NBA Excel workbook.
+if section=="🏈 Huie NFL Projections":
+    from huie_nfl_projections import render as render_huie_nfl
+    render_huie_nfl(storage_read=github_file if storage_ready else None,
+                    storage_write=github_file if is_admin and storage_ready else None,
+                    is_admin=is_admin)
+    render_phone_nav()
+    st.stop()
+elif section=="🏈 NFL Model":
+    from nfl_model_tab import render as render_nfl_model
+    render_nfl_model(storage_read=github_file,storage_write=github_file if is_admin else None,
+                     is_admin=is_admin)
+    render_phone_nav()
+    st.stop()
 
 source=uploaded.getvalue() if uploaded else None
 if source is None and storage_ready:
@@ -2750,14 +2795,6 @@ elif section=="Live Prop Tracker":
 elif section=="🏀 Huie Projections":
     from huie_individual_games import render as render_huie_games
     render_huie_games(sheets[allprops] if allprops else None,espn_nba_boxscores,match_espn_player,archived_huie_props)
-elif section=="🏈 Huie NFL Projections":
-    from huie_nfl_projections import render as render_huie_nfl
-    render_huie_nfl(storage_read=github_file,storage_write=github_file if is_admin else None,
-                    is_admin=is_admin)
-elif section=="🏈 NFL Model":
-    from nfl_model_tab import render as render_nfl_model
-    render_nfl_model(storage_read=github_file,storage_write=github_file if is_admin else None,
-                     is_admin=is_admin)
 elif section=="Individual Games":
     st.title("Individual Game Projections")
     if games:
@@ -2780,28 +2817,4 @@ else:
     st.title(section)
     show_table(chosen)
 
-# Touch-friendly phone navigation; the original desktop sidebar is unchanged.
-def navigate_phone(destination):
-    st.session_state["site_nav"]=destination
-
-with st.container(key="mobile_bottom_nav"):
-    # Favorites is available in More. The three key pages use their full labels.
-    shortcuts=[("Home","Overview"),
-               ("Live Tracker","🔴 Bankroll Builder Live Tracking"),
-               ("Bankroll Builder","Bankroll Builder")]
-    if is_admin:
-        shortcuts.append(("Bets","💸 My Bets"))
-    columns=st.columns(len(shortcuts)+1)
-    for i,(label,destination) in enumerate(shortcuts):
-        with columns[i]:
-            st.button(label,key="phone_nav_"+str(i),use_container_width=True,
-                      type="primary" if section==destination else "secondary",
-                      on_click=navigate_phone,args=(destination,))
-    with columns[-1]:
-        with st.popover("More",use_container_width=True):
-            st.caption("Navigate to another page")
-            for j,destination in enumerate(nav_options):
-                st.button(destination,key="phone_more_"+str(j),use_container_width=True,
-                          type="primary" if section==destination else "secondary",
-                          on_click=navigate_phone,args=(destination,))
-            st.caption("Uploads, sign-out and admin settings remain in the sidebar.")
+render_phone_nav()

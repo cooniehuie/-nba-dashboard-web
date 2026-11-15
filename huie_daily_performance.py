@@ -79,9 +79,9 @@ def grade_predictions(projections, games, players, player_match):
     return pd.DataFrame(results)
 
 
-def _stat_summary(graded):
+def _stat_summary(graded, markets=MARKETS):
     rows=[]
-    for market in MARKETS:
+    for market in markets:
         row={"Stat":market}
         total_hits=total_graded=0
         for side in SIDES:
@@ -146,89 +146,97 @@ def render_summary(projections, espn_nba_boxscores, match_espn_player, selected_
         if graded.empty:
             st.info("No Huie player projections were available to grade.")
             return
-        scoped=graded[graded["Side"].isin(SIDES)]
-        finished=scoped[scoped["Result"].isin(("Hit","Miss"))]
-        hits=int((finished["Result"]=="Hit").sum())
-        over=int(((finished["Side"]=="OVER")&(finished["Result"]=="Hit")).sum())
-        under=int(((finished["Side"]=="UNDER")&(finished["Result"]=="Hit")).sum())
-        attempts=len(finished)
-        pushes=int((graded["Result"]=="Push").sum())
-        dnp=int((graded["Result"]=="DNP").sum())
-        # Count every outcome lacking a verified hit/miss, including missing
-        # Huie forecasts, pending games and player/box-score mismatches.
-        unverified=int((~graded["Result"].isin(("Hit","Miss","Push","DNP"))).sum())
-        a,b,c,d,e=st.columns(5)
-        a.metric("Total hits",hits)
-        b.metric("Over hits",over)
-        c.metric("Under hits",under)
-        d.metric("Hit rate",f"{100*hits/attempts:.1f}%" if attempts else "—")
-        e.metric("Unverified",unverified)
-        st.caption(f"{attempts} graded (hit/miss) · {pushes} pushes · {dnp} DNP · "
-                   f"{unverified} unverified (includes pending games, unmatched stats and missing Huie projections)")
-        table=_stat_summary(graded)
-        with st.expander("Grading coverage and unverified reasons",expanded=attempts==0 or attempts<len(scoped)*0.6):
-            st.caption(f"Matched NBA games: {matching_games}/{expected_games} · "
-                       f"Final box-score outcomes: {attempts}/{len(scoped)} projected Over/Under picks")
-            breakdown=(scoped["Result"].value_counts(dropna=False)
-                       .rename_axis("Result").reset_index(name="Projections"))
-            st.dataframe(breakdown,hide_index=True,use_container_width=True)
-            st.caption("Unmatched players and missing stats are not silently treated as misses.")
-        if attempts:
-            try:
-                import altair as alt
-                chart_rows=[]
-                for _,r in table.iterrows():
-                    for side in SIDES:
-                        chart_rows.append({"Stat":r["Stat"],"Side":side,
-                                           "Hits":r[side.title()+" hits"],
-                                           "Graded":r[side.title()+" graded"],
-                                           "Hit rate":r[side.title()+" hit rate"]})
-                plot=pd.DataFrame(chart_rows)
-                chart=(alt.Chart(plot).mark_bar().encode(
-                    x=alt.X("Stat:N",sort=list(MARKETS),title=None,
-                            axis=alt.Axis(labelAngle=0)),
-                    y=alt.Y("Hits:Q",title="Projections hit",stack="zero",
-                            axis=alt.Axis(tickMinStep=1)),
-                    color=alt.Color("Side:N",sort=list(SIDES),
-                                    scale=alt.Scale(domain=["OVER","UNDER"],range=["#16a34a","#dc2626"]),
-                                    legend=alt.Legend(title="Huie model side")),
-                    tooltip=["Stat:N","Side:N","Hits:Q","Graded:Q","Hit rate:N"]
-                    ).properties(height=290))
-                st.altair_chart(chart,use_container_width=True)
-            except ImportError:
-                st.bar_chart(table.set_index("Stat")[["Over hits","Under hits"]],stack=True)
-        else:
-            st.info("Games have not produced any final, verified Huie hits or misses yet. The chart will populate after games finish.")
-        # Compact mobile-friendly summary stays immediately below the graph.
-        # The wide over/under detail remains accessible without forcing a
-        # horizontal scroll to discover the Unverified count.
-        st.markdown("**Daily breakdown by stat**")
-        compact=table[["Stat","Total hits","Total graded","Unverified","Hit rate"]].copy()
-        compact["Hits / graded"]=compact["Total hits"].astype(str)+" / "+compact["Total graded"].astype(str)
-        compact=compact[["Stat","Hits / graded","Unverified","Hit rate"]]
-        st.dataframe(compact,hide_index=True,use_container_width=True,
-                     column_config={
-                         "Stat":st.column_config.TextColumn("Stat",width="small"),
-                         "Hits / graded":st.column_config.TextColumn("Hits / graded",width="small"),
-                         "Unverified":st.column_config.NumberColumn("Unverified",width="small"),
-                         "Hit rate":st.column_config.TextColumn("Hit rate",width="small")})
-        st.caption(f"**Total unverified across all stats: {unverified}** · "
-                   "Missing Huie predictions are counted; DNP and pushes are separate.")
-        with st.expander("Full Over / Under breakdown",expanded=False):
-            st.dataframe(table,hide_index=True,use_container_width=True)
-        with st.expander("See every projection and final result",expanded=False):
-            choices=["All","Hit","Miss","Pending/unverified","DNP","Push"]
-            choice=st.selectbox("Show results",choices,key="huie_daily_result_filter")
-            shown=graded
-            if choice in ("Hit","Miss","DNP","Push"):
-                shown=graded[graded["Result"]==choice]
-            elif choice=="Pending/unverified":
-                shown=graded[~graded["Result"].isin(("Hit","Miss","DNP","Push"))]
-            st.dataframe(shown[["Player","Game","Market","Side","Reference line",
-                                "Huie projection","Actual","Result"]],
-                         hide_index=True,use_container_width=True)
-            st.download_button("Export daily Huie results CSV",graded.to_csv(index=False),
-                               file_name="huie_projections_"+selected_date.isoformat()+".csv",
-                               mime="text/csv",key="huie_daily_export")
-        st.caption("Grading: OVER wins above the reference line; UNDER wins below. Exact ties are pushes. Live, unplayed, missing and DNP records never count as losses.")
+        render_graded_summary(
+            graded, MARKETS, f"Matched NBA games: {matching_games}/{expected_games}",
+            "huie_daily", "huie_projections_"+selected_date.isoformat()+".csv")
     live_summary()
+
+
+def render_graded_summary(graded, markets, coverage_label, key_prefix, filename,
+                          breakdown_label="Daily breakdown by stat"):
+    """Shared NBA/NFL result metrics, chart, coverage and exports."""
+    scoped=graded[graded["Side"].isin(SIDES)]
+    finished=scoped[scoped["Result"].isin(("Hit","Miss"))]
+    hits=int((finished["Result"]=="Hit").sum())
+    over=int(((finished["Side"]=="OVER")&(finished["Result"]=="Hit")).sum())
+    under=int(((finished["Side"]=="UNDER")&(finished["Result"]=="Hit")).sum())
+    attempts=len(finished)
+    pushes=int((graded["Result"]=="Push").sum())
+    dnp=int((graded["Result"]=="DNP").sum())
+    # Count every outcome lacking a verified hit/miss, including missing
+    # Huie forecasts, pending games and player/box-score mismatches.
+    unverified=int((~graded["Result"].isin(("Hit","Miss","Push","DNP"))).sum())
+    a,b,c,d,e=st.columns(5)
+    a.metric("Total hits",hits)
+    b.metric("Over hits",over)
+    c.metric("Under hits",under)
+    d.metric("Hit rate",f"{100*hits/attempts:.1f}%" if attempts else "—")
+    e.metric("Unverified",unverified)
+    st.caption(f"{attempts} graded (hit/miss) · {pushes} pushes · {dnp} DNP · "
+               f"{unverified} unverified (includes pending games, unmatched stats and missing Huie projections)")
+    table=_stat_summary(graded, markets)
+    with st.expander("Grading coverage and unverified reasons",expanded=attempts==0 or attempts<len(scoped)*0.6):
+        st.caption(f"{coverage_label} · "
+                   f"Final box-score outcomes: {attempts}/{len(scoped)} projected Over/Under picks")
+        breakdown=(scoped["Result"].value_counts(dropna=False)
+                   .rename_axis("Result").reset_index(name="Projections"))
+        st.dataframe(breakdown,hide_index=True,use_container_width=True)
+        st.caption("Unmatched players and missing stats are not silently treated as misses.")
+    if attempts:
+        try:
+            import altair as alt
+            chart_rows=[]
+            for _,r in table.iterrows():
+                for side in SIDES:
+                    chart_rows.append({"Stat":r["Stat"],"Side":side,
+                                       "Hits":r[side.title()+" hits"],
+                                       "Graded":r[side.title()+" graded"],
+                                       "Hit rate":r[side.title()+" hit rate"]})
+            plot=pd.DataFrame(chart_rows)
+            chart=(alt.Chart(plot).mark_bar().encode(
+                x=alt.X("Stat:N",sort=list(markets),title=None,
+                        axis=alt.Axis(labelAngle=0)),
+                y=alt.Y("Hits:Q",title="Projections hit",stack="zero",
+                        axis=alt.Axis(tickMinStep=1)),
+                color=alt.Color("Side:N",sort=list(SIDES),
+                                scale=alt.Scale(domain=["OVER","UNDER"],range=["#16a34a","#dc2626"]),
+                                legend=alt.Legend(title="Huie model side")),
+                tooltip=["Stat:N","Side:N","Hits:Q","Graded:Q","Hit rate:N"]
+                ).properties(height=290))
+            st.altair_chart(chart,use_container_width=True)
+        except ImportError:
+            st.bar_chart(table.set_index("Stat")[["Over hits","Under hits"]],stack=True)
+    else:
+        st.info("Games have not produced any final, verified Huie hits or misses yet. The chart will populate after games finish.")
+    # Compact mobile-friendly summary stays immediately below the graph.
+    # The wide over/under detail remains accessible without forcing a
+    # horizontal scroll to discover the Unverified count.
+    st.markdown(f"**{breakdown_label}**")
+    compact=table[["Stat","Total hits","Total graded","Unverified","Hit rate"]].copy()
+    compact["Hits / graded"]=compact["Total hits"].astype(str)+" / "+compact["Total graded"].astype(str)
+    compact=compact[["Stat","Hits / graded","Unverified","Hit rate"]]
+    st.dataframe(compact,hide_index=True,use_container_width=True,
+                 column_config={
+                     "Stat":st.column_config.TextColumn("Stat",width="small"),
+                     "Hits / graded":st.column_config.TextColumn("Hits / graded",width="small"),
+                     "Unverified":st.column_config.NumberColumn("Unverified",width="small"),
+                     "Hit rate":st.column_config.TextColumn("Hit rate",width="small")})
+    st.caption(f"**Total unverified across all stats: {unverified}** · "
+               "Missing Huie predictions are counted; DNP and pushes are separate.")
+    with st.expander("Full Over / Under breakdown",expanded=False):
+        st.dataframe(table,hide_index=True,use_container_width=True)
+    with st.expander("See every projection and final result",expanded=False):
+        choices=["All","Hit","Miss","Pending/unverified","DNP","Push"]
+        choice=st.selectbox("Show results",choices,key=key_prefix+"_result_filter")
+        shown=graded
+        if choice in ("Hit","Miss","DNP","Push"):
+            shown=graded[graded["Result"]==choice]
+        elif choice=="Pending/unverified":
+            shown=graded[~graded["Result"].isin(("Hit","Miss","DNP","Push"))]
+        st.dataframe(shown[["Player","Game","Market","Side","Reference line",
+                            "Huie projection","Actual","Result"]],
+                     hide_index=True,use_container_width=True)
+        st.download_button("Export daily Huie results CSV",graded.to_csv(index=False),
+                           file_name=filename,
+                           mime="text/csv",key=key_prefix+"_export")
+    st.caption("Grading: OVER wins above the reference line; UNDER wins below. Exact ties are pushes. Live, unplayed, missing and DNP records never count as losses.")
