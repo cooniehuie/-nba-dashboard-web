@@ -9,7 +9,8 @@ from parlay_context import game_day_context, injury_status, parse_game, name_key
 from parlay_calibration import train as train_probabilities, predict as calibrated_predict
 from parlay_joint import correlated_joint
 from parlay_predictive import audit as predictive_audit
-from parlay_huie_projections import historical_projection_results, enrich_huie_projections, opponent_adjusted_projections
+from parlay_huie_projections import (historical_projection_results, enrich_huie_projections,
+                                      opponent_adjusted_projections, blowout_adjusted_projections)
 from parlay_quotes import fetch_quote_feed, match_quote
 from statistics import pstdev
 
@@ -202,68 +203,129 @@ def _candidates(df, *, reference_only=False):
     return result.drop_duplicates(subset=["Player","Market","Safe line","Game"])
 
 @st.cache_data(ttl=21600, show_spinner=False)
-def _historical_boxscores(days_back=30):
-    """Fetch completed ESPN boxscores for recent calendar days; no synthetic games."""
-    from datetime import datetime, timedelta
+def _nba_history_bundle(days_back=30, as_of=None):
+    """Reuse completed ESPN summaries for projections and blowout validation."""
+    from concurrent.futures import ThreadPoolExecutor
+    from datetime import date, datetime, timedelta
     from zoneinfo import ZoneInfo
     from collections import defaultdict
-    from urllib.request import Request, urlopen
-    import json
-    def fetch(url):
-        with urlopen(Request(url,headers={"User-Agent":"Mozilla/5.0"}),timeout=8) as response:
-            return json.load(response)
-    today=datetime.now(ZoneInfo("America/Los_Angeles")).date()
-    result=defaultdict(list)
-    failures=0
-    for offset in range(1, days_back+1):
-        day=today-timedelta(days=offset)
+    from parlay_blowout import espn_rotation_game
+    from parlay_context import fetch_json
+    from parlay_predictive import _number
+
+    tz=ZoneInfo("America/Los_Angeles")
+    end=date.fromisoformat(as_of) if as_of else datetime.now(tz).date()
+
+    def fetch_day(day):
         try:
-            board=fetch("https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard?dates="+day.strftime("%Y%m%d"))
-            games=[]
-            players=[]
-            for event in board.get("events",[]):
-                if event.get("status",{}).get("type",{}).get("state")!="post":continue
-                summary=fetch("https://site.api.espn.com/apis/site/v2/sports/basketball/nba/summary?event="+str(event["id"]))
-                for team in summary.get("boxscore",{}).get("players",[]):
-                    for group in team.get("statistics",[]):
-                        keys=[str(k).lower() for k in group.get("keys",[])]
-                        labels=[str(k).lower() for k in group.get("labels",[])]
-                        for athlete in group.get("athletes",[]):
-                            if athlete.get("didNotPlay") or athlete.get("inactive"):continue
-                            stats=athlete.get("stats",[])
-                            def stat(*options):
-                                for key in options:
-                                    idx=keys.index(key) if key in keys else (labels.index(key) if key in labels else -1)
-                                    if 0<=idx<len(stats):return stats[idx]
-                                return None
-                            def numeric(value):
-                                try:
-                                    raw=str(value).strip()
-                                    if ":" in raw:
-                                        parts=raw.split(":")
-                                        if len(parts)==2:
-                                            return float(parts[0])+float(parts[1])/60
-                                    return float(raw.split("-")[0])
-                                except (ValueError,TypeError):return None
-                            info=athlete.get("athlete",{})
-                            players.append({"name":info.get("displayName",info.get("fullName","")),
-                                            "team":team.get("team",{}).get("abbreviation",""),
-                                            "game":{"state":"post"},
-                                            "stats":{"Points":numeric(stat("pts","points")),
-                                                     "Rebounds":numeric(stat("reb","rebs","rebounds")),
-                                                     "Assists":numeric(stat("ast","assists")),
-                                                     "Threes":numeric(stat("3pt","3pm","3-pt")),
-                                                     "Minutes":numeric(stat("min","minutes"))}})
+            return day, fetch_json("https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard?dates="+day.strftime("%Y%m%d"))
         except Exception:
-            failures+=1
-            continue
-        for athlete in players:
-            game=athlete.get("game",{})
-            if game.get("state")!="post" or athlete.get("dnp"):
+            return day, None
+
+    def fetch_event(event):
+        try:
+            summary=fetch_json("https://site.api.espn.com/apis/site/v2/sports/basketball/nba/summary?event="+str(event["id"]))
+            return event, summary
+        except Exception:
+            return event, None
+
+    result=defaultdict(list)
+    games=[]
+    incomplete=set()
+    days=[end-timedelta(days=offset) for offset in range(1,days_back+1)]
+    events={}
+    with ThreadPoolExecutor(max_workers=12) as pool:
+        for day, board in pool.map(fetch_day,days):
+            if board is None:
+                incomplete.add(day)
                 continue
-            key=(str(athlete.get("name","")).casefold(),str(athlete.get("team","")).upper())
-            result[key].append({"date":day.isoformat(),"stats":athlete.get("stats",{})})
-    return dict(result),failures
+            for event in board.get("events",[]):
+                if (event.get("status") or {}).get("type",{}).get("state")!="post":
+                    continue
+                game_id=str(event.get("id") or "")
+                if not game_id.isdigit():
+                    continue
+                try:
+                    kickoff=datetime.fromisoformat(event["date"].replace("Z","+00:00")).astimezone(tz).date()
+                except (KeyError, ValueError, TypeError, AttributeError):
+                    continue
+                if end-timedelta(days=days_back)<=kickoff<end:
+                    events[game_id]=(kickoff,event)
+        for event, summary in pool.map(fetch_event,(event for _,event in events.values())):
+            day=events[str(event["id"])][0]
+            if summary is None:
+                incomplete.add(day)
+                continue
+            day_key=day.isoformat()
+            try:
+                rotation=espn_rotation_game(event,summary,day_key)
+            except (KeyError,TypeError,ValueError):
+                rotation=None
+            if rotation:
+                games.append(rotation)
+            for team in summary.get("boxscore",{}).get("players",[]):
+                code=str(team.get("team",{}).get("abbreviation","")).upper()
+                for group in team.get("statistics",[]):
+                    keys=[str(k).lower() for k in group.get("keys",[])]
+                    labels=[str(k).lower() for k in group.get("labels",[])]
+                    for athlete in group.get("athletes",[]):
+                        if athlete.get("didNotPlay") or athlete.get("inactive"):
+                            continue
+                        stats=athlete.get("stats",[])
+                        def stat(*options):
+                            for k in options:
+                                idx=keys.index(k) if k in keys else (labels.index(k) if k in labels else -1)
+                                if 0<=idx<len(stats):
+                                    value=stats[idx]
+                                    return _number(value.split("-")[0] if isinstance(value,str) else value)
+                            return None
+                        info=athlete.get("athlete",{})
+                        name=str(info.get("displayName") or info.get("fullName") or "").casefold()
+                        if not name or not code:
+                            continue
+                        result[name,code].append({"date":day_key,"event_id":str(event["id"]),
+                            "starter":athlete.get("starter"),"exit_flag":athlete.get("ejected") is True,
+                            "stats":{"Points":stat("pts","points"),"Rebounds":stat("reb","rebs","rebounds"),
+                                     "Assists":stat("ast","assists"),
+                                     "Threes":stat("3pt","3pm","3-pt","threepointfieldgoalsmade-threepointfieldgoalsattempted"),
+                                     "Minutes":stat("min","minutes")}})
+    return dict(result),len(incomplete),games
+
+
+def _historical_boxscores(days_back=30):
+    history,failures,_=_nba_history_bundle(days_back)
+    return history,failures
+
+
+_historical_boxscores.clear = _nba_history_bundle.clear
+
+
+@st.cache_data(ttl=21600, show_spinner=False)
+def _blowout_model(history, games, date_key):
+    from parlay_blowout import fit
+    return fit(history,games,date_key)
+
+
+def _render_blowout_audit(model, data):
+    from parlay_blowout import audit_rows
+    with st.expander("Blowout risk · historical validation"):
+        st.caption("Risk uses Huie’s own team ratings and verified fourth-quarter score and substitution history. "
+                   "The minutes adjustment compares this matchup’s risk with recent games already in the baseline. "
+                   "No Sam forecasts or betting spreads are inputs.")
+        if model is None:
+            st.info("Blowout history unavailable. The original projections are unchanged.")
+            return
+        rows=audit_rows(model)
+        risk_count=int(data["Blowout risk"].notna().sum()) if "Blowout risk" in data else 0
+        applied=int(data["Minutes adjustment"].fillna(0).ne(0).sum()) if "Minutes adjustment" in data else 0
+        st.caption(f'{model["labeled"][0]} labeled games · {risk_count} props with a risk estimate · {applied} props with a minutes adjustment')
+        if rows:
+            st.dataframe(pd.DataFrame(rows),hide_index=True,use_container_width=True)
+        else:
+            st.info("Not enough pregame history for a held-out comparison. The original projections are unchanged.")
+        st.caption("At least 45 held-out forecasts across four or more dates, lower minutes error, "
+                   "and at least 1% lower stat error are required to activate an adjustment.")
+
 
 def _history_view(data):
     st.subheader("External results · ESPN completed NBA games")
@@ -271,20 +333,25 @@ def _history_view(data):
     auto=st.checkbox("Automatically load verified ESPN history for Huie's model",
                      value=True,key="lab_auto_history")
     if st.button("Refresh verified ESPN history",key="lab_fetch_history"):
-        _historical_boxscores.clear()
+        _nba_history_bundle.clear()
+        _blowout_model.clear()
     st.session_state["lab_history_enabled"]=auto
     if not auto:
-        for key in ("lab_history_results","lab_history_raw","lab_calibration"):
+        for key in ("lab_history_results","lab_history_raw","lab_calibration","lab_rotation_games"):
             st.session_state.pop(key,None)
         st.info("ESPN history loading is off. Huie projections require three actual games or a recorded workbook average.")
         return
     with st.spinner("Checking recent completed NBA box scores..."):
         try:
-            history,failures=_historical_boxscores()
+            from datetime import datetime
+            from zoneinfo import ZoneInfo
+            today=datetime.now(ZoneInfo("America/Los_Angeles")).date().isoformat()
+            history,failures,rotation_games=_nba_history_bundle(as_of=today)
         except Exception as exc:
             st.warning("Historical results could not be retrieved: "+str(exc))
             return
     st.session_state["lab_history_raw"]=history
+    st.session_state["lab_rotation_games"]=rotation_games
     model_audit=predictive_audit(history)
     st.session_state["lab_predictive_audit"]=model_audit
     with st.expander("Predictive model evaluation · actual ESPN outcomes"):
@@ -472,6 +539,20 @@ def render(all_props):
             st.caption(f'{context["failures"]} ESPN game requests were unavailable; incomplete samples were not imputed.')
     elif use_matchup:
         st.caption("Opponent matchup adjustments require unambiguous ESPN player-team matches from External Historical Results; no unidentified team is guessed.")
+    apply_blowout=st.checkbox("Apply validated blowout minutes adjustments",value=True,key="lab_nba_blowout")
+    blowout_model=None
+    history=st.session_state.get("lab_history_raw",{})
+    rotation_games=st.session_state.get("lab_rotation_games",[])
+    if history and rotation_games:
+        try:
+            from datetime import datetime
+            from zoneinfo import ZoneInfo
+            as_of=datetime.now(ZoneInfo("America/Los_Angeles")).date().isoformat()
+            blowout_model=_blowout_model(history,rotation_games,as_of)
+            data=blowout_adjusted_projections(data,blowout_model,apply_blowout)
+        except Exception:
+            st.warning("Blowout assessment unavailable. Original minutes forecasts are used.")
+    _render_blowout_audit(blowout_model,data)
     st.subheader("Model comparison · final projections")
     st.caption("The displayed Huie projection is the value actually used for parlay qualification, including any selected matchup adjustment. Sam's model projection is never used to calculate Huie's.")
     show=data.sort_values(["Baseline margin","Sam margin"],ascending=False,na_position="last").copy()
@@ -482,11 +563,14 @@ def render(all_props):
                                  "Baseline margin":"Huie margin",
                                  "Adaptive candidate":"Experimental forecast"})
     preferred=["Player","Market","Reference line","Sam projection","Huie projection","Experimental forecast",
-               "Huie method","Expected minutes","Minutes trend","Recent rate change",
+               "Huie method","Expected minutes","Blowout risk","Minutes adjustment","Blowout role",
+               "Blowout validation","Minutes trend","Recent rate change",
                "Predictive validation","Matchup context","Sam margin","Huie margin",
                "Recent hits","Recent hit rate","Game"]
     cols=[col for col in preferred if col in display.columns]
-    st.dataframe(display[cols],use_container_width=True,hide_index=True)
+    st.dataframe(display[cols],use_container_width=True,hide_index=True,
+                 column_config={"Blowout risk":st.column_config.NumberColumn("Blowout risk",format="percent"),
+                                "Minutes adjustment":st.column_config.NumberColumn("Minutes adjustment",format="%+.2f")})
     st.caption(f'{int(data["Huie baseline"].notna().sum())} Huie projections available from verified player data; '+
                f'{int(data["Sam projection"].notna().sum())} Sam projections available. '+
                "Missing history, unverified opponent adjustments, or absent player estimates are never invented.")

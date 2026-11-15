@@ -79,11 +79,11 @@ class IndividualGamesLogicTests(unittest.TestCase):
 APP=r'''
 import pandas as pd
 import huie_individual_games as huie
-huie._historical_boxscores=lambda: ({
+huie._nba_history_bundle=lambda **kwargs: ({
     ("Evan Mobley","CLE"):[
         {"date":f"2026-11-{d:02d}",
          "stats":{"Threes":2.0,"Minutes":30}} for d in range(1,12)
-    ]},0)
+    ]},0,[])
 huie._validated_audit=lambda history:{}
 frame=pd.DataFrame([
     {"Player":"Evan Mobley","Market":"Threes","Reference line":1.5,

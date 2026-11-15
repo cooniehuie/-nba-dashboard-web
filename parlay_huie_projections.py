@@ -9,6 +9,7 @@ import pandas as pd
 
 from parlay_context import name_key, parse_game, team_key, matchup_adjustment
 from parlay_predictive import forecast as predictive_forecast
+from parlay_blowout import assessment, minutes_normalized
 
 
 def _initials(value):
@@ -44,17 +45,8 @@ def historical_projection_results(data, history, model_audit):
         if not samples:continue
         values=[r[0] for r in samples]
         recent=values[:3]
-        mins=[]
-        per_min=[]
-        for stat,minutes in samples:
-            if minutes is None:continue
-            try:m=float(minutes)
-            except (TypeError,ValueError):continue
-            if m>0:mins.append(m)
-            if m>=5:per_min.append(stat/m)
-        projected_minutes=(sum(mins[:5])/5) if len(mins)>=5 else None
-        minutes_estimate=(sum(per_min)/len(per_min)*projected_minutes
-                          if projected_minutes is not None and len(per_min)>=5 else None)
+        minutes_baseline=minutes_normalized(list(reversed(games)),pick["Market"])
+        projected_minutes,minutes_estimate=minutes_baseline or (None,None)
         adaptive=predictive_forecast(games,pick["Market"])
         validation=audit.get(pick["Market"],{})
         records.append({
@@ -71,7 +63,7 @@ def historical_projection_results(data, history, model_audit):
             "Historical SD":round(max(.75,pstdev(values[:5])),3) if len(values)>=5 else None,
             "ESPN team":team,
             "Minutes projection":round(minutes_estimate,2) if minutes_estimate is not None else None,
-            "Recent minutes":round(projected_minutes,1) if projected_minutes is not None else None,
+            "Recent minutes":projected_minutes,
             "Adaptive projection":adaptive["projection"] if adaptive else None,
             "Adaptive method":adaptive["method"] if adaptive else "Unavailable",
             "Expected minutes":adaptive["expected_minutes"] if adaptive else None,
@@ -107,14 +99,18 @@ def enrich_huie_projections(data, historical):
         if rec.get("Use adaptive") and pd.notna(rec.get("Adaptive projection")):
             baseline=float(rec["Adaptive projection"])
             source="Validated adaptive minutes × recent stat rate"
+            minutes=rec.get("Expected minutes")
         elif rec["Completed games"]>=5 and pd.notna(minutes_based):
             baseline=float(minutes_based)
             source="ESPN historical minutes-normalized fallback"
+            minutes=rec.get("Recent minutes")
         else:
             baseline=float(rec["Recent three average"])
             source="ESPN latest 3 completed games (limited)"
+            minutes=None
         result.at[idx,"Adaptive candidate"]=rec.get("Adaptive projection")
-        result.at[idx,"Expected minutes"]=rec.get("Expected minutes")
+        result.at[idx,"Expected minutes"]=minutes
+        result.at[idx,"ESPN player"]=rec.get("Player")
         result.at[idx,"Minutes trend"]=rec.get("Minutes trend")
         result.at[idx,"Predictive validation"]=rec.get("Predictive validation")
         result.at[idx,"Huie baseline"]=round(baseline,2)
@@ -146,4 +142,32 @@ def opponent_adjusted_projections(data, context_rows):
         result.at[idx,"Matchup context"]=(
             f'{opponent} · {adjustment["games"]} games · x{adjustment["factor"]:.3f}')
         result.at[idx,"Baseline source"]=str(pick.get("Baseline source",""))+" + exploratory opponent pace/defense"
+    return result
+
+
+def blowout_adjusted_projections(data, model, enabled=True):
+    """Apply validated minute shifts before the page computes edges and sides."""
+    result=data.copy()
+    if result.empty or model is None:
+        return result
+    for idx,pick in result.iterrows():
+        current=pick.get("Huie baseline")
+        minutes=pick.get("Expected minutes")
+        context=assessment(model,pick.get("Game"),pick.get("ESPN player"),
+                           pick.get("ESPN team"),pick.get("Market"),
+                           str(pick.get("Baseline source","")),minutes)
+        for key,value in context.items():
+            if key!="factor":
+                result.at[idx,key]=value
+        if not enabled:
+            result.at[idx,"Minutes adjustment"]=0.0
+            result.at[idx,"Blowout validation"]="Off"
+            continue
+        if (context["factor"]==1 or pd.isna(current) or pd.isna(minutes)):
+            continue
+        value=round(float(current)*context["factor"],2)
+        result.at[idx,"Huie baseline"]=value
+        result.at[idx,"Baseline margin"]=round(value-float(pick["Safe line"]),2)
+        result.at[idx,"Expected minutes"]=round(float(minutes)*context["factor"],2)
+        result.at[idx,"Baseline source"]=str(pick.get("Baseline source",""))+" + blowout rotation"
     return result

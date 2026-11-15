@@ -9,11 +9,13 @@ from parlay_context import parse_game, team_key
 from parlay_predictive import audit as predictive_audit
 from parlay_huie_projections import (historical_projection_results,
                                      enrich_huie_projections,
-                                     opponent_adjusted_projections)
-from parlay_lab import _candidates, _historical_boxscores, _recent_opponent_context
+                                     opponent_adjusted_projections,
+                                     blowout_adjusted_projections)
+from parlay_lab import _candidates, _nba_history_bundle, _blowout_model, _render_blowout_audit, _recent_opponent_context
 
 
-def prepare_projections(all_props,history=None,model_audit=None,context_rows=None):
+def prepare_projections(all_props,history=None,model_audit=None,context_rows=None,
+                        blowout_model=None,apply_blowout=True):
     """Use All Player Props reference lines and the SAME Huie pipeline as Model Lab."""
     data=_candidates(all_props,reference_only=True)
     if data.empty:return data
@@ -23,6 +25,8 @@ def prepare_projections(all_props,history=None,model_audit=None,context_rows=Non
         data=enrich_huie_projections(data,historical)
     if context_rows:
         data=opponent_adjusted_projections(data,context_rows)
+    if blowout_model is not None:
+        data=blowout_adjusted_projections(data,blowout_model,apply_blowout)
     line=pd.to_numeric(data["Safe line"],errors="coerce")
     huie=pd.to_numeric(data["Huie baseline"],errors="coerce")
     sam=pd.to_numeric(data["Sam projection"],errors="coerce")
@@ -60,8 +64,9 @@ def _opponent_codes(frame):
 def _table(frame,key):
     wanted=["Player","Market","Reference line","Huie projection","Huie edge",
             "Huie side","Both models OVER","Sam projection","Sam edge",
-            "Last game","2 games ago","3 games ago","Recent hits",
-            "Expected minutes","Minutes trend","Projection method",
+            "Expected minutes","Blowout risk","Minutes adjustment",
+            "Last game","2 games ago","3 games ago","Recent hits","Blowout role","Blowout validation",
+            "Minutes trend","Projection method",
             "Predictive validation","Matchup context","External games"]
     columns=[c for c in wanted if c in frame.columns]
     values=frame.sort_values("Huie edge",ascending=False,na_position="last")[columns].copy()
@@ -78,6 +83,8 @@ def _table(frame,key):
                      "Huie edge":st.column_config.NumberColumn("Huie edge",format="%+.1f"),
                      "Sam projection":st.column_config.NumberColumn("Sam projection",format="%.1f"),
                      "Sam edge":st.column_config.NumberColumn("Sam edge",format="%+.1f"),
+                     "Blowout risk":st.column_config.NumberColumn("Blowout risk",format="percent"),
+                     "Minutes adjustment":st.column_config.NumberColumn("Minutes adjustment",format="%+.2f"),
                  })
 
 
@@ -117,9 +124,12 @@ def render(all_props,espn_nba_boxscores=None,match_espn_player=None,archived_pro
     raw_matching=(all_props if game_choice=="All games" or game_col is None else
                   all_props[all_props[game_col].astype(str)==game_choice])
 
+    apply_blowout=st.checkbox("Apply validated blowout minutes adjustments",value=True,key="huie_nba_blowout",
+                              help="Uses only games before the selected date. Projections stay unchanged unless the adjustment improves held-out minutes and stat accuracy.")
+    blowout_model=None
     with st.spinner("Preparing independently verified Huie projections..."):
         try:
-            history,failures=_historical_boxscores()
+            history,failures,rotation_games=_nba_history_bundle(as_of=selected_date.isoformat())
             # Never incorporate game-day or later final box scores when
             # reconstructing a prior-date Huie forecast.
             history={key:[observation for observation in games
@@ -127,14 +137,20 @@ def render(all_props,espn_nba_boxscores=None,match_espn_player=None,archived_pro
                      for key,games in history.items()}
             history={key:rows for key,rows in history.items() if rows}
         except Exception as exc:
-            history={};failures=0
+            history={};failures=0;rotation_games=[]
             st.warning("ESPN historical results unavailable; only verified stats already in the workbook can be used. "+str(exc))
         try:
             audit=_validated_audit(history) if history else {}
         except Exception as exc:
             audit={}
             st.warning("Historical model validation is unavailable; no enhanced model is activated. "+str(exc))
-        data=prepare_projections(raw_matching,history,model_audit=audit)
+        if rotation_games:
+            try:
+                blowout_model=_blowout_model(history,rotation_games,selected_date.isoformat())
+            except Exception:
+                st.warning("Blowout assessment unavailable. Original minutes forecasts are used.")
+        data=prepare_projections(raw_matching,history,model_audit=audit,
+                                 blowout_model=blowout_model,apply_blowout=apply_blowout)
     if data.empty:
         st.info("No usable projection rows for this matchup.")
         return
@@ -155,13 +171,16 @@ def render(all_props,espn_nba_boxscores=None,match_espn_player=None,archived_pro
                     # unrenamed candidate data so the same adjustment rules
                     # as Model Lab are applied before edge/side calculations.
                     data=prepare_projections(raw_matching,history,model_audit=audit,
-                                             context_rows=context.get("rows",[]))
+                                             context_rows=context.get("rows",[]),
+                                             blowout_model=blowout_model,apply_blowout=apply_blowout)
                     if context.get("failures"):
                         st.caption(f'{context["failures"]} opponent-data requests were unavailable; missing values were not imputed.')
                 except Exception as exc:
                     st.warning("Opponent adjustments unavailable; unadjusted forecasts are shown. "+str(exc))
         else:
             st.caption("Opponent adjustments require an unambiguous ESPN player team and workbook matchup.")
+
+    _render_blowout_audit(blowout_model,data)
 
     if espn_nba_boxscores is not None and match_espn_player is not None:
         from huie_daily_performance import render_summary
