@@ -1850,6 +1850,12 @@ ROBINHOOD_NOV9_BETS=[
 ]
 
 ROBINHOOD_NOV15_BETS=[
+("Nov 15 · Parlay 17",2139,4.6,104.97,6.58,[["L. Doncic","Threes",4],["N. Alexander-Walker","Threes",4],["D. Acuff Jr.","Threes",4],["G. Allen","Threes",4]],"2026-11-15","12:55"),
+("Nov 15 · Parlay 16",500,18.9,99.87,5.37,[["L. Doncic","Threes",3],["G. Allen","Threes",3],["N. Alexander-Walker","Threes",3],["D. Acuff Jr.","Threes",3]],"2026-11-15","12:53"),
+("Nov 15 · Parlay 15",310,30.8,99.90,4.42,[["J. Watkins","Receptions",2],["K. Mumpfield","Receptions",2]],"2026-11-15","12:49"),
+("Nov 15 · Parlay 14",250,38.5,99.93,3.68,[["J. Jaquez Jr.","Threes",1],["S. Hauser","Threes",1],["T. Johnson","Threes",1],["K. Murray","Threes",1]],"2026-11-15","12:47"),
+("Nov 15 · Parlay 13",407,23.3,99.93,5.10,[["A. Wiggins","Points",10],["K. Wagler","Points",10],["Q. Grimes","Points",10]],"2026-11-15","12:46"),
+("Nov 15 · Parlay 12",784,12,99.88,5.80,[["L. Doncic","Threes",5],["N. Alexander-Walker","Threes",4],["G. Allen","Threes",3],["D. Acuff Jr.","Threes",2]],"2026-11-15","12:29"),
 ("Nov 15 · Parlay 11",1443,6.5,99.94,6.15,[["J. Smith-Njigba","Rec yds",100],["T. Tucker","Receptions",3],["K. Black","Rush yds",40],["D. Meyers","Receptions",2]],"2026-11-15","12:04"),
 ("Nov 15 · Parlay 10",321,29.7,99.89,4.55,[["T. Tucker","Receptions",2],["K. Black","Rush yds",25],["J. Smith-Njigba","Rec yds",60],["M. Stafford","Pass yds",150]],"2026-11-15","12:02"),
 ("Nov 15 · Parlay 9",1269,7.4,100.00,6.09,[["M. Stafford","Pass yds",175],["J. Warren","Rush yds",60],["T. Tucker","Rec yds",20],["K. Black","Rush yds",30],["C. Lamb","Receptions",7],["J. Smith-Njigba","Receptions",5]],"2026-11-15","11:55"),
