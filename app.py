@@ -1850,6 +1850,8 @@ ROBINHOOD_NOV9_BETS=[
 ]
 
 ROBINHOOD_NOV15_BETS=[
+("Nov 15 · Parlay 20",1174,8.0,99.98,6.06,[["R. Dowdle","Rush yds",30],["D. Meyers","Rec yds",20],["J. Warren","Rush yds",60],["T. Higgins","Rec yds",70]],"2026-11-15","13:57"),
+("Nov 15 · Parlay 19",319,29.9,99.91,4.53,[["J. Warren","Rush yds",50],["R. Dowdle","Rush yds",20],["T. Higgins","Rec yds",60]],"2026-11-15","13:53"),
 ("Nov 15 · Parlay 18",1705,5.5,99.99,6.22,[["DET","Game winner",1],["JAX","Game winner",1],["BUF","Game winner",1],["GB","Game winner",1],["LAR","Game winner",1],["SEA","Game winner",1],["SF","Game winner",1],["CIN","Game winner",1]],"2026-11-15","18:41"),
 ("Nov 15 · Parlay 17",2139,4.6,104.97,6.58,[["L. Doncic","Threes",4],["N. Alexander-Walker","Threes",4],["D. Acuff Jr.","Threes",4],["G. Allen","Threes",4]],"2026-11-15","12:55"),
 ("Nov 15 · Parlay 16",500,18.9,99.87,5.37,[["L. Doncic","Threes",3],["G. Allen","Threes",3],["N. Alexander-Walker","Threes",3],["D. Acuff Jr.","Threes",3]],"2026-11-15","12:53"),
