@@ -8,6 +8,10 @@ import streamlit as st
 BANKROLL_CYCLE_STARTING_BALANCE = 398.85
 
 PARLAYS = [
+{"date":"2026-11-15","id":"4-Leg Assists · Johnson / Daniels / Marshall / George","contracts":227,"cost":99.63,"fees":3.38,"filled_at":"11:39","my_bets":"Nov 15 · Parlay 7","legs":[["J. Johnson","Assists",6],["D. Daniels","Assists",4],["N. Marshall","Assists",2],["K. George","Assists",4]]},
+{"date":"2026-11-15","id":"4-Leg Rebounds + Assists · Eason / Durant / Bailey / Flagg","contracts":256,"cost":99.76,"fees":3.76,"filled_at":"11:38","my_bets":"Nov 15 · Parlay 6","legs":[["T. Eason","Rebounds",4],["K. Durant","Rebounds",4],["A. Bailey","Rebounds",4],["C. Flagg","Assists",4]]},
+{"date":"2026-11-15","id":"3-Leg Rebounds · Flagg / Sengun / Okongwu","contracts":229,"cost":99.82,"fees":3.41,"filled_at":"11:35","my_bets":"Nov 15 · Parlay 5","legs":[["C. Flagg","Rebounds",4],["A. Sengun","Rebounds",8],["O. Okongwu","Rebounds",6]]},
+{"date":"2026-11-15","id":"3-Leg Points · Doncic / Irving / George","contracts":217,"cost":99.81,"fees":3.25,"filled_at":"11:34","my_bets":"Nov 15 · Parlay 4","legs":[["L. Doncic","Points",30],["K. Irving","Points",15],["K. George","Points",10]]},
 {"date":"2026-11-14","id":"5-Leg Assists","contracts":241,"cost":99.12,"fees":3.56,"filled_at":"09:55","my_bets":"Nov 14 · Parlay 4","legs":[["J. Fears","Assists",4],["N. Marshall","Assists",2],["A. Thompson","Assists",2],["J. McDaniels","Assists",2],["J. Kuminga","Assists",2]]},
 {"date":"2026-11-14","id":"3-Leg Rebounds","contracts":209,"cost":99.9,"fees":3.13,"filled_at":"09:53","my_bets":"Nov 14 · Parlay 3","legs":[["R. Gobert","Rebounds",8],["J. Kuminga","Rebounds",4],["A. Thompson","Rebounds",6]]},
 {"date":"2026-11-14","id":"3-Leg Threes","contracts":242,"cost":99.9,"fees":3.58,"filled_at":"09:52","my_bets":"Nov 14 · Parlay 2","legs":[["T. Shannon Jr.","Threes",1],["A. Dosunmu","Threes",1],["D. Robinson","Threes",3]]},
