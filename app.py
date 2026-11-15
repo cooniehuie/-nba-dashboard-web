@@ -1018,12 +1018,12 @@ def show_bankroll_live_tracker(embedded=False):
     frame=sheets[bankroll].copy()
     playercol=lookup(frame,"Player")
     marketcol=lookup(frame,"Market","Stat")
-    linecol=lookup(frame,"Safer line")
+    linecol=lookup(frame,"Safer line","Safe line","Safe alternate line","Alternate line")
     gamecol=lookup(frame,"Game")
     sidecol=lookup(frame,"Model side")
     modelcol=lookup(frame,"Model projection","Reference line")
     if not all([playercol,linecol]):
-        st.warning("The Bankroll Builder sheet needs Player and Safer line columns for tracking.")
+        st.warning("The Bankroll Builder sheet needs Player and Safe line columns for tracking. Found columns: "+", ".join(map(str,frame.columns))")
         return
     # Snapshot today's selections on an admin visit, before a new daily upload replaces them.
     if is_admin and not embedded:
