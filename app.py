@@ -2449,7 +2449,7 @@ def show_personal_bets():
                     leg_progress=(known_absence if known_absence else
                                   "⚪ Awaiting tipoff" if state=="pre" else
                                   "⚪ Stats pending" if matched_player else
-                                  "⚪ NFL stats feed unavailable" if m in ("Pass yds","Pass yards","Pass TDs","Rush yds","Rush yards","Rec yds","Rec yards","Rush+Rec yds","Rush+Rec yards","Anytime TD","Receptions") else "⚪ Unmatched / unavailable")
+                                  "⚪ NFL player not matched · stats pending" if m in ("Pass yds","Pass yards","Pass TDs","Rush yds","Rush yards","Rec yds","Rec yards","Rush+Rec yds","Rush+Rec yards","Anytime TD","Receptions") else "⚪ Unmatched / unavailable")
                     actual_label="—"
                 else:
                     actual_label=str(actual)
