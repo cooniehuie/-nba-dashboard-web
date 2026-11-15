@@ -383,10 +383,26 @@ def render(storage_read=None,storage_write=None,is_admin=False):
         _gamelog.clear()
         league_defensive_snapshot.clear()
         st.rerun()
+    if st.button("🏈 Update 2026 Week 10 projections",key="huie_nfl_week10_refresh",
+                 help="Refresh ESPN game logs, rosters, schedule, and opponent defense for NFL Week 10."):
+        _current_week.clear()
+        _schedule.clear()
+        _roster.clear()
+        _depth_chart_qb1.clear()
+        _gamelog.clear()
+        league_defensive_snapshot.clear()
+        st.session_state["huie_nfl_season"]=2026
+        st.session_state["huie_nfl_week"]=10
+        st.rerun()
     a,b=st.columns([1,2])
-    season=int(a.selectbox("NFL season",[season,season-1],key="huie_nfl_season"))
+    season_options=list(dict.fromkeys([season,season-1,2026]))
+    season=int(a.selectbox("NFL season",season_options,key="huie_nfl_season"))
     week=int(b.selectbox("ESPN schedule week",list(range(1,19)),
                          index=max(0,min(17,default_week-1)),key="huie_nfl_week"))
+    if season==2026 and week==10:
+        st.caption("Week 10 · Nov 12–16, 2026 · Choose a matchup below. "
+                   "Upcoming games use season-to-date opponent defense; "
+                   "completed games use only pre-kickoff player logs and no current defensive snapshot.")
     try:
         schedule=_schedule(season,week)
     except Exception as exc:
