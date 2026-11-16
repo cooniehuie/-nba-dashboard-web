@@ -1877,6 +1877,8 @@ ROBINHOOD_NOV9_BETS=[
 ]
 
 ROBINHOOD_NOV15_BETS=[
+("Nov 15 · Parlay 26",1341,7.0,99.99,6.12,[["J. Chase","Rec yds",70],["C. Brown","Rush+Rec yds",50],["J. Warren","Rush+Rec yds",70],["D. Washington","Rec yds",25],["G. Bernard","Receptions",4],["J. Burrow","Pass TDs",2],["A. Rodgers","Pass TDs",2]],"2026-11-15","16:42"),
+("Nov 15 · Parlay 25",325,29.3,99.82,4.60,[["J. Chase","Rec yds",60],["T. Higgins","Rec yds",50],["D. Metcalf","Rec yds",30],["J. Warren","Rush yds",50]],"2026-11-15","16:39"),
 ("Nov 15 · Parlay 24",235,40.7,99.13,3.48,[["J. Jaquez Jr.","Threes",1],["O. Okongwu","Threes",1],["D. Acuff Jr.","Threes",2],["N. Alexander-Walker","Threes",2]],"2026-11-15","16:20"),
 ("Nov 15 · Parlay 23",1219,7.7,99.94,6.08,[["N. Alexander-Walker","Threes",4],["J. Jaquez Jr.","Threes",2],["Z. LaVine","Threes",3],["D. Acuff Jr.","Threes",3]],"2026-11-15","16:18"),
 ("Nov 15 · Parlay 22",224,43.0,99.66,3.34,[["T. Higgins","Anytime TD",1]],"2026-11-15","15:31"),
