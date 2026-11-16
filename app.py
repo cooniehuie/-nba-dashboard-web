@@ -1702,6 +1702,15 @@ def match_espn_player(short_name,players,market=None):
     # Keyonte George (UTA) and Kyshawn George (WAS) share K. George.
     # The Nov 15 assists wager explicitly names Keyonte; use his full name
     # and Utah team rather than arbitrarily selecting a matching surname.
+    # Robinhood Nov 15 points wager is Kyshawn George of Washington.
+    # Prefer the actual ESPN box-score row over a no-stats game placeholder.
+    if parts==["kyshawn","george"] and market=="Points":
+        matches=[p for p in players if norm(p.get("name",""))=="kyshawn george"
+                 and str(p.get("team","")).upper()=="WAS"]
+        actual_rows=[p for p in matches if not p.get("game_only")]
+        if len(actual_rows)==1:return actual_rows[0]
+        if len(matches)==1:return matches[0]
+        return None
     if parts==["keyonte","george"] and market=="Assists":
         matches=[p for p in players if norm(p.get("name",""))=="keyonte george"
                  and str(p.get("team","")).upper() in ("UTA","UTAH")]
@@ -1889,7 +1898,7 @@ ROBINHOOD_NOV15_BETS=[
 ("Nov 15 · Parlay 7",227,42.4,99.63,3.38,[["J. Johnson","Assists",6],["D. Daniels","Assists",4],["N. Marshall","Assists",2],["Keyonte George","Assists",4]],"2026-11-15","11:39"),
 ("Nov 15 · Parlay 6",256,37.5,99.76,3.76,[["T. Eason","Rebounds",4],["K. Durant","Rebounds",4],["A. Bailey","Rebounds",4],["C. Flagg","Assists",4]],"2026-11-15","11:38"),
 ("Nov 15 · Parlay 5",229,42.1,99.82,3.41,[["C. Flagg","Rebounds",4],["A. Sengun","Rebounds",8],["O. Okongwu","Rebounds",6]],"2026-11-15","11:35"),
-("Nov 15 · Parlay 4",217,44.5,99.81,3.25,[["L. Doncic","Points",30],["K. Irving","Points",15],["K. George","Points",10]],"2026-11-15","11:34"),
+("Nov 15 · Parlay 4",217,44.5,99.81,3.25,[["L. Doncic","Points",30],["K. Irving","Points",15],["Kyshawn George","Points",10]],"2026-11-15","11:34"),
 ("Nov 15 · Parlay 3",253,38.0,99.86,3.72,[["J. Brown","Rebounds",4],["T. Maxey","Assists",4],["P. Siakam","Rebounds",4],["W. Kessler","Rebounds",10]],"2026-11-15","09:54"),
 ("Nov 15 · Parlay 2",825,11.4,99.89,5.84,[["C. Lamb","Anytime TD",1],["G. Kittle","Anytime TD",1],["J. Williams","Anytime TD",1]],"2026-11-15","09:49"),
 ("Nov 15 · Parlay 1",1563,6.0,99.95,6.17,[["J. Cook","Anytime TD",1],["B. Robinson","Anytime TD",1],["C. McCaffrey","Anytime TD",1],["C. Hubbard","Anytime TD",1],["Justin Jefferson","Anytime TD",1]],"2026-11-15","09:47"),
