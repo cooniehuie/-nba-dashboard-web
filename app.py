@@ -1511,7 +1511,7 @@ def espn_nba_boxscores(date_string):
               "team_codes":{str(c.get("team",{}).get("abbreviation") or "").upper() for c in competitors},
               "team_ids":{str(c.get("team",{}).get("id") or "") for c in competitors}}
         games.append(game)
-        if "WAS" in game["team_codes"]:
+        if {"WAS","WSH"} & game["team_codes"]:
             players.append({"name":"Kyshawn George","team":"WAS","game":game,"stats":{},"dnp":False,"jersey":"","game_only":True})
         try:
             summary=fetch("https://site.api.espn.com/apis/site/v2/sports/basketball/nba/summary?event="+str(eid))
@@ -1706,7 +1706,7 @@ def match_espn_player(short_name,players,market=None):
     # Prefer the actual ESPN box-score row over a no-stats game placeholder.
     if parts==["kyshawn","george"] and market=="Points":
         matches=[p for p in players if norm(p.get("name",""))=="kyshawn george"
-                 and str(p.get("team","")).upper()=="WAS"]
+                 and str(p.get("team","")).upper() in ("WAS","WSH")]
         actual_rows=[p for p in matches if not p.get("game_only")]
         if len(actual_rows)==1:return actual_rows[0]
         if len(matches)==1:return matches[0]
