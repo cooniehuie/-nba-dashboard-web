@@ -1693,6 +1693,13 @@ def match_espn_player(short_name,players,market=None):
         sport="NFL" if market in ("Pass yds","Pass yards","Pass TDs","Rush yds","Rush yards","Rec yds","Rec yards","Rush+Rec yds","Rush+Rec yards","Anytime TD","Receptions") else "NBA"
         players=[p for p in players if p.get("sport","NBA")==sport]
     if len(parts)<2:return None
+    # Keyonte George (UTA) and Kyshawn George (WAS) share K. George.
+    # The Nov 15 assists wager explicitly names Keyonte; use his full name
+    # and Utah team rather than arbitrarily selecting a matching surname.
+    if parts==["keyonte","george"] and market=="Assists":
+        matches=[p for p in players if norm(p.get("name",""))=="keyonte george"
+                 and str(p.get("team","")).upper()=="UTA"]
+        return matches[0] if len(matches)==1 else None
     # Robinhood J. Smith Jr. refers to Jabari Smith Jr. (Houston).
     # ESPN may omit the suffix or spell the full name differently.
     if parts in (["j","smith","jr"],["j","smith"] ) and market in ("Threes","Points","Rebounds","Assists"):
@@ -1873,7 +1880,7 @@ ROBINHOOD_NOV15_BETS=[
 ("Nov 15 · Parlay 9",1269,7.4,100.00,6.09,[["M. Stafford","Pass yds",175],["J. Warren","Rush yds",60],["T. Tucker","Rec yds",20],["K. Black","Rush yds",30],["C. Lamb","Receptions",7],["J. Smith-Njigba","Receptions",5]],"2026-11-15","11:55"),
 # Grouped under Nov 15 at user request; actual Robinhood purchase was Nov 14 at 23:20 PT. Tracking time 00:00 is a date-group sort placeholder, not purchase time.
 ("Nov 15 · Parlay 8",725,13.0,99.99,5.74,[["C. Lamb","Anytime TD",1],["G. Kittle","Anytime TD",1],["J. Williams","Anytime TD",1]],"2026-11-15","00:00"),
-("Nov 15 · Parlay 7",227,42.4,99.63,3.38,[["J. Johnson","Assists",6],["D. Daniels","Assists",4],["N. Marshall","Assists",2],["K. George","Assists",4]],"2026-11-15","11:39"),
+("Nov 15 · Parlay 7",227,42.4,99.63,3.38,[["J. Johnson","Assists",6],["D. Daniels","Assists",4],["N. Marshall","Assists",2],["Keyonte George","Assists",4]],"2026-11-15","11:39"),
 ("Nov 15 · Parlay 6",256,37.5,99.76,3.76,[["T. Eason","Rebounds",4],["K. Durant","Rebounds",4],["A. Bailey","Rebounds",4],["C. Flagg","Assists",4]],"2026-11-15","11:38"),
 ("Nov 15 · Parlay 5",229,42.1,99.82,3.41,[["C. Flagg","Rebounds",4],["A. Sengun","Rebounds",8],["O. Okongwu","Rebounds",6]],"2026-11-15","11:35"),
 ("Nov 15 · Parlay 4",217,44.5,99.81,3.25,[["L. Doncic","Points",30],["K. Irving","Points",15],["K. George","Points",10]],"2026-11-15","11:34"),
