@@ -2037,6 +2037,7 @@ ROBINHOOD_NOV10_BETS=[
 ]
 
 ROBINHOOD_CONFIRMED_BET_SETTLEMENTS={
+    "Nov 15 · Parlay 4":{"date":"2026-11-15","time":"18:56","settlement_date":"2026-11-15","status":"Won","settlement_price":0.72,"quantity":217,"payout":156.24,"realized_profit":59.68,"event_id":"ea00ad57-cec8-4088-85f9-efe6b01646fb","note":"Robinhood-confirmed partial-price payout for Doncic 30+ points, Irving 15+ points, Kyshawn George 10+ points. Irving may display DNP in ESPN; Robinhood settlement takes precedence. Preserve original $99.81 purchase cost and fees; Robinhood reported realized P/L is $59.68."},
     "Nov 15 · Parlay 18":{"date":"2026-11-15","status":"Lost","quantity":1705,"payout":0.00,"realized_profit":-99.99,"note":"User reported eight-team NFL game-winner combo lost. Full $99.99 entry cost counted as loss; Robinhood settlement not independently verified. Original wager and fees preserved."},
     "Nov 14 · Parlay 9":{"date":"2026-11-14","time":"19:06","settlement_date":"2026-11-14","status":"Won","settlement_price":1.0,"quantity":280,"payout":280.00,"realized_profit":184.32,"event_id":"dd3ee08e-c67d-4347-ad54-031db6e36f38","note":"Robinhood-confirmed Nov 14 payout: J. Murray 15+ points; Z. Williamson 15+ points; J. Fears 4+ assists; DEN game winner; S. Bey 2+ assists. Preserve original purchase cost and fees; use Robinhood-reported realized profit."},
     "Nov 14 · Parlay 4":{"date":"2026-11-14","time":"20:23","settlement_date":"2026-11-14","status":"Won","settlement_price":1,"quantity":241,"payout":241.00,"realized_profit":145.44,"note":"Robinhood-confirmed Nov 14 payout. Fears 4+ assists; Marshall 2+ assists; Thompson 2+ assists; McDaniels 2+ assists; Kuminga 2+ assists. Original purchase and fees preserved; partial-price settlements count as profitable wins."},
@@ -2488,7 +2489,7 @@ def show_personal_bets():
                 matched_player=match_espn_player(p,overview_players,m)
                 if confirmed_bet:
                     known_absence=leg_absence_label(matched_player)
-                    shown_progress=known_absence or "🟢 Settled by Robinhood"
+                    shown_progress=("🟢 Won · Robinhood settlement confirmed" if confirmed_bet.get("status")=="Won" else "🔴 Lost · Robinhood settlement confirmed" if confirmed_bet.get("status")=="Lost" else "⚪ Robinhood settlement recorded") + (" · ESPN: "+known_absence if known_absence else "")
                     table_html.append('<tr><td>'+str(i)+'</td><td>'+esc(p)+'</td><td>'+esc(m)+'</td><td>'+esc(t)+'+</td><td>—</td><td>—</td><td>'+esc(shown_progress)+'</td></tr>')
                     continue
                 actual=matched_player["stats"].get(m) if matched_player else None
