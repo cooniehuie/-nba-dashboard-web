@@ -1511,6 +1511,8 @@ def espn_nba_boxscores(date_string):
               "team_codes":{str(c.get("team",{}).get("abbreviation") or "").upper() for c in competitors},
               "team_ids":{str(c.get("team",{}).get("id") or "") for c in competitors}}
         games.append(game)
+        if "WAS" in game["team_codes"]:
+            players.append({"name":"Kyshawn George","team":"WAS","game":game,"stats":{},"dnp":False,"jersey":"","game_only":True})
         try:
             summary=fetch("https://site.api.espn.com/apis/site/v2/sports/basketball/nba/summary?event="+str(eid))
             absence_reports.extend(game_reported_absences(summary,game,"NBA"))
@@ -1542,7 +1544,10 @@ def espn_nba_boxscores(date_string):
                                 "Assists":number(stat(["ast","assists"])),
                                 "Threes":number(threes)}
                         athlete_info=athlete.get("athlete",{})
-                        players.append({"name":athlete_info.get("displayName",athlete_info.get("fullName","")),
+                        athlete_name=athlete_info.get("displayName",athlete_info.get("fullName",""))
+                        if str(athlete_name).lower().replace(" ","")=="kyshawngeorge":
+                            players[:]=[p for p in players if not (p.get("game") is game and p.get("game_only") and p.get("name")=="Kyshawn George")]
+                        players.append({"name":athlete_name,
                                         "team":team.get("team",{}).get("abbreviation",""),
                                         "game":game, "stats":({k:None for k in values} if is_dnp else values), "dnp":is_dnp,
                                         "jersey":str(athlete_info.get("jersey") or athlete.get("jersey") or "").strip()})
