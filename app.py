@@ -1698,7 +1698,7 @@ def match_espn_player(short_name,players,market=None):
     # and Utah team rather than arbitrarily selecting a matching surname.
     if parts==["keyonte","george"] and market=="Assists":
         matches=[p for p in players if norm(p.get("name",""))=="keyonte george"
-                 and str(p.get("team","")).upper()=="UTA"]
+                 and str(p.get("team","")).upper() in ("UTA","UTAH")]
         return matches[0] if len(matches)==1 else None
     # Robinhood J. Smith Jr. refers to Jabari Smith Jr. (Houston).
     # ESPN may omit the suffix or spell the full name differently.
