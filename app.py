@@ -1693,6 +1693,12 @@ def match_espn_player(short_name,players,market=None):
         sport="NFL" if market in ("Pass yds","Pass yards","Pass TDs","Rush yds","Rush yards","Rec yds","Rec yards","Rush+Rec yds","Rush+Rec yards","Anytime TD","Receptions") else "NBA"
         players=[p for p in players if p.get("sport","NBA")==sport]
     if len(parts)<2:return None
+    if parts==["justin","jefferson"] and market=="Anytime TD":
+        candidates=[p for p in players if norm(p.get("name",""))=="justin jefferson"]
+        vikings=[p for p in candidates if str(p.get("team","")).upper() in ("MIN","MINN")]
+        if len(vikings)==1:return vikings[0]
+        if len(candidates)==1:return candidates[0]
+        return None
     # Keyonte George (UTA) and Kyshawn George (WAS) share K. George.
     # The Nov 15 assists wager explicitly names Keyonte; use his full name
     # and Utah team rather than arbitrarily selecting a matching surname.
@@ -1886,7 +1892,7 @@ ROBINHOOD_NOV15_BETS=[
 ("Nov 15 · Parlay 4",217,44.5,99.81,3.25,[["L. Doncic","Points",30],["K. Irving","Points",15],["K. George","Points",10]],"2026-11-15","11:34"),
 ("Nov 15 · Parlay 3",253,38.0,99.86,3.72,[["J. Brown","Rebounds",4],["T. Maxey","Assists",4],["P. Siakam","Rebounds",4],["W. Kessler","Rebounds",10]],"2026-11-15","09:54"),
 ("Nov 15 · Parlay 2",825,11.4,99.89,5.84,[["C. Lamb","Anytime TD",1],["G. Kittle","Anytime TD",1],["J. Williams","Anytime TD",1]],"2026-11-15","09:49"),
-("Nov 15 · Parlay 1",1563,6.0,99.95,6.17,[["J. Cook","Anytime TD",1],["B. Robinson","Anytime TD",1],["C. McCaffrey","Anytime TD",1],["C. Hubbard","Anytime TD",1],["J. Jefferson","Anytime TD",1]],"2026-11-15","09:47"),
+("Nov 15 · Parlay 1",1563,6.0,99.95,6.17,[["J. Cook","Anytime TD",1],["B. Robinson","Anytime TD",1],["C. McCaffrey","Anytime TD",1],["C. Hubbard","Anytime TD",1],["Justin Jefferson","Anytime TD",1]],"2026-11-15","09:47"),
 ]
 
 ROBINHOOD_NOV14_BETS=[
