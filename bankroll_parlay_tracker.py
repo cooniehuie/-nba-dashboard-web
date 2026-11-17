@@ -8,6 +8,9 @@ import streamlit as st
 BANKROLL_CYCLE_STARTING_BALANCE = 398.85
 
 PARLAYS = [
+{"date":"2026-11-16","id":"4-Leg Threes + Assists · Bane / Watson / Queen / Sheppard","contracts":334,"cost":98.54,"fees":4.69,"filled_at":"13:06","my_bets":"Nov 16 · Parlay 3","legs":[["D. Bane","Threes",2],["P. Watson","Assists",2],["D. Queen","Assists",2],["R. Sheppard","Assists",2]]},
+{"date":"2026-11-16","id":"3-Leg Rebounds · Lendeborg / Sengun / Coward","contracts":264,"cost":99.69,"fees":3.86,"filled_at":"13:02","my_bets":"Nov 16 · Parlay 2","legs":[["Y. Lendeborg","Rebounds",6],["A. Sengun","Rebounds",8],["C. Coward","Rebounds",6]]},
+{"date":"2026-11-16","id":"5-Leg Assists · Murray / Giddey / Suggs / Green / Avdija","contracts":220,"cost":99.20,"fees":3.28,"filled_at":"13:00","my_bets":"Nov 16 · Parlay 1","legs":[["J. Murray","Assists",4],["J. Giddey","Assists",6],["J. Suggs","Assists",2],["D. Green","Assists",4],["D. Avdija","Assists",4]]},
 {"date":"2026-11-15","id":"4-Leg Rebounds + Assists · Brown / Maxey / Siakam / Kessler","contracts":253,"cost":99.86,"fees":3.72,"filled_at":"09:54","event_id":"84c62eb5-5955-4075-8010-ff288c30e8d2","my_bets":"Nov 15 · Parlay 3","legs":[["J. Brown","Rebounds",4],["T. Maxey","Assists",4],["P. Siakam","Rebounds",4],["W. Kessler","Rebounds",10]]},
 {"date":"2026-11-15","id":"4-Leg Assists · Johnson / Daniels / Marshall / George","contracts":227,"cost":99.63,"fees":3.38,"filled_at":"11:39","my_bets":"Nov 15 · Parlay 7","legs":[["J. Johnson","Assists",6],["D. Daniels","Assists",4],["N. Marshall","Assists",2],["K. George","Assists",4]]},
 {"date":"2026-11-15","id":"4-Leg Rebounds + Assists · Eason / Durant / Bailey / Flagg","contracts":256,"cost":99.76,"fees":3.76,"filled_at":"11:38","my_bets":"Nov 15 · Parlay 6","legs":[["T. Eason","Rebounds",4],["K. Durant","Rebounds",4],["A. Bailey","Rebounds",4],["C. Flagg","Assists",4]]},
