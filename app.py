@@ -1877,6 +1877,7 @@ ROBINHOOD_NOV9_BETS=[
 ]
 
 ROBINHOOD_NOV16_BETS=[
+("Nov 16 · Parlay 4",383,24.6,99.20,4.98,[["C. Boozer","Rebounds",8],["G. Antetokounmpo","Assists",4],["D. Green","Assists",4],["J. Murray","Threes",3]],"2026-11-16","12:56"),
 ("Nov 16 · Parlay 3",334,28.1,98.54,4.69,[["D. Bane","Threes",2],["P. Watson","Assists",2],["D. Queen","Assists",2],["R. Sheppard","Assists",2]],"2026-11-16","13:06"),
 ("Nov 16 · Parlay 2",264,36.3,99.69,3.86,[["Y. Lendeborg","Rebounds",6],["A. Sengun","Rebounds",8],["C. Coward","Rebounds",6]],"2026-11-16","13:02"),
 ("Nov 16 · Parlay 1",220,43.6,99.20,3.28,[["J. Murray","Assists",4],["J. Giddey","Assists",6],["J. Suggs","Assists",2],["D. Green","Assists",4],["D. Avdija","Assists",4]],"2026-11-16","13:00"),
