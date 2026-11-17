@@ -1877,6 +1877,12 @@ ROBINHOOD_NOV9_BETS=[
 ]
 
 ROBINHOOD_NOV16_BETS=[
+("Nov 16 · Parlay 10",940,10.0,99.92,5.92,[["J. Brissett","Pass yds",150],["Q. Johnston","Rec yds",30],["D. Henry","Rush yds",90],["D. Henry","Anytime TD",1],["BAL","Win by 2.5",1]],"2026-11-16","17:02"),
+("Nov 16 · Parlay 9",1304,7.2,99.99,6.10,[["D. Henry","Anytime TD",1],["O. Hampton","Anytime TD",1],["O. Hampton","Rush+Rec yds",40],["Z. Flowers","Receptions",4]],"2026-11-16","13:51"),
+("Nov 16 · Parlay 8",1401,6.62,98.87,6.07,[["D. Bane","Threes",4],["K. Thompson","Threes",4],["L. Ball","Threes",4],["B. Podziemski","Threes",2]],"2026-11-16","13:43"),
+("Nov 16 · Parlay 7",1286,7.25,99.25,6.05,[["D. Bane","Threes",3],["T. Silva","Threes",2],["D. Mitchell","Threes",2],["K. Thompson","Threes",3],["J. Smith Jr.","Threes",2],["B. Podziemski","Threes",2],["J. Murray","Threes",2],["L. Ball","Threes",2],["D. Lillard","Threes",2]],"2026-11-16","13:38"),
+("Nov 16 · Parlay 6",233,41.3,99.69,3.46,[["D. Bane","Threes",3],["T. Silva","Threes",2],["S. Hauser","Threes",1]],"2026-11-16","13:30"),
+("Nov 16 · Parlay 5",372,25.3,99.04,4.92,[["D. Bane","Threes",3],["J. Holiday","Threes",2],["C. Spencer","Threes",2]],"2026-11-16","13:26"),
 ("Nov 16 · Parlay 4",383,24.6,99.20,4.98,[["C. Boozer","Rebounds",8],["G. Antetokounmpo","Assists",4],["D. Green","Assists",4],["J. Murray","Threes",3]],"2026-11-16","12:56"),
 ("Nov 16 · Parlay 3",334,28.1,98.54,4.69,[["D. Bane","Threes",2],["P. Watson","Assists",2],["D. Queen","Assists",2],["R. Sheppard","Assists",2]],"2026-11-16","13:06"),
 ("Nov 16 · Parlay 2",264,36.3,99.69,3.86,[["Y. Lendeborg","Rebounds",6],["A. Sengun","Rebounds",8],["C. Coward","Rebounds",6]],"2026-11-16","13:02"),
