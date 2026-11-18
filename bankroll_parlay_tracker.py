@@ -9,8 +9,6 @@ BANKROLL_CYCLE_STARTING_BALANCE = 398.85
 
 PARLAYS = [
 # Payout-only wins: costs inferred from Robinhood payout less realized profit; no original fill data.
-{"date":"2026-11-17","id":"5-Leg Threes · Doncic / Allen / Miller / Reid / Thybulle (payout-only)","contracts":1875,"cost":92.82,"fees":0.0,"filled_at":"00:00","my_bets":"Nov 17 · Parlay 5","legs":[["L. Doncic","Threes",5],["G. Allen","Threes",4],["B. Miller","Threes",3],["N. Reid","Threes",2],["M. Thybulle","Threes",1]]},
-{"date":"2026-11-17","id":"4-Leg Threes · Doncic / Allen / Miller / Reid (payout-only)","contracts":383,"cost":94.49,"fees":0.0,"filled_at":"00:00","my_bets":"Nov 17 · Parlay 6","legs":[["L. Doncic","Threes",4],["G. Allen","Threes",3],["B. Miller","Threes",2],["N. Reid","Threes",1]]},
 {"date":"2026-11-17","id":"3-Leg Points + Rebounds + Threes · Cunningham / Thompson / Doncic","contracts":256,"cost":99.76,"fees":3.76,"filled_at":"08:25","my_bets":"Nov 17 · Parlay 1","legs":[["C. Cunningham","Points",20],["A. Thompson","Rebounds",6],["L. Doncic","Threes",4]]},
 {"date":"2026-11-17","id":"4-Leg Rebounds + Assists · Clingan / Holiday / Bailey / Reed","contracts":234,"cost":99.65,"fees":3.48,"filled_at":"08:26","my_bets":"Nov 17 · Parlay 2","legs":[["D. Clingan","Rebounds",8],["J. Holiday","Assists",2],["A. Bailey","Rebounds",4],["P. Reed","Rebounds",6]]},
 {"date":"2026-11-17","id":"3-Leg Threes · Jones Jr. / Thybulle / Allen","contracts":233,"cost":99.69,"fees":3.46,"filled_at":"08:32","my_bets":"Nov 17 · Parlay 3","legs":[["D. Jones Jr.","Threes",1],["M. Thybulle","Threes",1],["G. Allen","Threes",2]]},
