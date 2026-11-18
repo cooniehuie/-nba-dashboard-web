@@ -1876,6 +1876,17 @@ ROBINHOOD_NOV9_BETS=[
 ("Nov 9 · Parlay 1",343,27.1,99.78,6.83,[["E. Mobley","Threes",1],["J. Harden","Threes",2],["A. Wiggins","Threes",2],["N. Alexander-Walker","Threes",2]],"2026-11-09","09:36"),
 ]
 
+ROBINHOOD_NOV17_BETS=[
+# Payout-only records 5-6: entry cost is inferred from Robinhood payout minus realized profit.
+# Purchase time and original entry price were not provided; 00:00 is a display-sort placeholder.
+("Nov 17 · Parlay 6",383,0.0,94.49,0.0,[["L. Doncic","Threes",4],["G. Allen","Threes",3],["B. Miller","Threes",2],["N. Reid","Threes",1]],"2026-11-17","00:00"),
+("Nov 17 · Parlay 5",1875,0.0,92.82,0.0,[["L. Doncic","Threes",5],["G. Allen","Threes",4],["B. Miller","Threes",3],["N. Reid","Threes",2],["M. Thybulle","Threes",1]],"2026-11-17","00:00"),
+("Nov 17 · Parlay 4",210,0.0,99.95,3.14,[["L. Doncic","Points",30],["B. Miller","Points",15],["L. Doncic","Assists",6]],"2026-11-17","10:57"),
+("Nov 17 · Parlay 3",233,0.0,99.69,3.46,[["D. Jones Jr.","Threes",1],["M. Thybulle","Threes",1],["G. Allen","Threes",2]],"2026-11-17","08:32"),
+("Nov 17 · Parlay 2",234,0.0,99.65,3.48,[["D. Clingan","Rebounds",8],["J. Holiday","Assists",2],["A. Bailey","Rebounds",4],["P. Reed","Rebounds",6]],"2026-11-17","08:26"),
+("Nov 17 · Parlay 1",256,0.0,99.76,3.76,[["C. Cunningham","Points",20],["A. Thompson","Rebounds",6],["L. Doncic","Threes",4]],"2026-11-17","08:25"),
+]
+
 ROBINHOOD_NOV16_BETS=[
 ("Nov 16 · Parlay 10",940,10.0,99.92,5.92,[["J. Brissett","Pass yds",150],["Q. Johnston","Rec yds",30],["D. Henry","Rush yds",90],["D. Henry","Anytime TD",1],["BAL","Win by 2.5",1]],"2026-11-16","17:02"),
 ("Nov 16 · Parlay 9",1304,7.2,99.99,6.10,[["D. Henry","Anytime TD",1],["O. Hampton","Anytime TD",1],["O. Hampton","Rush+Rec yds",40],["Z. Flowers","Receptions",4]],"2026-11-16","13:51"),
@@ -2050,6 +2061,10 @@ ROBINHOOD_NOV10_BETS=[
 ]
 
 ROBINHOOD_CONFIRMED_BET_SETTLEMENTS={
+    "Nov 17 · Parlay 1":{"date":"2026-11-17","settlement_date":"2026-11-17","time":"23:26","status":"Won","settlement_price":1.0,"quantity":256,"payout":256.00,"realized_profit":160.00,"note":"Robinhood payout: Cunningham 20+ points, A. Thompson 6+ rebounds, Doncic 4+ threes. Robinhood realized P/L takes precedence over original purchase snapshot."},
+    "Nov 17 · Parlay 4":{"date":"2026-11-17","settlement_date":"2026-11-17","time":"23:31","status":"Won","settlement_price":1.0,"quantity":210,"payout":210.00,"realized_profit":113.19,"note":"Robinhood payout: Doncic 30+ points, B. Miller 15+ points, Doncic 6+ assists. Original purchase snapshot retained; payout minus reported profit differs from saved purchase cost."},
+    "Nov 17 · Parlay 5":{"date":"2026-11-17","settlement_date":"2026-11-17","time":"23:29","status":"Won","settlement_price":0.34,"quantity":1875,"payout":637.50,"realized_profit":544.68,"note":"Robinhood payout-only record. Original buy details unavailable; inferred entry cost $92.82 from payout minus realized profit, not an independently verified fill."},
+    "Nov 17 · Parlay 6":{"date":"2026-11-17","settlement_date":"2026-11-17","time":"23:28","status":"Won","settlement_price":0.54,"quantity":383,"payout":206.82,"realized_profit":112.33,"note":"Robinhood payout-only record. Original buy details unavailable; inferred entry cost $94.49 from payout minus realized profit, not an independently verified fill."},
     "Nov 15 · Parlay 4":{"date":"2026-11-15","time":"18:56","settlement_date":"2026-11-15","status":"Won","settlement_price":0.72,"quantity":217,"payout":156.24,"realized_profit":59.68,"event_id":"ea00ad57-cec8-4088-85f9-efe6b01646fb","note":"Robinhood-confirmed partial-price payout for Doncic 30+ points, Irving 15+ points, Kyshawn George 10+ points. Irving may display DNP in ESPN; Robinhood settlement takes precedence. Preserve original $99.81 purchase cost and fees; Robinhood reported realized P/L is $59.68."},
     "Nov 15 · Parlay 18":{"date":"2026-11-15","status":"Lost","quantity":1705,"payout":0.00,"realized_profit":-99.99,"note":"User reported eight-team NFL game-winner combo lost. Full $99.99 entry cost counted as loss; Robinhood settlement not independently verified. Original wager and fees preserved."},
     "Nov 14 · Parlay 9":{"date":"2026-11-14","time":"19:06","settlement_date":"2026-11-14","status":"Won","settlement_price":1.0,"quantity":280,"payout":280.00,"realized_profit":184.32,"event_id":"dd3ee08e-c67d-4347-ad54-031db6e36f38","note":"Robinhood-confirmed Nov 14 payout: J. Murray 15+ points; Z. Williamson 15+ points; J. Fears 4+ assists; DEN game winner; S. Bey 2+ assists. Preserve original purchase cost and fees; use Robinhood-reported realized profit."},
@@ -2147,7 +2162,7 @@ def show_personal_bets():
     # Keep original November 7 settlement IDs intact; date selection never overwrites records.
     historical=list(reversed(ROBINHOOD_NOV7_BETS))
     current=list(reversed(ROBINHOOD_NOV8_BETS))
-    dated_bets=(historical if selected_day==date(2026,11,7) else current if selected_day==date(2026,11,8) else list(reversed(ROBINHOOD_NOV9_BETS)) if selected_day==date(2026,11,9) else list(reversed(ROBINHOOD_NOV10_BETS)) if selected_day==date(2026,11,10) else list(reversed(ROBINHOOD_NOV11_BETS)) if selected_day==date(2026,11,11) else list(reversed(ROBINHOOD_NOV12_BETS)) if selected_day==date(2026,11,12) else list(reversed(ROBINHOOD_NOV13_BETS)) if selected_day==date(2026,11,13) else list(reversed(ROBINHOOD_NOV14_BETS)) if selected_day==date(2026,11,14) else list(reversed(ROBINHOOD_NOV15_BETS)) if selected_day==date(2026,11,15) else list(reversed(ROBINHOOD_NOV16_BETS)) if selected_day==date(2026,11,16) else [])
+    dated_bets=(historical if selected_day==date(2026,11,7) else current if selected_day==date(2026,11,8) else list(reversed(ROBINHOOD_NOV9_BETS)) if selected_day==date(2026,11,9) else list(reversed(ROBINHOOD_NOV10_BETS)) if selected_day==date(2026,11,10) else list(reversed(ROBINHOOD_NOV11_BETS)) if selected_day==date(2026,11,11) else list(reversed(ROBINHOOD_NOV12_BETS)) if selected_day==date(2026,11,12) else list(reversed(ROBINHOOD_NOV13_BETS)) if selected_day==date(2026,11,13) else list(reversed(ROBINHOOD_NOV14_BETS)) if selected_day==date(2026,11,14) else list(reversed(ROBINHOOD_NOV15_BETS)) if selected_day==date(2026,11,15) else list(reversed(ROBINHOOD_NOV16_BETS)) if selected_day==date(2026,11,16) else list(reversed(ROBINHOOD_NOV17_BETS)) if selected_day==date(2026,11,17) else [])
     all_bets=[(name,qty,price,legs) for name,qty,price,cost,fees,legs,*_ in dated_bets]
     for i,item in enumerate(imported,1):
         if str(item.get("date",""))==selected_day.isoformat():
