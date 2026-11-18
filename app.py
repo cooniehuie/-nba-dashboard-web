@@ -2140,14 +2140,14 @@ def show_personal_bets():
     from my_bets_absences import leg_absence_label
     st.title("💸 My Bets · Robinhood")
     from datetime import date
-    available_days=[date(2026,11,16),date(2026,11,15),date(2026,11,14),date(2026,11,13),date(2026,11,12),date(2026,11,11),date(2026,11,10),date(2026,11,9),date(2026,11,8),date(2026,11,7)]
+    available_days=[date(2026,11,17),date(2026,11,16),date(2026,11,15),date(2026,11,14),date(2026,11,13),date(2026,11,12),date(2026,11,11),date(2026,11,10),date(2026,11,9),date(2026,11,8),date(2026,11,7)]
     selected_day=st.selectbox("Bet date",available_days,format_func=lambda d:d.strftime("%B %-d, %Y"),key="my_bets_selected_date")
     st.caption("Daily bet tracking · Historical bets and settlement records are retained separately.")
     imported=imported_bet_rows()
     # Keep original November 7 settlement IDs intact; date selection never overwrites records.
     historical=list(reversed(ROBINHOOD_NOV7_BETS))
     current=list(reversed(ROBINHOOD_NOV8_BETS))
-    dated_bets=(historical if selected_day==date(2026,11,7) else current if selected_day==date(2026,11,8) else list(reversed(ROBINHOOD_NOV9_BETS)) if selected_day==date(2026,11,9) else list(reversed(ROBINHOOD_NOV10_BETS)) if selected_day==date(2026,11,10) else list(reversed(ROBINHOOD_NOV11_BETS)) if selected_day==date(2026,11,11) else list(reversed(ROBINHOOD_NOV12_BETS)) if selected_day==date(2026,11,12) else list(reversed(ROBINHOOD_NOV13_BETS)) if selected_day==date(2026,11,13) else list(reversed(ROBINHOOD_NOV14_BETS)) if selected_day==date(2026,11,14) else list(reversed(ROBINHOOD_NOV15_BETS)) if selected_day==date(2026,11,15) else list(reversed(ROBINHOOD_NOV16_BETS)))
+    dated_bets=(historical if selected_day==date(2026,11,7) else current if selected_day==date(2026,11,8) else list(reversed(ROBINHOOD_NOV9_BETS)) if selected_day==date(2026,11,9) else list(reversed(ROBINHOOD_NOV10_BETS)) if selected_day==date(2026,11,10) else list(reversed(ROBINHOOD_NOV11_BETS)) if selected_day==date(2026,11,11) else list(reversed(ROBINHOOD_NOV12_BETS)) if selected_day==date(2026,11,12) else list(reversed(ROBINHOOD_NOV13_BETS)) if selected_day==date(2026,11,13) else list(reversed(ROBINHOOD_NOV14_BETS)) if selected_day==date(2026,11,14) else list(reversed(ROBINHOOD_NOV15_BETS)) if selected_day==date(2026,11,15) else list(reversed(ROBINHOOD_NOV16_BETS)) if selected_day==date(2026,11,16) else [])
     all_bets=[(name,qty,price,legs) for name,qty,price,cost,fees,legs,*_ in dated_bets]
     for i,item in enumerate(imported,1):
         if str(item.get("date",""))==selected_day.isoformat():
@@ -2159,7 +2159,7 @@ def show_personal_bets():
         labels[name]=f"Parlay {i} - {len(legs)} Legs"
     saved=saved_bet_statuses()
     byid={r["Bet"]:r for _,r in saved.iterrows()} if not saved.empty else {}
-    total=sum(row[3] for row in dated_bets)+sum(q*p/100 for name,q,p,legs in all_bets if name not in {row[0] for row in dated_bets})
+    total=sum(row[3] for row in dated_bets)+sum(float(item.get("cost",float(item["qty"])*float(item["cents"])/100)) for item in imported if str(item.get("date",""))==selected_day.isoformat())
     confirmed_payouts=[p for p in ROBINHOOD_CONFIRMED_PAYOUTS if p['date']==selected_day.isoformat()]
     settled=[]
     for row in byid.values():
