@@ -8,6 +8,10 @@ import streamlit as st
 BANKROLL_CYCLE_STARTING_BALANCE = 398.85
 
 PARLAYS = [
+{"date":"2026-11-17","id":"3-Leg Points + Rebounds + Threes · Cunningham / Thompson / Doncic","contracts":256,"cost":99.76,"fees":3.76,"filled_at":"08:25","my_bets":"Nov 17 · Parlay 1","legs":[["C. Cunningham","Points",20],["A. Thompson","Rebounds",6],["L. Doncic","Threes",4]]},
+{"date":"2026-11-17","id":"4-Leg Rebounds + Assists · Clingan / Holiday / Bailey / Reed","contracts":234,"cost":99.65,"fees":3.48,"filled_at":"08:26","my_bets":"Nov 17 · Parlay 2","legs":[["D. Clingan","Rebounds",8],["J. Holiday","Assists",2],["A. Bailey","Rebounds",4],["P. Reed","Rebounds",6]]},
+{"date":"2026-11-17","id":"3-Leg Threes · Jones Jr. / Thybulle / Allen","contracts":233,"cost":99.69,"fees":3.46,"filled_at":"08:32","my_bets":"Nov 17 · Parlay 3","legs":[["D. Jones Jr.","Threes",1],["M. Thybulle","Threes",1],["G. Allen","Threes",2]]},
+{"date":"2026-11-17","id":"3-Leg Points + Assists · Doncic / Miller / Doncic","contracts":210,"cost":99.95,"fees":3.14,"filled_at":"10:57","my_bets":"Nov 17 · Parlay 4","legs":[["L. Doncic","Points",30],["B. Miller","Points",15],["L. Doncic","Assists",6]]},
 {"date":"2026-11-16","id":"4-Leg Threes + Assists · Bane / Watson / Queen / Sheppard","contracts":334,"cost":98.54,"fees":4.69,"filled_at":"13:06","my_bets":"Nov 16 · Parlay 3","legs":[["D. Bane","Threes",2],["P. Watson","Assists",2],["D. Queen","Assists",2],["R. Sheppard","Assists",2]]},
 {"date":"2026-11-16","id":"3-Leg Rebounds · Lendeborg / Sengun / Coward","contracts":264,"cost":99.69,"fees":3.86,"filled_at":"13:02","my_bets":"Nov 16 · Parlay 2","legs":[["Y. Lendeborg","Rebounds",6],["A. Sengun","Rebounds",8],["C. Coward","Rebounds",6]]},
 {"date":"2026-11-16","id":"5-Leg Assists · Murray / Giddey / Suggs / Green / Avdija","contracts":220,"cost":99.20,"fees":3.28,"filled_at":"13:00","my_bets":"Nov 16 · Parlay 1","legs":[["J. Murray","Assists",4],["J. Giddey","Assists",6],["J. Suggs","Assists",2],["D. Green","Assists",4],["D. Avdija","Assists",4]]},
