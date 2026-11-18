@@ -1877,6 +1877,10 @@ ROBINHOOD_NOV9_BETS=[
 ]
 
 ROBINHOOD_NOV18_BETS=[
+("Nov 18 · Parlay 7",1304,7.2,99.99,6.1,[["L. Doncic","Threes",5],["K. Thompson","Threes",4],["D. Bane","Threes",3],["T. Silva","Threes",3]],"2026-11-18","12:24"),
+("Nov 18 · Parlay 8",343,27.7,99.81,4.8,[["L. Doncic","Threes",4],["D. Bane","Threes",2],["T. Silva","Threes",2],["K. Thompson","Threes",3]],"2026-11-18","12:25"),
+("Nov 18 · Parlay 9",1174,8,99.98,6.06,[["K. Irving","Threes",3],["B. Podziemski","Threes",3],["T. Maxey","Threes",3],["T. Proctor","Threes",2],["J. Tatum","Threes",2]],"2026-11-18","12:34"),
+("Nov 18 · Parlay 10",249,38.6,99.78,3.67,[["T. Proctor","Threes",1],["B. Podziemski","Threes",2],["K. Irving","Threes",2],["J. Tatum","Threes",1],["T. Maxey","Threes",2]],"2026-11-18","12:36"),
 ("Nov 18 · Parlay 6",291,32.62,99.12,4.19,[["N. Alexander-Walker","Threes",3],["L. Doncic","Points",30],["J. Johnson","Assists",6],["O. Okongwu","Rebounds",6]],"2026-11-18","12:13"),
 ("Nov 18 · Parlay 5",290,33.0,99.88,4.18,[["V. Edgecombe","Assists",2],["D. Daniels","Rebounds",6],["A. Thompson","Rebounds",6],["J. Johnson","Rebounds",8]],"2026-11-18","12:12"),
 ("Nov 18 · Parlay 4",255,37.6,99.63,3.75,[["J. Jaquez Jr.","Threes",1],["L. Doncic","Threes",4],["T. Maxey","Threes",2]],"2026-11-18","12:09"),
