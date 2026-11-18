@@ -8,6 +8,10 @@ import streamlit as st
 BANKROLL_CYCLE_STARTING_BALANCE = 398.85
 
 PARLAYS = [
+{"date":"2026-11-18","id":"4-Leg Threes + Points + Assists + Rebounds · Alexander-Walker / Doncic / Johnson / Okongwu","contracts":291,"cost":99.12,"fees":4.19,"filled_at":"12:13","my_bets":"Nov 18 · Parlay 6","legs":[["N. Alexander-Walker","Threes",3],["L. Doncic","Points",30],["J. Johnson","Assists",6],["O. Okongwu","Rebounds",6]]},
+{"date":"2026-11-18","id":"4-Leg Assists + Rebounds · Edgecombe / Daniels / Thompson / Johnson","contracts":290,"cost":99.88,"fees":4.18,"filled_at":"12:12","my_bets":"Nov 18 · Parlay 5","legs":[["V. Edgecombe","Assists",2],["D. Daniels","Rebounds",6],["A. Thompson","Rebounds",6],["J. Johnson","Rebounds",8]]},
+{"date":"2026-11-18","id":"3-Leg Threes · Jaquez / Doncic / Maxey","contracts":255,"cost":99.63,"fees":3.75,"filled_at":"12:09","my_bets":"Nov 18 · Parlay 4","legs":[["J. Jaquez Jr.","Threes",1],["L. Doncic","Threes",4],["T. Maxey","Threes",2]]},
+{"date":"2026-11-18","id":"5-Leg Assists + Rebounds · James / Green / Embiid / Cunningham / Thompson","contracts":212,"cost":99.10,"fees":3.17,"filled_at":"12:08","my_bets":"Nov 18 · Parlay 3","legs":[["L. James","Assists",4],["D. Green","Assists",4],["J. Embiid","Rebounds",6],["C. Cunningham","Assists",6],["A. Thompson","Assists",2]]},
 # Payout-only wins: costs inferred from Robinhood payout less realized profit; no original fill data.
 {"date":"2026-11-17","id":"3-Leg Points + Rebounds + Threes · Cunningham / Thompson / Doncic","contracts":256,"cost":99.76,"fees":3.76,"filled_at":"08:25","my_bets":"Nov 17 · Parlay 1","legs":[["C. Cunningham","Points",20],["A. Thompson","Rebounds",6],["L. Doncic","Threes",4]]},
 {"date":"2026-11-17","id":"4-Leg Rebounds + Assists · Clingan / Holiday / Bailey / Reed","contracts":234,"cost":99.65,"fees":3.48,"filled_at":"08:26","my_bets":"Nov 17 · Parlay 2","legs":[["D. Clingan","Rebounds",8],["J. Holiday","Assists",2],["A. Bailey","Rebounds",4],["P. Reed","Rebounds",6]]},
