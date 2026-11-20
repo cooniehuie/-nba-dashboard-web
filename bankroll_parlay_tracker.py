@@ -8,6 +8,9 @@ import streamlit as st
 BANKROLL_CYCLE_STARTING_BALANCE = 398.85
 
 PARLAYS = [
+{"date":"2026-11-19","id":"3-Leg Threes + Rebounds · Jaquez / Lillard / Edey","contracts":259,"cost":99.63,"fees":3.80,"filled_at":"10:59","my_bets":"Nov 19 · Parlay 3","legs":[["J. Jaquez Jr.","Threes",1],["D. Lillard","Threes",3],["Z. Edey","Rebounds",6]]},
+{"date":"2026-11-19","id":"5-Leg Points + Rebounds + Assists · Lillard / Boozer / Coward / Avdija / Holiday","contracts":230,"cost":99.52,"fees":3.42,"filled_at":"10:58","my_bets":"Nov 19 · Parlay 2","legs":[["D. Lillard","Points",15],["C. Boozer","Rebounds",6],["C. Coward","Assists",2],["D. Avdija","Assists",4],["J. Holiday","Points",10]]},
+{"date":"2026-11-19","id":"5-Leg Points + Rebounds + Threes + Assists · Avdija / Holiday / Coward / Boozer","contracts":221,"cost":98.88,"fees":3.29,"filled_at":"10:55","my_bets":"Nov 19 · Parlay 1","legs":[["D. Avdija","Points",15],["D. Avdija","Rebounds",4],["J. Holiday","Threes",2],["C. Coward","Rebounds",6],["C. Boozer","Assists",2]]},
 {"date":"2026-11-18","id":"4-Leg Threes + Points + Assists + Rebounds · Alexander-Walker / Doncic / Johnson / Okongwu","contracts":291,"cost":99.12,"fees":4.19,"filled_at":"12:13","my_bets":"Nov 18 · Parlay 6","legs":[["N. Alexander-Walker","Threes",3],["L. Doncic","Points",30],["J. Johnson","Assists",6],["O. Okongwu","Rebounds",6]]},
 {"date":"2026-11-18","id":"4-Leg Assists + Rebounds · Edgecombe / Daniels / Thompson / Johnson","contracts":290,"cost":99.88,"fees":4.18,"filled_at":"12:12","my_bets":"Nov 18 · Parlay 5","legs":[["V. Edgecombe","Assists",2],["D. Daniels","Rebounds",6],["A. Thompson","Rebounds",6],["J. Johnson","Rebounds",8]]},
 {"date":"2026-11-18","id":"3-Leg Threes · Jaquez / Doncic / Maxey","contracts":255,"cost":99.63,"fees":3.75,"filled_at":"12:09","my_bets":"Nov 18 · Parlay 4","legs":[["J. Jaquez Jr.","Threes",1],["L. Doncic","Threes",4],["T. Maxey","Threes",2]]},
