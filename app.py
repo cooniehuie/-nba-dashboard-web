@@ -1893,6 +1893,10 @@ ROBINHOOD_NOV9_BETS=[
 ]
 
 ROBINHOOD_NOV21_BETS=[
+("Nov 21 · Parlay 5",358,26.5,99.75,4.88,[["J. Holiday","Threes",2],["D. Acuff Jr.","Threes",3],["J. Brunson","Threes",2]],"2026-11-21","13:56"),
+("Nov 21 · Parlay 4",222,43.4,99.66,3.31,[["J. Holiday","Threes",1],["S. Castle","Threes",1],["P. Washington","Threes",1],["D. Avdija","Threes",1],["R. Hachimura","Threes",1]],"2026-11-21","13:45"),
+("Nov 21 · Parlay 3",256,37.5,99.76,3.76,[["D. Lillard","Threes",2],["J. Brunson","Threes",2],["J. Champagnie","Threes",2],["D. Acuff Jr.","Threes",2]],"2026-11-21","13:42"),
+("Nov 21 · Parlay 2",1235,7.6,99.93,6.07,[["D. Acuff Jr.","Threes",3],["J. Tatum","Threes",3],["J. Champagnie","Threes",3],["J. Brunson","Threes",3],["D. Lillard","Threes",3]],"2026-11-21","13:41"),
 ("Nov 21 · Parlay 1",378,25.1,99.86,4.98,[["V. Wembanyama","Rebounds",10],["K. Dunn","Assists",2],["V. Wembanyama","Points",25],["Z. Williamson","Points",15],["Z. Williamson","Assists",2]],"2026-11-21","11:12"),
 ]
 
