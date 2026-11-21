@@ -555,6 +555,15 @@ def bankroll_verified_summary(rows):
     return {"Wins":wins,"Losses":losses,"Excluded":excluded,
             "Graded":wins+losses,"Hit rate":100*wins/(wins+losses) if wins+losses else 0}
 
+# Original Nov 19–20 Bankroll Builder picks were supplied as dated workbooks.
+# Verified against final ESPN NBA boxscores on Nov 21. Preserve unknown Edey
+# rather than inventing a zero, and exclude explicit DNP from the denominator.
+# Workbook selections, not individual parlay legs, drive this safe-line chart.
+VERIFIED_SAFE_LINE_HISTORY = {
+    "2026-11-19":{"Wins":8,"Losses":2,"Excluded":3,"Unverified":1,"Status":"Dated workbook + ESPN final box scores · Edey unverified"},
+    "2026-11-20":{"Wins":14,"Losses":5,"Excluded":1,"Unverified":0,"Status":"Dated workbook + ESPN final box scores"},
+}
+
 def bankroll_history_frame():
     frame=pd.DataFrame(BANKROLL_HISTORY)
     verified=saved_bankroll_results()
@@ -564,6 +573,13 @@ def bankroll_history_frame():
                      "Excluded":summary["Excluded"],"Status":"Box-score verified"}
         frame=frame[frame["Date"]!=date]
         frame=pd.concat([frame,pd.DataFrame([replacement])],ignore_index=True)
+    # Include dated workbook results even if the private archive is unavailable.
+    # Explicit saved per-pick verified records supersede these dated summaries.
+    for date,summary in VERIFIED_SAFE_LINE_HISTORY.items():
+        if date in verified:
+            continue
+        frame=frame[frame["Date"]!=date]
+        frame=pd.concat([frame,pd.DataFrame([{"Date":date,**summary}])],ignore_index=True)
     frame=frame.sort_values("Date").reset_index(drop=True)
     frame["Graded"]=frame["Wins"]+frame["Losses"]
     frame["Hit rate"]=frame.apply(lambda r:100*r["Wins"]/r["Graded"] if r["Graded"] else 0,axis=1)
