@@ -54,6 +54,19 @@ PARLAYS = [
  {"date":"2026-11-10","id":"Points + Assists","contracts":270,"cost":99.79,"fees":3.94,"filled_at":"16:38","event_id":"82529a37-8c56-483c-a25c-389dba487cd9","my_bets":"Nov 10 · Parlay 16","legs":[("T. Silva","Points",10),("W. Carter Jr.","Points",10),("A. Caruso","Assists",2)]}
 ]
 
+# Verified against ESPN final NBA boxscores on Nov 21, 2026.
+# These are game outcomes, NOT independently verified Robinhood settlements.
+# DNP and missing athlete rows remain unverified; never convert them to misses.
+FINAL_BOX_AUDIT = [
+    {"Date":"2026-11-19","Bet":"Nov 19 · Parlay 1","Final result":"Miss","Verified legs":"Holiday 2 threes: hit; Coward 4 rebounds: miss; Boozer 5 assists: hit","Unverified":"Avdija points/rebounds: ESPN DNP (left foot)","ESPN":"https://site.api.espn.com/apis/site/v2/sports/basketball/nba/summary?event=401910020"},
+    {"Date":"2026-11-19","Bet":"Nov 19 · Parlay 2","Final result":"Robinhood-confirmed win","Verified legs":"Lillard 33 points; Boozer 6 rebounds; Coward 4 assists; Holiday 22 points","Unverified":"Avdija: ESPN DNP; Robinhood payout overrides box-score uncertainty","ESPN":"https://site.api.espn.com/apis/site/v2/sports/basketball/nba/summary?event=401910020"},
+    {"Date":"2026-11-19","Bet":"Nov 19 · Parlay 3","Final result":"Unverified","Verified legs":"Jaquez 1 three: hit; Lillard 5 threes: hit","Unverified":"Edey 6+ rebounds: no athlete row in ESPN boxscore","ESPN":"https://site.api.espn.com/apis/site/v2/sports/basketball/nba/summary?event=401910019"},
+    {"Date":"2026-11-20","Bet":"Nov 20 · Parlay 1","Final result":"Miss","Verified legs":"Bey 4 threes: hit; Alexander-Walker 2 threes: miss; Doncic 25 points: miss; Daniels 10 assists: hit","Unverified":"","ESPN":"https://site.api.espn.com/apis/site/v2/sports/basketball/nba/summary?event=401909305"},
+    {"Date":"2026-11-20","Bet":"Nov 20 · Parlay 2","Final result":"Miss","Verified legs":"Doncic 2 threes: miss; Wiggins 4 threes: hit; Harden 7 threes: hit","Unverified":"","ESPN":"https://site.api.espn.com/apis/site/v2/sports/basketball/nba/summary?event=401909313"},
+    {"Date":"2026-11-20","Bet":"Nov 20 · Parlay 3","Final result":"Miss","Verified legs":"Shead 4 assists: hit; Ausar Thompson 3 assists: hit; Johnson 6 assists: hit; Donovan Mitchell 3 assists: miss; Daniels 8 rebounds: hit","Unverified":"","ESPN":"https://site.api.espn.com/apis/site/v2/sports/basketball/nba/summary?event=401909307"},
+    {"Date":"2026-11-20","Bet":"Nov 20 · Parlay 4","Final result":"All targets reached","Verified legs":"Daniels 10 assists: hit; Diabate 15 rebounds: hit; Bey 3 assists: hit","Unverified":"Robinhood settlement not supplied","ESPN":"https://site.api.espn.com/apis/site/v2/sports/basketball/nba/summary?event=401909305"},
+]
+
 def render_bankroll_parlays(espn_nba_boxscores,match_espn_player,confirmed_settlements=None):
     from parlay_live_tracking import render_live_parlays
     bets=[]
@@ -78,6 +91,10 @@ def render_bankroll_parlays(espn_nba_boxscores,match_espn_player,confirmed_settl
     render_live_parlays(bets,espn_nba_boxscores,match_espn_player,
                         outcomes,prefix="bankroll_parlays",
                         title="Bankroll Builder Parlays · Live Tracking")
+    with st.expander("Nov 19–20 · verified final box-score audit", expanded=True):
+        st.caption("ESPN final NBA box scores checked Nov 21. A box-score hit or miss is not a Robinhood settlement; DNP and missing stats stay unverified.")
+        st.dataframe(pd.DataFrame(FINAL_BOX_AUDIT),hide_index=True,use_container_width=True)
+
 
 def automatic_game_results(espn_nba_boxscores, match_espn_player):
     """Compute box-score outcomes without treating them as Robinhood settlements."""
