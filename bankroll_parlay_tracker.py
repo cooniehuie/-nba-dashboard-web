@@ -91,6 +91,7 @@ def render_bankroll_parlays(espn_nba_boxscores,match_espn_player,confirmed_settl
     render_live_parlays(bets,espn_nba_boxscores,match_espn_player,
                         outcomes,prefix="bankroll_parlays",
                         title="Bankroll Builder Parlays · Live Tracking")
+    st.caption("Performance P/L includes verified final-game full-hold estimates where Robinhood settlements are unavailable; confirmed Robinhood payouts override estimates. Nov 19 Parlay 3 remains unverified.")
     with st.expander("Nov 19–20 · verified final box-score audit", expanded=True):
         st.caption("ESPN final NBA box scores checked Nov 21. A box-score hit or miss is not a Robinhood settlement; DNP and missing stats stay unverified.")
         st.dataframe(pd.DataFrame(FINAL_BOX_AUDIT),hide_index=True,use_container_width=True)
@@ -157,9 +158,25 @@ def inferred_settlements(espn_nba_boxscores, match_espn_player):
     return results
 
 
+# Persist verified final-box-score outcomes in the performance statistics even
+# when ESPN is temporarily unavailable. These are full-hold MODEL estimates,
+# not Robinhood-confirmed settlements. Confirmed payouts always take priority.
+VERIFIED_FINAL_BOX_OUTCOMES = {
+    "Nov 19 · Parlay 1":{"status":"Loss","realized_profit":-98.88,"source":"Verified final box score · inferred full-hold P/L"},
+    "Nov 20 · Parlay 1":{"status":"Loss","realized_profit":-99.48,"source":"Verified final box score · inferred full-hold P/L"},
+    "Nov 20 · Parlay 2":{"status":"Loss","realized_profit":-99.25,"source":"Verified final box score · inferred full-hold P/L"},
+    "Nov 20 · Parlay 3":{"status":"Loss","realized_profit":-99.85,"source":"Verified final box score · inferred full-hold P/L"},
+    "Nov 20 · Parlay 4":{"status":"Won","realized_profit":143.18,"source":"Verified final box score · inferred full-hold P/L"},
+}
+
 def bankroll_outcomes(settlements, espn_nba_boxscores=None, match_espn_player=None):
     """Preserve confirmed transactions; otherwise use full-hold outcome rules."""
     results=dict(settlements or {})
+    # A confirmed Robinhood settlement takes precedence over box-score estimates.
+    for key,value in VERIFIED_FINAL_BOX_OUTCOMES.items():
+        current=results.get(key,{})
+        if current.get("realized_profit") is None or current.get("status") not in ("Won","Loss","Lost","Closed"):
+            results[key]=dict(value)
     if espn_nba_boxscores is not None and match_espn_player is not None:
         inferred=inferred_settlements(espn_nba_boxscores,match_espn_player)
         for key,value in inferred.items():
