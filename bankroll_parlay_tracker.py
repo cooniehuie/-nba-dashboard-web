@@ -8,6 +8,7 @@ import streamlit as st
 BANKROLL_CYCLE_STARTING_BALANCE = 398.85
 
 PARLAYS = [
+{"date":"2026-11-21","id":"5-Leg Threes · Holiday / Castle / Washington / Avdija / Hachimura","event_id":"52871b5c-8c97-460b-b2d3-a00d91b6d248","contracts":222,"cost":99.66,"fees":3.31,"filled_at":"13:45","my_bets":"Nov 21 · Parlay 4","legs":[["J. Holiday","Threes",1],["S. Castle","Threes",1],["P. Washington","Threes",1],["D. Avdija","Threes",1],["R. Hachimura","Threes",1]]},
 {"date":"2026-11-21","id":"5-Leg Rebounds + Assists + Points · Wembanyama / Dunn / Williamson","event_id":"4f390282-4ce2-4e4b-8c71-319590ca1e75","contracts":378,"cost":99.86,"fees":4.98,"filled_at":"11:12","my_bets":"Nov 21 · Parlay 1","legs":[["V. Wembanyama","Rebounds",10],["K. Dunn","Assists",2],["V. Wembanyama","Points",25],["Z. Williamson","Points",15],["Z. Williamson","Assists",2]]},
 {"date":"2026-11-20","id":"3-Leg Assists + Rebounds · Daniels / Diabate / Bey","contracts":243,"cost":99.82,"fees":3.59,"filled_at":"14:25","my_bets":"Nov 20 · Parlay 4","legs":[["D. Daniels","Assists",4],["M. Diabate","Rebounds",8],["S. Bey","Assists",2]]},
 {"date":"2026-11-20","id":"5-Leg Assists + Rebounds · Shead / Thompson / Johnson / Mitchell / Daniels","contracts":290,"cost":99.85,"fees":4.18,"filled_at":"14:20","my_bets":"Nov 20 · Parlay 3","legs":[["J. Shead","Assists",4],["A. Thompson","Assists",2],["J. Johnson","Assists",6],["D. Mitchell","Assists",4],["D. Daniels","Rebounds",4]]},
