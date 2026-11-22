@@ -562,6 +562,7 @@ def bankroll_verified_summary(rows):
 VERIFIED_SAFE_LINE_HISTORY = {
     "2026-11-19":{"Wins":8,"Losses":2,"Excluded":3,"Unverified":1,"Status":"Dated workbook + ESPN final box scores · Edey unverified"},
     "2026-11-20":{"Wins":14,"Losses":5,"Excluded":1,"Unverified":0,"Status":"Dated workbook + ESPN final box scores"},
+    "2026-11-21":{"Wins":13,"Losses":5,"Excluded":2,"Unverified":0,"Status":"Nov 21 dated workbook · ESPN final box scores (Zion DNP)"},
 }
 
 def bankroll_history_frame():
