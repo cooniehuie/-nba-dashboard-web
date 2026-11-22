@@ -1893,6 +1893,12 @@ ROBINHOOD_NOV9_BETS=[
 ("Nov 9 · Parlay 1",343,27.1,99.78,6.83,[["E. Mobley","Threes",1],["J. Harden","Threes",2],["A. Wiggins","Threes",2],["N. Alexander-Walker","Threes",2]],"2026-11-09","09:36"),
 ]
 
+ROBINHOOD_NOV22_BETS=[
+("Nov 22 · Parlay 3",238,40.44,99.77,3.53,[["D. Daniels","Assists",4],["A. Thompson","Rebounds",6],["J. Giddey","Assists",6],["J. Johnson","Assists",4],["P. Reed","Rebounds",4]],"2026-11-22","10:06"),
+("Nov 22 · Parlay 2",235,40.11,97.73,3.48,[["A. Wiggins","Threes",2],["A. Nembhard","Threes",1],["J. Smith","Threes",1],["S. Gilgeous-Alexander","Points",25],["J. Johnson","Rebounds",6]],"2026-11-22","10:04"),
+("Nov 22 · Parlay 1",266,35.79,99.09,3.88,[["D. Daniels","Rebounds",6],["I. Hartenstein","Rebounds",8],["A. Bailey","Rebounds",4],["J. Smith","Rebounds",6]],"2026-11-22","10:02"),
+]
+
 ROBINHOOD_NOV21_BETS=[
 ("Nov 21 · Parlay 5",358,26.5,99.75,4.88,[["J. Holiday","Threes",2],["D. Acuff Jr.","Threes",3],["J. Brunson","Threes",2]],"2026-11-21","13:56"),
 ("Nov 21 · Parlay 4",222,43.4,99.66,3.31,[["J. Holiday","Threes",1],["S. Castle","Threes",1],["P. Washington","Threes",1],["D. Avdija","Threes",1],["R. Hachimura","Threes",1]],"2026-11-21","13:45"),
@@ -2225,14 +2231,14 @@ def show_personal_bets():
     from my_bets_absences import leg_absence_label
     st.title("💸 My Bets · Robinhood")
     from datetime import date
-    available_days=[date(2026,11,21),date(2026,11,20),date(2026,11,19),date(2026,11,18),date(2026,11,17),date(2026,11,16),date(2026,11,15),date(2026,11,14),date(2026,11,13),date(2026,11,12),date(2026,11,11),date(2026,11,10),date(2026,11,9),date(2026,11,8),date(2026,11,7)]
+    available_days=[date(2026,11,22),date(2026,11,21),date(2026,11,20),date(2026,11,19),date(2026,11,18),date(2026,11,17),date(2026,11,16),date(2026,11,15),date(2026,11,14),date(2026,11,13),date(2026,11,12),date(2026,11,11),date(2026,11,10),date(2026,11,9),date(2026,11,8),date(2026,11,7)]
     selected_day=st.selectbox("Bet date",available_days,format_func=lambda d:d.strftime("%B %-d, %Y"),key="my_bets_selected_date")
     st.caption("Daily bet tracking · Historical bets and settlement records are retained separately.")
     imported=imported_bet_rows()
     # Keep original November 7 settlement IDs intact; date selection never overwrites records.
     historical=list(reversed(ROBINHOOD_NOV7_BETS))
     current=list(reversed(ROBINHOOD_NOV8_BETS))
-    dated_bets=(historical if selected_day==date(2026,11,7) else current if selected_day==date(2026,11,8) else list(reversed(ROBINHOOD_NOV9_BETS)) if selected_day==date(2026,11,9) else list(reversed(ROBINHOOD_NOV10_BETS)) if selected_day==date(2026,11,10) else list(reversed(ROBINHOOD_NOV11_BETS)) if selected_day==date(2026,11,11) else list(reversed(ROBINHOOD_NOV12_BETS)) if selected_day==date(2026,11,12) else list(reversed(ROBINHOOD_NOV13_BETS)) if selected_day==date(2026,11,13) else list(reversed(ROBINHOOD_NOV14_BETS)) if selected_day==date(2026,11,14) else list(reversed(ROBINHOOD_NOV15_BETS)) if selected_day==date(2026,11,15) else list(reversed(ROBINHOOD_NOV16_BETS)) if selected_day==date(2026,11,16) else list(reversed(ROBINHOOD_NOV17_BETS)) if selected_day==date(2026,11,17) else list(reversed(ROBINHOOD_NOV18_BETS)) if selected_day==date(2026,11,18) else list(reversed(ROBINHOOD_NOV19_BETS)) if selected_day==date(2026,11,19) else list(reversed(ROBINHOOD_NOV20_BETS)) if selected_day==date(2026,11,20) else list(reversed(ROBINHOOD_NOV21_BETS)) if selected_day==date(2026,11,21) else [])
+    dated_bets=(historical if selected_day==date(2026,11,7) else current if selected_day==date(2026,11,8) else list(reversed(ROBINHOOD_NOV9_BETS)) if selected_day==date(2026,11,9) else list(reversed(ROBINHOOD_NOV10_BETS)) if selected_day==date(2026,11,10) else list(reversed(ROBINHOOD_NOV11_BETS)) if selected_day==date(2026,11,11) else list(reversed(ROBINHOOD_NOV12_BETS)) if selected_day==date(2026,11,12) else list(reversed(ROBINHOOD_NOV13_BETS)) if selected_day==date(2026,11,13) else list(reversed(ROBINHOOD_NOV14_BETS)) if selected_day==date(2026,11,14) else list(reversed(ROBINHOOD_NOV15_BETS)) if selected_day==date(2026,11,15) else list(reversed(ROBINHOOD_NOV16_BETS)) if selected_day==date(2026,11,16) else list(reversed(ROBINHOOD_NOV17_BETS)) if selected_day==date(2026,11,17) else list(reversed(ROBINHOOD_NOV18_BETS)) if selected_day==date(2026,11,18) else list(reversed(ROBINHOOD_NOV19_BETS)) if selected_day==date(2026,11,19) else list(reversed(ROBINHOOD_NOV20_BETS)) if selected_day==date(2026,11,20) else list(reversed(ROBINHOOD_NOV21_BETS)) if selected_day==date(2026,11,21) else list(reversed(ROBINHOOD_NOV22_BETS)) if selected_day==date(2026,11,22) else [])
     all_bets=[(name,qty,price,legs) for name,qty,price,cost,fees,legs,*_ in dated_bets]
     for i,item in enumerate(imported,1):
         if str(item.get("date",""))==selected_day.isoformat():
