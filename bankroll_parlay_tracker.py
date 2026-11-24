@@ -8,6 +8,9 @@ import streamlit as st
 BANKROLL_CYCLE_STARTING_BALANCE = 398.85
 
 PARLAYS = [
+{"date":"2026-11-23","id":"4-Leg Rebounds + Points · Barnes / Queen / Smith / Harden","contracts":333,"cost":99.93,"fees":4.69,"filled_at":"09:59","my_bets":"Nov 23 · Parlay 3","legs":[["S. Barnes","Rebounds",6],["D. Queen","Rebounds",4],["J. Smith","Rebounds",6],["J. Harden","Points",15]]},
+{"date":"2026-11-23","id":"4-Leg Threes + Points · Harden / Proctor / Wembanyama / McCain","contracts":297,"cost":99.9,"fees":4.27,"filled_at":"09:53","my_bets":"Nov 23 · Parlay 2","legs":[["J. Harden","Threes",2],["T. Proctor","Threes",1],["V. Wembanyama","Points",25],["J. McCain","Points",10]]},
+{"date":"2026-11-23","id":"4-Leg Assists · Mitchell / Giddey / Spencer / Hartenstein","contracts":260,"cost":99.75,"fees":3.81,"filled_at":"09:50","my_bets":"Nov 23 · Parlay 1","legs":[["D. Mitchell","Assists",4],["J. Giddey","Assists",8],["C. Spencer","Assists",4],["I. Hartenstein","Assists",2]]},
 {"date":"2026-11-22","id":"5-Leg Assists + Rebounds · Daniels / Thompson / Giddey / Johnson / Reed","contracts":238,"cost":99.77,"fees":3.53,"filled_at":"10:06","my_bets":"Nov 22 · Parlay 3","legs":[["D. Daniels","Assists",4],["A. Thompson","Rebounds",6],["J. Giddey","Assists",6],["J. Johnson","Assists",4],["P. Reed","Rebounds",4]]},
 {"date":"2026-11-22","id":"5-Leg Threes + Points + Rebounds · Wiggins / Nembhard / Smith / Gilgeous-Alexander / Johnson","contracts":235,"cost":97.73,"fees":3.48,"filled_at":"10:04","my_bets":"Nov 22 · Parlay 2","legs":[["A. Wiggins","Threes",2],["A. Nembhard","Threes",1],["J. Smith","Threes",1],["S. Gilgeous-Alexander","Points",25],["J. Johnson","Rebounds",6]]},
 {"date":"2026-11-22","id":"4-Leg Rebounds · Daniels / Hartenstein / Bailey / Smith","contracts":266,"cost":99.09,"fees":3.88,"filled_at":"10:02","my_bets":"Nov 22 · Parlay 1","legs":[["D. Daniels","Rebounds",6],["I. Hartenstein","Rebounds",8],["A. Bailey","Rebounds",4],["J. Smith","Rebounds",6]]},
