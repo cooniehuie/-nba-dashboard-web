@@ -1894,6 +1894,9 @@ ROBINHOOD_NOV9_BETS=[
 ]
 
 ROBINHOOD_NOV26_BETS=[
+("Nov 26 · Parlay 11",2285,4.1,99.98,6.3,[["J. Allen","Anytime TD",1],["J. Cook","Anytime TD",1],["T. Kelce","Anytime TD",1],["E. Johnson","Anytime TD",1]],"2026-11-26","15:40"),
+("Nov 26 · Parlay 10",313,30.5,99.92,4.46,[["J. Cook","Anytime TD",1],["E. Johnson","Anytime TD",1]],"2026-11-26","15:37"),
+("Nov 26 · Parlay 9",4456,2.1,100,6.42,[["E. Johnson","Anytime TD",2],["J. Cook","Anytime TD",2]],"2026-11-26","15:37"),
 ("Nov 26 · Parlay 8",1380,6.8,99.97,6.13,[["L. Burden III","Receptions",4],["C. Loveland","Rec yds",30],["C. Williams","Pass yds",250],["J. Gibbs","Rush+Rec yds",100],["S. LaPorta","Rec yds",25],["Jameson Williams","Rec yds",40],["A. St. Brown","Rec yds",70],["R. Odunze","Rec yds",40]],"2026-11-26","09:59"),
 ("Nov 26 · Parlay 7",416,22.8,99.98,5.13,[["J. Downs","Receptions",3],["T. Kelce","Receptions",3],["D. Kincaid","Receptions",2],["J. Cook","Rush yds",60],["R. Rice","Rec yds",30]],"2026-11-26","09:57"),
 ("Nov 26 · Parlay 6",522,18.1,99.9,5.42,[["S. Barkley","Rush yds",50],["D. Smith","Rec yds",50],["J. Williams","Rush+Rec yds",60],["C. Lamb","Receptions",5],["G. Pickens","Rec yds",50]],"2026-11-26","09:56"),
