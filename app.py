@@ -1894,6 +1894,11 @@ ROBINHOOD_NOV9_BETS=[
 ]
 
 ROBINHOOD_NOV25_BETS=[
+("Nov 25 · Parlay 7",1269,7.4,100,6.09,[["M. Buzelis","Threes",3],["J. Harden","Threes",3],["J. Wells","Threes",2],["C. Spencer","Threes",1]],"2026-11-25","15:33"),
+("Nov 25 · Parlay 6",273,35.1,99.8,3.98,[["L. Ball","Threes",2],["D. Mitchell","Threes",2],["C. Coward","Threes",2],["B. Miller","Threes",2]],"2026-11-25","15:25"),
+("Nov 25 · Parlay 5",1219,7.7,99.94,6.08,[["J. Love","Pass yds",250],["M. Golden","Receptions",5],["C. Watson","Receptions",5],["S. Williams","Receptions",2],["B. Corum","Rush yds",50],["C. Parkinson","Receptions",2]],"2026-11-25","15:16"),
+("Nov 25 · Parlay 4",1189,7.9,99.99,6.06,[["M. Golden","Rec yds",90],["C. Watson","Rec yds",90],["LAR","Win by 3.5",0]],"2026-11-25","15:11"),
+("Nov 25 · Parlay 3",343,27.7,99.81,4.8,[["GB at LAR","Over 40.5",1],["B. Corum","Rush yds",40],["M. Golden","Rec yds",40],["C. Watson","Rec yds",40]],"2026-11-25","15:06"),
 ("Nov 25 · Parlay 2",346,27.38,99.55,4.82,[["C. Spencer","Threes",1],["J. Brunson","Points",20],["T. Jerome","Points",15],["J. Smith","Rebounds",4],["C. Coward","Assists",2],["D. Green","Assists",4],["K. Towns","Assists",2]],"2026-11-25","14:53"),
 ("Nov 25 · Parlay 1",321,29.7,99.89,4.55,[["M. Buzelis","Threes",2],["M. Thomas","Threes",1],["J. Harden","Threes",2],["J. Wells","Threes",1]],"2026-11-25","14:51"),
 ]
