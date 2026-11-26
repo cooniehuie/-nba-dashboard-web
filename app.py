@@ -1894,6 +1894,8 @@ ROBINHOOD_NOV9_BETS=[
 ]
 
 ROBINHOOD_NOV26_BETS=[
+("Nov 26 · Parlay 13",1360,6.9,99.96,6.12,[["J. Allen","Anytime TD",1],["P. Mahomes","Anytime TD",1]],"2026-11-26","15:45"),
+("Nov 26 · Parlay 12",1360,6.9,99.96,6.12,[["E. Johnson","Rush yds",80],["J. Allen","Rush yds",30],["J. Cook","Rush yds",90],["T. Kelce","Rec yds",40]],"2026-11-26","15:41"),
 ("Nov 26 · Parlay 11",2285,4.1,99.98,6.3,[["J. Allen","Anytime TD",1],["J. Cook","Anytime TD",1],["T. Kelce","Anytime TD",1],["E. Johnson","Anytime TD",1]],"2026-11-26","15:40"),
 ("Nov 26 · Parlay 10",313,30.5,99.92,4.46,[["J. Cook","Anytime TD",1],["E. Johnson","Anytime TD",1]],"2026-11-26","15:37"),
 ("Nov 26 · Parlay 9",4456,2.1,100,6.42,[["E. Johnson","Anytime TD",2],["J. Cook","Anytime TD",2]],"2026-11-26","15:37"),
