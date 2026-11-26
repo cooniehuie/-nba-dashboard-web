@@ -1894,6 +1894,7 @@ ROBINHOOD_NOV9_BETS=[
 ]
 
 ROBINHOOD_NOV25_BETS=[
+("Nov 25 · Parlay 8",2194,4.7,110,6.88,[["E. Johnson","Anytime TD",1],["J. Gibbs","Anytime TD",1],["S. Barkley","Anytime TD",1],["J. Williams","Anytime TD",1],["K. Williams","Anytime TD",1]],"2026-11-25","16:20"),
 ("Nov 25 · Parlay 7",1269,7.4,100,6.09,[["M. Buzelis","Threes",3],["J. Harden","Threes",3],["J. Wells","Threes",2],["C. Spencer","Threes",1]],"2026-11-25","15:33"),
 ("Nov 25 · Parlay 6",273,35.1,99.8,3.98,[["L. Ball","Threes",2],["D. Mitchell","Threes",2],["C. Coward","Threes",2],["B. Miller","Threes",2]],"2026-11-25","15:25"),
 ("Nov 25 · Parlay 5",1219,7.7,99.94,6.08,[["J. Love","Pass yds",250],["M. Golden","Receptions",5],["C. Watson","Receptions",5],["S. Williams","Receptions",2],["B. Corum","Rush yds",50],["C. Parkinson","Receptions",2]],"2026-11-25","15:16"),
